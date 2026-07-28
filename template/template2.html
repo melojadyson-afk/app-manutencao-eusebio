@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>APP Manutenção · Elis Brasil - Eusébio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#141516; --bg2:#191a1b; --panel:#1e1f20; --line:#333537; --line-soft:#26282a;
+  --text:#ededee; --text-dim:#9a9c9e; --text-dimmer:#6a6c6e;
+  --nickel:#c7ccd1; --nickel-dim:#35373a;
+  --c-geral:#00a3a0; --c-orc:#d31d29; --c-os:#8b98a3; --c-compras:#ef5c66;
+  --c-equip:#0d7a78; --c-pessoas:#57646e; --c-agenda:#a11520; --c-mapa:#4fc9c4;
+  --red:#cc4a3c; --green:#00a3a0; --amber:#e0972f; --blue:#6a93b0;
+  --red-dim:#3d2421; --green-dim:#0f2b2a; --amber-dim:#3f331d; --blue-dim:#25313b;
+  --radius:10px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(1100px 550px at 100% -10%, #2a2b2c33, transparent), var(--bg);
+  color:var(--text); font-family:'Inter',system-ui,sans-serif; font-size:14px; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.display{font-family:'Space Grotesk',sans-serif;}
+::-webkit-scrollbar{width:9px; height:9px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#333537; border-radius:6px;}
+
+/* ===== Format toggle (desktop/mobile preview switch) ===== */
+.sidebar-fmt{
+  display:flex; align-items:center; gap:8px; padding:8px 11px; margin-top:2px; border-top:1px solid var(--line-soft); padding-top:12px;
+}
+.sidebar-fmt .lbl{font-size:10px; color:var(--text-dimmer); flex:1;}
+.sidebar-fmt-switch{display:flex; background:#101112; border:1px solid var(--line); border-radius:14px; padding:2px; gap:2px;}
+.sidebar-fmt-switch button{border:none; background:transparent; color:var(--text-dimmer); font-size:12px; padding:4px 7px; border-radius:11px; cursor:pointer; line-height:1;}
+.sidebar-fmt-switch button.active{background:var(--nickel); color:#141516;}
+
+/* ===== App shell ===== */
+#app{display:flex; min-height:100vh;}
+.sidebar{
+  width:222px; flex:none; background:linear-gradient(180deg,#1c1d1e,#141516);
+  border-right:1px solid var(--line-soft); padding:18px 12px; display:flex; flex-direction:column; gap:3px;
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+.brand{display:flex; align-items:center; gap:10px; padding:4px 8px 14px 8px; border-bottom:1px solid var(--line-soft); margin-bottom:10px;}
+.brand-logo{width:38px;height:38px;border-radius:8px; background:linear-gradient(145deg,#dfe2e5,#8b9095); display:flex;align-items:center;justify-content:center; flex:none; box-shadow:0 4px 14px -4px #00000066, inset 0 1px 0 #ffffff55;}
+.brand-logo svg{width:22px;height:22px;}
+.brand-title{font-family:'Space Grotesk'; font-weight:700; font-size:13.5px; line-height:1.2;}
+.brand-sub{color:var(--text-dimmer); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; margin-top:2px;}
+.logo-note{font-size:9px; color:var(--text-dimmer); padding:6px 8px 10px; border-bottom:1px solid var(--line-soft); margin-bottom:8px; line-height:1.4;}
+
+.navitem{
+  --c: var(--nickel);
+  display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:8px; cursor:pointer;
+  color:var(--text-dim); font-size:12.5px; font-weight:500; border:1px solid transparent; border-left:2px solid transparent;
+  transition:all .15s ease; user-select:none; position:relative;
+}
+.navitem:hover{background:#ffffff08; color:var(--text);}
+.navitem.active{background:color-mix(in srgb, var(--c) 14%, transparent); color:var(--c); border-left:2px solid var(--c);}
+.navitem .ic{width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex:none;}
+.navitem .ic svg{width:15px;height:15px;}
+.navitem .n{margin-left:auto; font-family:'IBM Plex Mono'; font-size:9.5px; color:var(--text-dimmer); background:#ffffff0a; padding:1px 6px; border-radius:20px;}
+.sidebar-footer{margin-top:auto; padding:8px; font-size:9.5px; color:var(--text-dimmer); border-top:1px solid var(--line-soft); line-height:1.5;}
+
+.main{flex:1; min-width:0; padding:24px 30px 60px;}
+.topbar{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;}
+.pagetitle{font-family:'Space Grotesk'; font-size:21px; font-weight:700; display:flex; align-items:center; gap:9px;}
+.pagetitle .dot{width:9px;height:9px;border-radius:50%; background:var(--tab-color, var(--nickel));}
+.pagesub{color:var(--text-dim); font-size:12px; margin-top:3px;}
+.period-pill{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--tab-color,var(--amber)); background:color-mix(in srgb, var(--tab-color,var(--amber)) 18%, transparent); border:1px solid color-mix(in srgb, var(--tab-color,var(--amber)) 35%, transparent); padding:5px 12px; border-radius:20px; white-space:nowrap;}
+
+.view{display:none;} .view.active{display:block; animation:fadein .2s ease;}
+@keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+.grid{display:grid; gap:14px;}
+.g4{grid-template-columns:repeat(4,1fr);} .g3{grid-template-columns:repeat(3,1fr);} .g2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:1100px){.g4{grid-template-columns:repeat(2,1fr);} .g3{grid-template-columns:repeat(2,1fr);}}
+
+.card{background:linear-gradient(180deg,var(--panel),#171819); border:1px solid var(--line-soft); border-radius:var(--radius); padding:16px 17px; position:relative; overflow:hidden;}
+.card.kpi{padding:14px 16px; border-top:2px solid var(--tab-color, var(--nickel));}
+.kpi-label{font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; font-weight:600;}
+.kpi-value{font-family:'Space Grotesk'; font-size:25px; font-weight:700; margin-top:7px; line-height:1;}
+.kpi-value .unit{font-size:13px; color:var(--text-dim); font-weight:500; margin-left:4px;}
+.kpi-delta{margin-top:7px; font-size:11px; font-family:'IBM Plex Mono';}
+.card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;}
+.card-title{font-family:'Space Grotesk'; font-weight:600; font-size:14px;}
+.card-title .sub{color:var(--text-dimmer); font-weight:400; font-size:11px; display:block; margin-top:2px; font-family:'Inter';}
+
+.tagbadge{display:inline-flex; align-items:center; gap:5px; font-family:'IBM Plex Mono'; font-size:10.5px; color:#dfe2e5; background:linear-gradient(180deg,#34363a,#2a2c2f); border:1px solid #46484c; padding:2px 8px 2px 6px; border-radius:3px 8px 8px 3px; white-space:nowrap;}
+.tagbadge::before{content:''; width:5px; height:5px; border-radius:50%; background:#1a1b1d; border:1px solid #46484c; flex:none;}
+
+.badge{display:inline-block; font-size:10px; font-weight:600; padding:3px 9px; border-radius:20px; font-family:'IBM Plex Mono'; letter-spacing:.02em;}
+.b-green{background:var(--green-dim); color:var(--green);} .b-amber{background:var(--amber-dim); color:var(--amber);}
+.b-red{background:var(--red-dim); color:var(--red);} .b-blue{background:var(--blue-dim); color:var(--blue);} .b-gray{background:#2c2e31; color:var(--text-dim);}
+
+.table-wrap{overflow-x:auto; border-radius:8px; border:1px solid var(--line-soft);}
+table{width:100%; border-collapse:collapse; font-size:12px;}
+thead th{text-align:left; padding:9px 11px; background:#1a1b1c; color:var(--text-dim); font-weight:600; font-size:10px; text-transform:uppercase; letter-spacing:.05em; border-bottom:1px solid var(--line-soft); white-space:nowrap; position:sticky; top:0;}
+tbody td{padding:8px 11px; border-bottom:1px solid var(--line-soft); white-space:nowrap; color:var(--text);}
+tbody tr:hover{background:#ffffff05;} tbody tr:last-child td{border-bottom:none;}
+.tbl-scroll{max-height:440px; overflow-y:auto;}
+
+.toolbar{display:flex; gap:9px; flex-wrap:wrap; margin-bottom:13px; align-items:center;}
+input[type=text],input[type=number],select{background:#151617; border:1px solid var(--line-soft); color:var(--text); padding:7px 11px; border-radius:7px; font-size:12px; font-family:'Inter'; outline:none;}
+input:focus,select:focus{border-color:var(--tab-color,var(--nickel));}
+input[type=text]{min-width:200px;}
+.pager{display:flex; gap:8px; align-items:center; margin-top:11px; font-size:11.5px; color:var(--text-dim);}
+.pager button{background:#151617; border:1px solid var(--line-soft); color:var(--text); padding:5px 10px; border-radius:6px; cursor:pointer; font-family:'IBM Plex Mono'; font-size:10.5px;}
+.pager button:disabled{opacity:.35;}
+
+.chart-box{position:relative; height:250px;} .chart-box.tall{height:300px;} .chart-box.short{height:170px;}
+.pbar-track{height:7px; border-radius:4px; background:#ffffff10; overflow:hidden; margin-top:7px;}
+.pbar-fill{height:100%; border-radius:4px;}
+.empty{padding:26px; text-align:center; color:var(--text-dimmer); font-size:12px;}
+.foot-note{color:var(--text-dimmer); font-size:10.5px; margin-top:9px; line-height:1.5;}
+.legend-row{display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; font-size:11px; color:var(--text-dim);}
+.legend-dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px;}
+.btn{padding:7px 15px; border-radius:7px; border:1px solid var(--line-soft); background:#151617; color:var(--text); font-size:12px; cursor:pointer; font-weight:500;}
+.btn.primary{background:var(--tab-color,var(--nickel)); color:#141516; border-color:var(--tab-color,var(--nickel)); font-weight:700;}
+.btn:hover{filter:brightness(1.15);}
+
+/* gear watermark */
+.topbar{position:relative;}
+.topbar::after{content:''; position:absolute; right:0; top:-16px; width:80px; height:80px; z-index:-1; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path fill='%23ffffff' fill-opacity='0.045' d='M50 8c2.3 0 4.5.1 6.7.4l1.7 8.2c2.9.7 5.7 1.8 8.3 3.2l6.9-4.7c3.6 2.6 6.8 5.8 9.4 9.4l-4.7 6.9c1.4 2.6 2.5 5.4 3.2 8.3l8.2 1.7c.3 2.2.4 4.4.4 6.7s-.1 4.5-.4 6.7l-8.2 1.7c-.7 2.9-1.8 5.7-3.2 8.3l4.7 6.9c-2.6 3.6-5.8 6.8-9.4 9.4l-6.9-4.7c-2.6 1.4-5.4 2.5-8.3 3.2l-1.7 8.2c-2.2.3-4.4.4-6.7.4s-4.5-.1-6.7-.4l-1.7-8.2c-2.9-.7-5.7-1.8-8.3-3.2l-6.9 4.7c-3.6-2.6-6.8-5.8-9.4-9.4l4.7-6.9c-1.4-2.6-2.5-5.4-3.2-8.3l-8.2-1.7c-.3-2.2-.4-4.4-.4-6.7s.1-4.5.4-6.7l8.2-1.7c.7-2.9 1.8-5.7 3.2-8.3l-4.7-6.9c2.6-3.6 5.8-6.8 9.4-9.4l6.9 4.7c2.6-1.4 5.4-2.5 8.3-3.2l1.7-8.2c2.2-.3 4.4-.4 6.7-.4zm0 27a15 15 0 100 30 15 15 0 000-30z'/></svg>"); background-repeat:no-repeat; pointer-events:none;}
+.sidebar{position:relative; overflow:hidden;}
+.sidebar::before{content:''; position:absolute; right:-70px; bottom:-70px; width:220px; height:220px; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path fill='%23ffffff' fill-opacity='0.035' d='M50 8c2.3 0 4.5.1 6.7.4l1.7 8.2c2.9.7 5.7 1.8 8.3 3.2l6.9-4.7c3.6 2.6 6.8 5.8 9.4 9.4l-4.7 6.9c1.4 2.6 2.5 5.4 3.2 8.3l8.2 1.7c.3 2.2.4 4.4.4 6.7s-.1 4.5-.4 6.7l-8.2 1.7c-.7 2.9-1.8 5.7-3.2 8.3l4.7 6.9c-2.6 3.6-5.8 6.8-9.4 9.4l-6.9-4.7c-2.6 1.4-5.4 2.5-8.3 3.2l-1.7 8.2c-2.2.3-4.4.4-6.7.4s-4.5-.1-6.7-.4l-1.7-8.2c-2.9-.7-5.7-1.8-8.3-3.2l-6.9 4.7c-3.6-2.6-6.8-5.8-9.4-9.4l4.7-6.9c-1.4-2.6-2.5-5.4-3.2-8.3l-8.2-1.7c-.3-2.2-.4-4.4-.4-6.7s.1-4.5.4-6.7l8.2-1.7c.7-2.9 1.8-5.7 3.2-8.3l-4.7-6.9c2.6-3.6 5.8-6.8 9.4-9.4l6.9 4.7c2.6-1.4 5.4-2.5 8.3-3.2l1.7-8.2c2.2-.3 4.4-.4 6.7-.4zm0 27a15 15 0 100 30 15 15 0 000-30z'/></svg>"); background-repeat:no-repeat; pointer-events:none;}
+
+/* ===== Map ===== */
+.map-wrap{position:relative; border-radius:10px; overflow:hidden; border:1px solid var(--line-soft); background:#0c0d0d; cursor:crosshair; user-select:none; line-height:0;}
+.map-wrap img{width:100%; display:block; filter:invert(1) hue-rotate(158deg) brightness(0.92) contrast(1.08) saturate(1.4);}
+.map-pin{position:absolute; margin-left:-11px; margin-top:-11px; width:22px; height:22px;}
+.map-pin .halo{position:absolute; inset:-14px; border-radius:50%; pointer-events:none; filter:blur(2px);}
+.map-pin .dot{position:absolute; inset:0; border-radius:50%; border:2px solid #14151688; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono'; font-size:8.5px; font-weight:700; color:#141516; cursor:pointer;}
+.map-pin .pin-label{position:absolute; bottom:26px; left:50%; transform:translateX(-50%); font-family:'IBM Plex Mono'; font-size:9.5px; background:#0d0e0eee; color:var(--c-mapa); padding:2px 6px; border-radius:3px; white-space:nowrap; border:1px solid #2a4a48; opacity:0; pointer-events:none; transition:opacity .15s;}
+.map-pin:hover .pin-label{opacity:1;}
+.pin-remove{position:absolute; top:-6px; right:-6px; width:14px;height:14px;background:var(--red); color:#fff; border-radius:50%; font-size:9px; display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0; transition:opacity .15s;}
+.map-pin:hover .pin-remove{opacity:1;}
+.map-note{margin-top:10px; font-size:11px; color:var(--text-dim); display:flex; gap:8px; align-items:flex-start; background:var(--amber-dim); border:1px solid #e0972f33; padding:9px 11px; border-radius:8px;}
+
+.modal-backdrop{position:fixed; inset:0; background:#03040666; background:#050606cc; display:none; align-items:center; justify-content:center; z-index:150; backdrop-filter:blur(2px);}
+.modal-backdrop.active{display:flex;}
+.modal{background:var(--panel); border:1px solid var(--line-soft); border-radius:12px; padding:20px; width:340px; max-height:85vh; overflow-y:auto; box-shadow:0 20px 60px -10px #000a;}
+.modal h3{margin:0 0 4px 0; font-family:'Space Grotesk'; font-size:14.5px;}
+.modal p{color:var(--text-dim); font-size:11.5px; margin:0 0 12px 0;}
+.modal select,.modal input{width:100%; margin-bottom:10px;}
+.modal .row{display:flex; gap:8px; justify-content:flex-end;}
+
+/* ===== Calendar ===== */
+.cal-grid-head,.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+.cal-grid-head{margin-bottom:7px;}
+.cal-grid-head div{text-align:center; font-size:10px; color:var(--text-dimmer); text-transform:uppercase; font-weight:600;}
+.cal-cell{min-height:88px; border-radius:8px; border:1px solid var(--line-soft); background:#151617; padding:6px 7px; cursor:pointer; display:flex; flex-direction:column; gap:4px;}
+.cal-cell:hover{border-color:var(--c-agenda);}
+.cal-cell.other-month{opacity:.3;}
+.cal-cell.today{border-color:var(--amber); box-shadow:inset 0 0 0 1px var(--amber);}
+.cal-daynum{font-family:'IBM Plex Mono'; font-size:11px; color:var(--text-dim); font-weight:600;}
+.cal-dots{display:flex; flex-wrap:wrap; gap:3px;}
+.cal-dot{width:6px; height:6px; border-radius:50%;}
+.cal-count-pill{font-family:'IBM Plex Mono'; font-size:9px; padding:1px 6px; border-radius:10px; background:#2c2e31; color:var(--text); margin-top:auto; align-self:flex-start;}
+.day-event-item{border:1px solid var(--line-soft); border-radius:8px; padding:8px 10px; font-size:12px; background:#151617; position:relative;}
+.day-event-item .ev-tag{font-family:'IBM Plex Mono'; font-size:9px; text-transform:uppercase; padding:1px 7px; border-radius:10px; display:inline-block; margin-bottom:4px;}
+.day-event-item .ev-title{font-weight:600;}
+.day-event-item .ev-meta{color:var(--text-dim); font-size:10.5px; margin-top:2px;}
+.day-event-item .ev-remove{position:absolute; top:7px; right:7px; width:17px;height:17px; border-radius:50%; background:var(--red-dim); color:var(--red); font-size:10px; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+
+/* ===== Mobile forced layout ===== */
+body.force-mobile .sidebar, body.force-mobile .brand, body.force-mobile .sidebar-footer{ }
+body.force-mobile #app{flex-direction:column;}
+body.force-mobile .sidebar{
+  position:fixed; bottom:0; left:0; right:0; top:auto; width:100%; height:64px; flex-direction:row;
+  overflow-x:auto; overflow-y:hidden; padding:6px 6px; gap:4px; border-right:none; border-top:1px solid var(--line-soft);
+  z-index:100; align-items:center;
+}
+body.force-mobile .sidebar::before{display:none;}
+body.force-mobile .brand,body.force-mobile .logo-note,body.force-mobile .sidebar-footer{display:none;}
+body.force-mobile .navitem{flex-direction:column; gap:3px; font-size:9px; padding:6px 10px; flex:none; border-left:none; border-bottom:2px solid transparent; text-align:center; white-space:nowrap;}
+body.force-mobile .navitem.active{border-left:none; border-bottom:2px solid var(--c);}
+body.force-mobile .navitem .n{display:none;}
+body.force-mobile .main{padding:16px 14px 84px; max-width:520px; margin:0 auto;}
+body.force-mobile .g4,body.force-mobile .g3,body.force-mobile .g2{grid-template-columns:1fr 1fr;}
+body.force-mobile .pagetitle{font-size:17px;}
+body.force-mobile .sidebar-fmt{display:none;}
+
+@media (max-width:820px){
+  .sidebar{position:fixed; bottom:0; left:0; right:0; top:auto; width:100%; height:64px; flex-direction:row; overflow-x:auto; overflow-y:hidden; padding:6px; gap:4px; border-right:none; border-top:1px solid var(--line-soft); z-index:100; align-items:center;}
+  .sidebar::before{display:none;}
+  .brand,.logo-note,.sidebar-footer{display:none;}
+  .navitem{flex-direction:column; gap:3px; font-size:9px; padding:6px 10px; flex:none; border-left:none; border-bottom:2px solid transparent; text-align:center; white-space:nowrap;}
+  .navitem.active{border-left:none; border-bottom:2px solid var(--c);}
+  .navitem .n{display:none;}
+  .main{padding:16px 14px 84px;}
+  .g4,.g3,.g2{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="sidebar">
+    <div class="brand" style="flex-direction:column; align-items:flex-start; gap:8px;">
+      <img src="data:image/png;base64,__LOGO_B64__" alt="Elis Brasil" style="width:100%; max-width:196px; height:auto; display:block;">
+      <div>
+        <div class="brand-title">APP Manutenção</div>
+        <div class="brand-sub">elis Brasil · Eusébio</div>
+      </div>
+    </div>
+
+    <div class="navitem active" data-view="geral" style="--c:var(--c-geral)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 100-18 9 9 0 000 18z"/><path d="M12 12l4-5.2"/><path d="M12 8v.01"/></svg></span> Visão Geral</div>
+    <div class="navitem" data-view="orcamento" style="--c:var(--c-orc)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h13a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/><path d="M16 12h3"/><path d="M3 9h18"/></svg></span> Orçamento &amp; Custos</div>
+    <div class="navitem" data-view="os" style="--c:var(--c-os)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><path d="M9 3.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8v1.4a.8.8 0 01-.8.8H9.8a.8.8 0 01-.8-.8V3.8z"/><path d="M8.5 12.5l2 2 4-4.2"/></svg></span> Ordens de Serviço <span class="n" id="nav-os-count"></span></div>
+    <div class="navitem" data-view="compras" style="--c:var(--c-compras)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="18" cy="21" r="1"/><path d="M2.5 3h2.5l2.7 12.4a2 2 0 002 1.6h8.1a2 2 0 002-1.6L21 7H6"/></svg></span> Gestão de Compras</div>
+    <div class="navitem" data-view="equip" style="--c:var(--c-equip)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2.5l1.2 2.7 2.9-.6 1 2.8 2.8 1-.6 2.9 2.7 1.2-.6 2.9.6 2.9-2.7 1.2.6 2.9-2.8 1-1 2.8-2.9-.6L12 24.5l-1.2-2.7-2.9.6-1-2.8-2.8-1 .6-2.9L2 12.5l.6-2.9L2 6.7l2.7-1.2-.6-2.9 2.8-1 1-2.8 2.9.6z" transform="scale(0.83) translate(2.2,2.2)"/><circle cx="12" cy="12" r="3.6"/></svg></span> Equipamentos <span class="n" id="nav-eq-count"></span></div>
+    <div class="navitem" data-view="pessoas" style="--c:var(--c-pessoas)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 00-3.5-3.5h-5A3.5 3.5 0 005 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path d="M19 20v-1.5a3.3 3.3 0 00-2.2-3.1"/><path d="M14.8 4.9a3.2 3.2 0 010 6.1"/></svg></span> Gestão de Pessoas</div>
+    <div class="navitem" data-view="calendario" style="--c:var(--c-agenda)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v4"/><path d="M16 3v4"/></svg></span> Agenda / Calendário <span class="n" id="nav-cal-count"></span></div>
+    <div class="navitem" data-view="mapa" style="--c:var(--c-mapa)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11.5A7 7 0 105 9.5C5 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg></span> Mapa</div>
+
+    <div class="sidebar-fmt">
+      <span class="lbl">Formato</span>
+      <div class="sidebar-fmt-switch">
+        <button id="fmt-desktop" class="active" title="Computador">🖥</button>
+        <button id="fmt-mobile" title="Smartphone">📱</button>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">Dados: TOM (Hexagon) — snapshot diário.<br>elis Brasil · Eusébio</div>
+  </div>
+
+  <div class="main">
+    <!-- ============ VISÃO GERAL ============ -->
+    <div class="view active" id="view-geral" style="--tab-color:var(--c-geral)">
+      <div class="topbar">
+        <div><div class="pagetitle"><span class="dot"></span>Visão Geral</div><div class="pagesub">Indicadores consolidados da manutenção — BR-Eusébio</div></div>
+        <select class="period-pill mono" id="geral-mes-select" style="border:1px solid color-mix(in srgb, var(--c-geral) 35%, transparent);"></select>
+      </div>
+      <div class="grid g4" style="margin-bottom:14px;">
+        <div class="card kpi"><div class="kpi-label">Saldo do dia <span style="color:var(--text-dimmer)">(mês atual)</span></div><div class="kpi-value" id="g-kpi-saldo">–</div><div class="kpi-delta" id="g-kpi-saldo-sub"></div></div>
+        <div class="card kpi"><div class="kpi-label">% Conclusão preventivas</div><div class="kpi-value" id="g-kpi-prazo">–</div><div class="pbar-track"><div class="pbar-fill" id="g-kpi-prazo-bar" style="background:var(--green);width:0%"></div></div></div>
+        <div class="card kpi"><div class="kpi-label">OS abertas (mês selecionado)</div><div class="kpi-value" id="g-kpi-os">–</div><div class="kpi-delta" id="g-kpi-os-sub"></div></div>
+        <div class="card kpi"><div class="kpi-label">Equipamentos criticidade AA</div><div class="kpi-value" id="g-kpi-aa">–</div><div class="kpi-delta warn">de <span id="g-kpi-total"></span> cadastrados</div></div>
+        <div class="card kpi"><div class="kpi-label">OCs aguardando fechamento</div><div class="kpi-value" id="g-kpi-oc-qtd">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Valor em OCs abertas</div><div class="kpi-value" id="g-kpi-oc-valor">–</div></div>
+      </div>
+      <div class="grid g2" style="margin-bottom:14px;">
+        <div class="card"><div class="card-head"><div class="card-title">Evolução de OS por mês<span class="sub">Preventiva vs. Corretiva — histórico completo TOM</span></div></div><div class="chart-box tall"><canvas id="chart-os-trend"></canvas></div></div>
+        <div class="card"><div class="card-head"><div class="card-title">Equipamentos com mais atuações<span class="sub">Últimos 6 meses — todos os tipos de OS</span></div></div><div class="chart-box tall"><canvas id="chart-top-corretiva"></canvas></div></div>
+      </div>
+      <div class="grid g2">
+        <div class="card"><div class="card-head"><div class="card-title">Status das OS — mês selecionado<span class="sub">Distribuição atual</span></div></div><div class="chart-box tall"><canvas id="chart-os-status"></canvas></div></div>
+        <div class="card"><div class="card-head"><div class="card-title">Classificação de criticidade<span class="sub">Distribuição do parque de equipamentos</span></div></div><div class="chart-box tall"><canvas id="chart-crit-dist"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- ============ ORÇAMENTO & CUSTOS ============ -->
+    <div class="view" id="view-orcamento" style="--tab-color:var(--c-orc)">
+      <div class="topbar">
+        <div><div class="pagetitle"><span class="dot"></span>Orçamento &amp; Custos</div><div class="pagesub">Notas fiscais, biomassa e estoque — Manutenção/Utilidades</div></div>
+        <select id="orc-mes-select" class="period-pill mono" style="border:1px solid color-mix(in srgb, var(--c-orc) 35%, transparent);"></select>
+      </div>
+      <div class="grid g4" style="margin-bottom:14px;">
+        <div class="card kpi">
+          <div class="kpi-label">Budget do mês (fixo)</div>
+          <div class="kpi-value" id="orc-budget-fixed" style="font-size:22px;">R$ 338.000</div>
+          <div class="foot-note">Budget fixo mensal — centro de custo Manutenção.</div>
+        </div>
+        <div class="card kpi"><div class="kpi-label">Valor realizado (mês)</div><div class="kpi-value" id="orc-realizado">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Saldo do mês</div><div class="kpi-value" id="orc-saldo">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Biomassa (mês) — R$ / TN</div><div class="kpi-value" id="orc-bio-mes">–</div><div class="kpi-delta" id="orc-bio-mes-tn"></div></div>
+      </div>
+      <div class="grid g2" style="margin-bottom:14px;">
+        <div class="card"><div class="card-head"><div class="card-title">Histórico mensal — Custo vs. Budget<span class="sub">Jan a Jun/2026 — cada barra é um mês</span></div></div><div class="chart-box tall"><canvas id="chart-orc-hist"></canvas></div></div>
+        <div class="card"><div class="card-head"><div class="card-title">Composição do gasto (mês selecionado)<span class="sub">Por tipo de lançamento</span></div></div><div class="chart-box tall"><canvas id="chart-orc-comp"></canvas></div></div>
+      </div>
+      <div class="grid g3" style="margin-bottom:14px;">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:9px;">Aquisição de Biomassa (acumulado)</div>
+          <div id="bio-produtos" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:9px;">Biomassa do mês selecionado</div>
+          <div id="bio-produtos-mes" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:9px;">Maiores fornecedores</div>
+          <div class="chart-box short"><canvas id="chart-fornecedores"></canvas></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-head"><div class="card-title">Notas de Entrada Geral — Centro de Custo Manutenção<span class="sub" id="nfg-count-sub"></span></div></div>
+        <div class="grid g3" style="margin-bottom:12px;">
+          <div class="card kpi" style="border-top:2px solid var(--red);"><div class="kpi-label">Não lançadas pela Manutenção (mês)</div><div class="kpi-value" id="nfg-k-qtd">–</div></div>
+          <div class="card kpi" style="border-top:2px solid var(--red);"><div class="kpi-label">Valor não lançado (mês)</div><div class="kpi-value" id="nfg-k-valor">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Já reconciliadas (lançadas por nós)</div><div class="kpi-value" id="nfg-k-ok">–</div></div>
+        </div>
+        <div class="toolbar">
+          <input type="text" id="nfg-search" placeholder="Buscar fornecedor, nota...">
+          <select id="nfg-mes-filter"><option value="">Todos os meses</option></select>
+          <select id="nfg-flag-filter"><option value="">Todas</option><option value="nao">Só não lançadas por Manutenção</option><option value="sim">Só já lançadas por Manutenção</option></select>
+        </div>
+        <div class="table-wrap tbl-scroll">
+          <table><thead><tr><th>Nota</th><th>Fornecedor</th><th>Data entrada</th><th>Valor</th><th>Situação</th><th>Lançada p/ Manutenção?</th></tr></thead><tbody id="nfg-tbody"></tbody></table>
+        </div>
+        <div class="foot-note">Este bloco vem da nova aba "Notas de entrada Geral" — todas as notas de fato lançadas no centro de custo de Manutenção, mesmo que não tenham passado pelo controle interno da sala de manutenção (aba de NF original). O sinalizador compara pelo número da nota/NF; quando não há correspondência, a nota provavelmente foi lançada por outro setor mas ainda afeta nosso número — vale revisar essas linhas para não perder o registro nem contar em duplicidade.</div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-head"><div class="card-title">Notas Fiscais (lançadas pela sala de Manutenção)<span class="sub" id="nf-count-sub"></span></div></div>
+        <div class="toolbar">
+          <input type="text" id="nf-search" placeholder="Buscar fornecedor, descrição, NF...">
+          <select id="nf-mes-filter"><option value="">Todos os meses</option></select>
+          <select id="nf-tipo-filter"><option value="">Todos os tipos</option></select>
+        </div>
+        <div class="table-wrap tbl-scroll">
+          <table><thead><tr><th>Mês</th><th>NF</th><th>Fornecedor</th><th>Tipo</th><th>Valor (R$)</th><th>Centro custo</th><th>Descrição</th></tr></thead><tbody id="nf-tbody"></tbody></table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Retiradas de Estoque<span class="sub" id="est-count-sub"></span></div></div>
+        <div class="toolbar"><input type="text" id="est-search" placeholder="Buscar produto ou descrição..."></div>
+        <div class="table-wrap tbl-scroll">
+          <table><thead><tr><th>Data</th><th>Produto</th><th>Descrição</th><th>Qtde mov.</th><th>Valor (R$)</th><th>Saldo estoque</th></tr></thead><tbody id="est-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ ORDENS DE SERVIÇO ============ -->
+    <div class="view" id="view-os" style="--tab-color:var(--c-os)">
+      <div class="topbar">
+        <div><div class="pagetitle"><span class="dot"></span>Ordens de Serviço</div><div class="pagesub">Base TOM (Hexagon) — histórico completo + detalhamento recente</div></div>
+        <select id="os-mes-select" class="period-pill mono" style="border:1px solid color-mix(in srgb, var(--c-os) 35%, transparent);"></select>
+      </div>
+      <div class="grid g4" style="margin-bottom:14px;">
+        <div class="card kpi"><div class="kpi-label">Preventivas no mês</div><div class="kpi-value" id="os-prev-total">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Preventivas encerradas</div><div class="kpi-value" id="os-prev-encerradas">–</div></div>
+        <div class="card kpi"><div class="kpi-label">% Conclusão <span style="color:var(--text-dimmer)">(Encerradas÷Total)</span></div><div class="kpi-value" id="os-prev-pct-concluido">–</div></div>
+        <div class="card kpi"><div class="kpi-label">% Conclusão em dia <span style="color:var(--amber)">(ranking)</span></div><div class="kpi-value" id="os-prev-pct">–</div></div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-head"><div class="card-title">Quantidade de ordens por tipo e status<span class="sub">Geral — últimos 6 meses</span></div></div>
+        <div class="grid g2">
+          <div class="chart-box"><canvas id="chart-os-tipo-mes"></canvas></div>
+          <div class="chart-box"><canvas id="chart-os-status-mes"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Detalhamento de Ordens de Serviço<span class="sub" id="os-detail-sub"></span></div></div>
+        <div class="toolbar">
+          <input type="text" id="os-search" placeholder="Buscar equipamento, descrição, técnico, OT...">
+          <select id="os-status-filter"><option value="">Todos os status</option></select>
+          <select id="os-tipo-filter"><option value="">Todos os tipos</option></select>
+          <select id="os-prio-filter"><option value="">Todas as prioridades</option></select>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>OT</th><th>Tipo</th><th>Status</th><th>Prioridade</th><th>Equipamento</th><th>Descrição</th><th>Atribuído a</th><th>Prog.</th><th>Horas est.</th></tr></thead><tbody id="os-tbody"></tbody></table>
+        </div>
+        <div class="pager" id="os-pager"></div>
+        <div class="foot-note">Tabela detalhada limitada aos últimos 6 meses para manter o painel leve. Os gráficos de tendência usam o histórico completo (desde ago/2024).</div>
+      </div>
+    </div>
+
+    <!-- ============ GESTÃO DE COMPRAS ============ -->
+    <div class="view" id="view-compras" style="--tab-color:var(--c-compras)">
+      <div class="topbar">
+        <div><div class="pagetitle"><span class="dot"></span>Gestão de Compras</div><div class="pagesub">Ordens de compra — controle de aquisições (TOM)</div></div>
+        <select id="compras-mes-select" class="period-pill mono" style="border:1px solid color-mix(in srgb, var(--c-compras) 35%, transparent);"><option value="">Todos os meses</option></select>
+      </div>
+      <div class="grid g4" style="margin-bottom:14px;">
+        <div class="card kpi"><div class="kpi-label">OCs em aberto</div><div class="kpi-value" id="compras-k-qtd">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Valor em aberto</div><div class="kpi-value" id="compras-k-valor">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Fornecedores envolvidos</div><div class="kpi-value" id="compras-k-forn">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Aberto Parcial</div><div class="kpi-value" id="compras-k-parcial">–</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Ordens de Compra<span class="sub" id="compras-count-sub"></span></div></div>
+        <div class="toolbar">
+          <input type="text" id="compras-search" placeholder="Buscar fornecedor, OC...">
+          <select id="compras-forn-filter"><option value="">Todos os fornecedores</option></select>
+          <select id="compras-status-filter"><option value="">Todos os status</option></select>
+        </div>
+        <div class="table-wrap tbl-scroll">
+          <table><thead><tr><th>OC</th><th>Fornecedor</th><th>Data emissão</th><th>Valor rateado</th><th>Tns. Produto</th><th>Tns. Serviço</th><th>Status</th></tr></thead><tbody id="compras-tbody"></tbody></table>
+        </div>
+        <div class="foot-note">Não há status "Aguardando Aprovação" explícito nesta planilha — todas as linhas listadas na aba "Gestão de Compras" já representam ordens em aberto (Não Fechado / Aberto Total / Aberto Parcial).</div>
+      </div>
+    </div>
+
+    <!-- ============ EQUIPAMENTOS ============ -->
+    <div class="view" id="view-equip" style="--tab-color:var(--c-equip)">
+      <div class="topbar">
+        <div><div class="pagetitle"><span class="dot"></span>Equipamentos</div><div class="pagesub">Cadastro TOM + Análise de Criticidade</div></div>
+        <div class="period-pill mono" id="eq-count-pill"></div>
+      </div>
+      <div class="grid g4" style="margin-bottom:14px;">
+        <div class="card kpi"><div class="kpi-label">Total cadastrado</div><div class="kpi-value" id="eq-k-total">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Criticidade Alta (TOM)</div><div class="kpi-value" id="eq-k-alta">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Classificação AA (score)</div><div class="kpi-value" id="eq-k-aa">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Fora de serviço</div><div class="kpi-value" id="eq-k-fora">–</div></div>
+      </div>
+      <div class="card">
+        <div class="toolbar">
+          <input type="text" id="eq-search" placeholder="Buscar tag, descrição, fabricante...">
+          <select id="eq-classe-filter"><option value="">Todas as classes</option></select>
+          <select id="eq-crit-filter"><option value="">Toda criticidade (TOM)</option></select>
+          <select id="eq-classif-filter"><option value="">Toda classificação (score)</option></select>
+        </div>
+        <div class="table-wrap tbl-scroll">
+          <table><thead><tr><th>Tag</th><th>Descrição</th><th>Classe</th><th>Fabricante</th><th>Ano</th><th>Criticidade (TOM)</th><th>Classif. (score)</th><th>Estado</th></tr></thead><tbody id="eq-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ GESTÃO DE PESSOAS ============ -->
+    <div class="view" id="view-pessoas" style="--tab-color:var(--c-pessoas)">
+      <div class="topbar">
+        <div><div class="pagetitle"><span class="dot"></span>Gestão de Pessoas</div><div class="pagesub">Headcount, apropriação de horas e disponibilidade — TOM</div></div>
+        <select id="hh-mes-select" class="period-pill mono" style="border:1px solid color-mix(in srgb, var(--c-pessoas) 35%, transparent);"></select>
+      </div>
+      <div class="grid g4" style="margin-bottom:14px;">
+        <div class="card kpi"><div class="kpi-label">Horas apropriadas (mês)</div><div class="kpi-value" id="hh-k-horas">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Headcount ativo</div><div class="kpi-value" id="hh-k-headcount">–</div></div>
+        <div class="card kpi">
+          <div class="kpi-label">Horas/mês por pessoa (escala)</div>
+          <input type="number" id="hh-escala-input" value="220" style="width:100%; font-family:'Space Grotesk'; font-size:17px; font-weight:700; background:transparent; border:none; padding:6px 0 0; color:var(--text);">
+          <div class="foot-note">Não há escala real na planilha — estimativa editável (padrão 220h).</div>
+        </div>
+        <div class="card kpi"><div class="kpi-label">% Apropriação média</div><div class="kpi-value" id="hh-k-apropriacao">–</div></div>
+      </div>
+      <div class="grid g2" style="margin-bottom:14px;">
+        <div class="card"><div class="card-head"><div class="card-title">Histórico de Hora-Homem<span class="sub">Por tipo de ordem de trabalho</span></div></div><div class="chart-box tall"><canvas id="chart-hh-trend"></canvas></div></div>
+        <div class="card"><div class="card-head"><div class="card-title">Ranking de apropriações<span class="sub">Total acumulado por técnico</span></div></div><div class="chart-box tall"><canvas id="chart-hh-ranking"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">Hora-Homem individual<span class="sub">Horas TOM × Horas de escala (estimada) × % apropriação — mês selecionado</span></div></div>
+        <div class="table-wrap tbl-scroll">
+          <table><thead><tr><th>Funcionário</th><th>Cargo</th><th>Horas TOM</th><th>Horas escala</th><th>% Apropriação</th></tr></thead><tbody id="hh-individual-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ AGENDA / CALENDÁRIO ============ -->
+    <div class="view" id="view-calendario" style="--tab-color:var(--c-agenda)">
+      <div class="topbar">
+        <div><div class="pagetitle"><span class="dot"></span>Agenda / Calendário</div><div class="pagesub">OS programadas (TOM) + visitas, terceiros, auditorias, treinamentos e reuniões</div></div>
+        <div class="period-pill mono" id="cal-count-pill">0 EVENTOS</div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="toolbar" style="justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:9px;">
+            <button class="btn" id="cal-prev">‹</button>
+            <div class="display" id="cal-month-label" style="font-size:14.5px; font-weight:700; min-width:140px; text-align:center;">—</div>
+            <button class="btn" id="cal-next">›</button>
+            <button class="btn" id="cal-today">Hoje</button>
+          </div>
+          <button class="btn primary" id="cal-new-event">+ Novo evento</button>
+        </div>
+        <div class="legend-row" id="cal-legend"></div>
+      </div>
+      <div class="card"><div class="cal-grid-head" id="cal-grid-head"></div><div class="cal-grid" id="cal-grid"></div></div>
+    </div>
+
+    <!-- ============ MAPA ============ -->
+    <div class="view" id="view-mapa" style="--tab-color:var(--c-mapa)">
+      <div class="topbar">
+        <div><div class="pagetitle"><span class="dot"></span>Mapa de Equipamentos</div><div class="pagesub">Planta interativa — incidência de corretivas por local (estilo mapa de calor)</div></div>
+        <div class="period-pill mono" id="map-count-pill">0 VINCULADOS</div>
+      </div>
+      <div class="card">
+        <div class="toolbar" style="justify-content:space-between;">
+          <select id="map-floor-select"><option value="terreo">Planta baixa — Térreo</option><option value="superior">Planta baixa — Superior</option></select>
+          <span style="color:var(--text-dimmer); font-size:11px;">Clique na planta para vincular um equipamento · o tamanho/cor do pino reflete o volume de corretivas</span>
+        </div>
+        <div class="map-wrap" id="map-wrap"><img id="map-img" src="" alt="Planta baixa BR-Eusébio"><div id="map-pins"></div></div>
+        <div class="legend-row" style="margin-top:12px;">
+          <span><span class="legend-dot" style="background:#5c9c6f"></span>Baixa incidência</span>
+          <span><span class="legend-dot" style="background:#e0972f"></span>Média incidência</span>
+          <span><span class="legend-dot" style="background:#cc4a3c"></span>Alta incidência (foco de ação)</span>
+        </div>
+        <div class="map-note">
+          <span>⚠</span>
+          <span>Esta é a planta do <strong>Térreo</strong>, já em versão limpa (arquivo enviado). A opção "Superior" ainda usa a mesma imagem — envie o desenho do piso superior separadamente para eu trocar. Pinos ficam salvos em <strong>armazenamento compartilhado</strong> (visíveis a todos que abrirem este painel).</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="modal-backdrop" id="pin-modal">
+  <div class="modal">
+    <h3>Vincular equipamento</h3><p>Selecione qual equipamento fica neste ponto da planta.</p>
+    <input type="text" id="pin-search" placeholder="Buscar por tag ou descrição...">
+    <select id="pin-select" size="7"></select>
+    <div class="row"><button class="btn" id="pin-cancel">Cancelar</button><button class="btn primary" id="pin-confirm">Salvar pino</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="day-modal">
+  <div class="modal" style="width:400px;">
+    <h3 id="day-modal-title">—</h3><p>Atividades programadas neste dia</p>
+    <div id="day-events-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;"></div>
+    <div class="row" style="justify-content:flex-end;"><button class="btn" id="day-modal-close">Fechar</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="event-modal">
+  <div class="modal">
+    <h3>Novo evento</h3><p>Visita, serviço de terceiros, auditoria, treinamento ou reunião</p>
+    <input type="text" id="ev-date" placeholder="Data (AAAA-MM-DD)">
+    <select id="ev-tipo">
+      <option value="Visita">Visita</option><option value="Serviço de Terceiros">Serviço de Terceiros</option>
+      <option value="Auditoria">Auditoria</option><option value="Treinamento">Treinamento</option>
+      <option value="Reunião">Reunião</option><option value="Outro">Outro</option>
+    </select>
+    <input type="text" id="ev-titulo" placeholder="Título / descrição">
+    <input type="text" id="ev-responsavel" placeholder="Responsável / empresa">
+    <input type="text" id="ev-horario" placeholder="Horário (ex: 09:00)">
+    <div class="row"><button class="btn" id="ev-cancel">Cancelar</button><button class="btn primary" id="ev-confirm">Salvar evento</button></div>
+  </div>
+</div>
+
+<script id="app-data" type="application/json">__DATA_JSON__</script>
+<script>
+const IMG_B64 = "__IMAGE_B64__";
+const DATA = JSON.parse(document.getElementById('app-data').textContent);
+
+const fmtBRL = n => (n==null||isNaN(n)) ? '—' : n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const fmtNum = (n,d=0) => (n==null||isNaN(n)) ? '—' : n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtPct = n => (n==null||isNaN(n)) ? '—' : (n*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%';
+const monthLabel = ym => { const [y,m]=ym.split('-'); const names=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']; return names[parseInt(m)-1]+'/'+y.slice(2); };
+Chart.defaults.color = '#9a9c9e'; Chart.defaults.font.family = "Inter, sans-serif"; Chart.defaults.font.size = 11; Chart.defaults.borderColor = '#333537';
+const PAL = {geral:'#00a3a0', orc:'#d31d29', os:'#8b98a3', compras:'#ef5c66', equip:'#0d7a78', pessoas:'#57646e', agenda:'#a11520', mapa:'#4fc9c4', red:'#cc4a3c', green:'#00a3a0', amber:'#e0972f', gray:'#9a9c9e'};
+
+document.querySelectorAll('.navitem').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('view-'+el.dataset.view).classList.add('active');
+  });
+});
+document.getElementById('fmt-desktop').onclick = ()=>{ document.body.classList.remove('force-mobile'); document.getElementById('fmt-desktop').classList.add('active'); document.getElementById('fmt-mobile').classList.remove('active'); };
+document.getElementById('fmt-mobile').onclick = ()=>{ document.body.classList.add('force-mobile'); document.getElementById('fmt-mobile').classList.add('active'); document.getElementById('fmt-desktop').classList.remove('active'); };
+
+/* ===================== VISÃO GERAL ===================== */
+function renderGeral(){
+  document.getElementById('nav-os-count').textContent = DATA.os_list.length;
+  document.getElementById('nav-eq-count').textContent = DATA.equipment.length;
+
+  const t = DATA.os_trend_monthly;
+  const mesSel = document.getElementById('geral-mes-select');
+  t.months.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); mesSel.appendChild(o); });
+  mesSel.value = t.months[t.months.length-1];
+
+  const critAA = DATA.classif_dist.AA||0;
+  document.getElementById('g-kpi-aa').textContent = critAA;
+  document.getElementById('g-kpi-total').textContent = DATA.equipment.length;
+
+  // Saldo do dia — sempre referente ao mês corrente real (não ao seletor), budget fixo 338k
+  const BUDGET_FIXO_GERAL = 338000;
+  const hojeYm = new Date().toISOString().slice(0,7);
+  const mnHoje = parseInt(hojeYm.slice(5,7));
+  const nfManutHoje = DATA.nf_list.filter(n=> n.mes_num===mnHoje && (n.centro_custo||'').toUpperCase().includes('MANUTEN')).reduce((a,n)=>a+(n.valor||0),0);
+  const estqHoje = DATA.estoque_list.filter(e=>{ if(!e.data) return false; return parseInt(e.data.slice(5,7))===mnHoje; }).reduce((a,e)=>a+(e.valor_mov||0),0);
+  const saldoHoje = BUDGET_FIXO_GERAL - (nfManutHoje+estqHoje);
+  document.getElementById('g-kpi-saldo').textContent = fmtBRL(saldoHoje);
+  document.getElementById('g-kpi-saldo').style.color = saldoHoje>=0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('g-kpi-saldo-sub').innerHTML = `<span class="mono" style="color:var(--text-dimmer)">budget 338k − realizado até hoje</span>`;
+
+  new Chart(document.getElementById('chart-os-trend'), {type:'line', data:{labels:t.months.map(monthLabel), datasets:[
+    {label:'Preventiva', data:t.preventiva, borderColor:PAL.mapa, backgroundColor:PAL.mapa+'22', tension:.35, fill:true, pointRadius:0, borderWidth:2},
+    {label:'Corretiva', data:t.corretiva, borderColor:PAL.amber, backgroundColor:PAL.amber+'15', tension:.35, fill:true, pointRadius:0, borderWidth:2},
+  ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top', align:'end', labels:{boxWidth:8,boxHeight:8,usePointStyle:true}}}, scales:{x:{grid:{display:false}, ticks:{maxTicksLimit:12}}, y:{grid:{color:'#26282a'}, beginAtZero:true}}}});
+
+  const tc = DATA.top_equipment_geral.slice(0,8);
+  new Chart(document.getElementById('chart-top-corretiva'), {type:'bar', data:{labels:tc.map(d=>d.equipamento.trim()), datasets:[{data:tc.map(d=>d.count), backgroundColor:PAL.geral, borderRadius:4, maxBarThickness:16}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}}}}});
+
+  const cd = DATA.classif_dist; const order=['AA','A','B','C']; const cc={AA:PAL.red,A:PAL.amber,B:PAL.os,C:PAL.gray};
+  new Chart(document.getElementById('chart-crit-dist'), {type:'doughnut', data:{labels:order, datasets:[{data:order.map(k=>cd[k]||0), backgroundColor:order.map(k=>cc[k]), borderColor:'#171819', borderWidth:3}]}, options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12}}}}});
+
+  function drawMonthDependent(){
+    const ym = mesSel.value;
+    const idx = t.months.indexOf(ym);
+    const totalMes = idx>=0 ? (t.preventiva[idx]+t.corretiva[idx]+t.outros[idx]) : 0;
+    document.getElementById('g-kpi-os').textContent = fmtNum(totalMes);
+    document.getElementById('g-kpi-os-sub').innerHTML = idx>=0 ? `<span class="mono">${t.preventiva[idx]} preventivas · ${t.corretiva[idx]} corretivas</span>` : '';
+
+    const r = DATA.ranking_preventiva_mensal.find(x=>x.mes===ym);
+    const pctConcl = r ? (r.encerradas / r.total) : null;
+    document.getElementById('g-kpi-prazo').textContent = pctConcl!=null ? fmtPct(pctConcl) : '—';
+    document.getElementById('g-kpi-prazo-bar').style.width = pctConcl!=null ? (pctConcl*100)+'%' : '0%';
+
+    const ocMes = DATA.compras_list.filter(c=> c.data_emissao && c.data_emissao.slice(0,7)===ym);
+    const ocFonte = ocMes.length ? ocMes : DATA.compras_list;
+    document.getElementById('g-kpi-oc-qtd').textContent = fmtNum(ocFonte.length);
+    document.getElementById('g-kpi-oc-valor').textContent = fmtBRL(ocFonte.reduce((a,c)=>a+(c.valor||0),0));
+
+    const rows = DATA.os_list.filter(o=>o.data_prog && o.data_prog.slice(0,7)===ym);
+    const statusCounts = {}; rows.forEach(o=>{ statusCounts[o.status]=(statusCounts[o.status]||0)+1; });
+    const statusColors = {'Encerrado':PAL.green,'1-Em curso':PAL.os,'Concluído':PAL.mapa,'Anulado . Fora de prazo':PAL.red};
+    if(window.__geralStatusChart) window.__geralStatusChart.destroy();
+    window.__geralStatusChart = new Chart(document.getElementById('chart-os-status'), {type:'pie', data:{labels:Object.keys(statusCounts), datasets:[{data:Object.values(statusCounts), backgroundColor:Object.keys(statusCounts).map(k=>statusColors[k]||PAL.gray), borderColor:'#171819', borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12,font:{size:10}}}}}});
+  }
+  mesSel.addEventListener('change', drawMonthDependent);
+  drawMonthDependent();
+}
+
+/* ===================== ORÇAMENTO ===================== */
+async function loadKV(key, def){ try{ const r = await window.storage.get(key,true); return r&&r.value ? JSON.parse(r.value) : def; }catch(e){ return def; } }
+async function saveKV(key, val){ try{ await window.storage.set(key, JSON.stringify(val), true); }catch(e){ console.error(e); } }
+
+async function renderOrcamento(){
+  const mesSel = document.getElementById('orc-mes-select');
+  DATA.orcamento_mensal.forEach(m=>{ const o=document.createElement('option'); o.value=m.mes_num; o.textContent=m.mes+'/2026'; mesSel.appendChild(o); });
+  mesSel.value = DATA.orcamento_mensal.slice(-1)[0].mes_num;
+
+  const BUDGET_FIXO = 338000;
+
+  function nfManutencaoMes(mn){
+    return DATA.nf_list.filter(n=> n.mes_num===mn && (n.centro_custo||'').toUpperCase().includes('MANUTEN')).reduce((a,n)=>a+(n.valor||0),0);
+  }
+  function estoqueMes(mn){
+    return DATA.estoque_list.filter(e=>{ if(!e.data) return false; return parseInt(e.data.slice(5,7))===mn; }).reduce((a,e)=>a+(e.valor_mov||0),0);
+  }
+
+  function drawCards(){
+    const mn = parseInt(mesSel.value);
+    const nfManut = nfManutencaoMes(mn);
+    const estq = estoqueMes(mn);
+    const realizado = nfManut + estq;
+    document.getElementById('orc-realizado').textContent = fmtBRL(realizado);
+    const realizadoCard = document.getElementById('orc-realizado').parentElement;
+    let note = realizadoCard.querySelector('.foot-note');
+    if(!note){ note = document.createElement('div'); note.className='foot-note'; realizadoCard.appendChild(note); }
+    note.innerHTML = `NF Manutenção ${fmtBRL(nfManut)} + Estoque ${fmtBRL(estq)}`;
+    const saldo = BUDGET_FIXO - realizado;
+    const saldoEl = document.getElementById('orc-saldo');
+    saldoEl.textContent = fmtBRL(saldo);
+    saldoEl.style.color = saldo>=0 ? 'var(--green)' : 'var(--red)';
+
+    const bioMes = DATA.biomassa_list.filter(b=>{ const d=b.data; if(!d) return false; const bmn=parseInt(d.slice(5,7)); return bmn===mn; });
+    const bioValor = bioMes.reduce((a,b)=>a+(b.valor||0),0);
+    const bioTn = bioMes.reduce((a,b)=>a+(b.quantidade_tn||0),0);
+    document.getElementById('orc-bio-mes').textContent = fmtBRL(bioValor);
+    document.getElementById('orc-bio-mes-tn').innerHTML = `<span class="mono">${fmtNum(bioTn,1)} TN adquiridas</span>`;
+
+    const byProdMes = {};
+    bioMes.forEach(b=>{ const k=b.produto||'—'; if(!byProdMes[k]) byProdMes[k]={tn:0,valor:0}; byProdMes[k].tn+=(b.quantidade_tn||0); byProdMes[k].valor+=(b.valor||0); });
+    const prodEntries = Object.entries(byProdMes);
+    document.getElementById('bio-produtos-mes').innerHTML = prodEntries.length ? (
+      prodEntries.map(([k,v])=>`
+        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line-soft); font-size:12px;">
+          <span style="color:var(--text-dim)">${k}</span><span class="mono">${fmtNum(v.tn,1)} TN · ${fmtBRL(v.valor)}</span>
+        </div>`).join('') +
+      `<div style="display:flex; justify-content:space-between; padding:8px 0 0; font-weight:700;"><span>Total do mês</span><span class="mono">${fmtNum(bioTn,1)} TN · ${fmtBRL(bioValor)}</span></div>`
+    ) : `<div class="empty" style="padding:14px 6px;">Sem aquisição de biomassa neste mês</div>`;
+  }
+  mesSel.addEventListener('change', ()=>{ drawCards(); drawComp(); drawNF(); });
+
+  function drawHistChart(){
+    const hist = DATA.orcamento_mensal;
+    const realizadoPorMes = hist.map(h => nfManutencaoMes(h.mes_num) + estoqueMes(h.mes_num));
+    if(window.__orcHistChart) window.__orcHistChart.destroy();
+    window.__orcHistChart = new Chart(document.getElementById('chart-orc-hist'), {
+      data:{labels:hist.map(h=>h.mes), datasets:[
+        {type:'bar', label:'Realizado (Manutenção + Estoque)', data:realizadoPorMes, backgroundColor:PAL.orc+'cc', borderRadius:5, maxBarThickness:34},
+        {type:'line', label:'Budget fixo (338k)', data:hist.map(()=>BUDGET_FIXO), borderColor:PAL.gray, borderWidth:2, borderDash:[5,4], pointRadius:3},
+      ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top', align:'end', labels:{boxWidth:8,boxHeight:8,usePointStyle:true}}}, scales:{x:{grid:{display:false}}, y:{grid:{color:'#26282a'}, ticks:{callback:v=>fmtBRL(v)}}}}
+    });
+  }
+
+  function drawComp(){
+    const mn = parseInt(mesSel.value);
+    const comp = DATA.nf_composicao_por_mes;
+    const idx = comp.meses.indexOf(mn);
+    const labels = Object.keys(comp.tipos);
+    const vals = labels.map(t=> idx>=0 ? comp.tipos[t][idx] : 0);
+    if(window.__orcCompChart) window.__orcCompChart.destroy();
+    window.__orcCompChart = new Chart(document.getElementById('chart-orc-comp'), {type:'doughnut', data:{labels, datasets:[{data:vals, backgroundColor:[PAL.orc,PAL.os,PAL.compras,PAL.pessoas,PAL.gray], borderColor:'#171819', borderWidth:3}]}, options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12,font:{size:10}}}, tooltip:{callbacks:{label:c=>c.label+': '+fmtBRL(c.parsed)}}}}});
+  }
+
+  document.getElementById('bio-produtos').innerHTML = DATA.biomassa_por_produto.map(p=>`
+    <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line-soft); font-size:12px;">
+      <span style="color:var(--text-dim)">${p.produto}</span><span class="mono">${fmtNum(p.tn,1)} TN · ${fmtBRL(p.valor)}</span>
+    </div>`).join('') + `<div style="display:flex; justify-content:space-between; padding:8px 0 0; font-weight:700;"><span>Total</span><span class="mono">${fmtNum(DATA.biomassa_total.tn,1)} TN · ${fmtBRL(DATA.biomassa_total.valor)}</span></div>`;
+
+  const tf = DATA.top_fornecedores.slice(0,6);
+  new Chart(document.getElementById('chart-fornecedores'), {type:'bar', data:{labels:tf.map(d=>d.fornecedor.length>16?d.fornecedor.slice(0,16)+'…':d.fornecedor), datasets:[{data:tf.map(d=>d.valor), backgroundColor:PAL.os, borderRadius:4, maxBarThickness:14}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtBRL(c.parsed.x)}}}, scales:{x:{grid:{color:'#26282a'}, ticks:{callback:v=>fmtBRL(v)}}, y:{grid:{display:false}}}}});
+
+  const nfMesSel = document.getElementById('nf-mes-filter');
+  [...new Set(DATA.nf_list.map(n=>n.mes))].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; nfMesSel.appendChild(o); });
+  const nfTipoSel = document.getElementById('nf-tipo-filter');
+  [...new Set(DATA.nf_list.map(n=>n.tipo))].forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; nfTipoSel.appendChild(o); });
+  document.getElementById('nf-count-sub').textContent = ` · ${DATA.nf_list.length} lançamentos (jan-jun/2026)`;
+
+  function drawNF(){
+    const q = document.getElementById('nf-search').value.toLowerCase();
+    const mf = nfMesSel.value, tf2 = nfTipoSel.value;
+    const rows = DATA.nf_list.filter(n=>{
+      const matchQ = !q || ((n.fornecedor||'')+(n.descricao||'')+String(n.nf)).toLowerCase().includes(q);
+      return matchQ && (!mf||n.mes===mf) && (!tf2||n.tipo===tf2);
+    });
+    document.getElementById('nf-tbody').innerHTML = rows.map(n=>`
+      <tr><td class="mono">${(n.mes||'').slice(0,3)}</td><td class="mono">${n.nf}</td><td>${(n.fornecedor||'').trim()}</td>
+      <td><span class="badge ${n.tipo==='SERVIÇO'?'b-blue':n.tipo==='CONTRATO'?'b-amber':'b-gray'}">${n.tipo}</span></td>
+      <td class="mono">${fmtBRL(n.valor)}</td><td>${n.centro_custo||'—'}</td><td>${n.descricao||'—'}</td></tr>`).join('') || `<tr><td colspan="7" class="empty">Nenhum lançamento encontrado</td></tr>`;
+  }
+  document.getElementById('nf-search').addEventListener('input', drawNF);
+  nfMesSel.addEventListener('change', drawNF); nfTipoSel.addEventListener('change', drawNF);
+
+  document.getElementById('est-count-sub').textContent = ` · ${DATA.estoque_list.length} retiradas`;
+  function drawEst(){
+    const q = document.getElementById('est-search').value.toLowerCase();
+    const rows = DATA.estoque_list.filter(e=> !q || ((e.descricao||'')+String(e.produto)).toLowerCase().includes(q));
+    document.getElementById('est-tbody').innerHTML = rows.slice(0,300).map(e=>`
+      <tr><td class="mono">${e.data?e.data.split(' ')[0].split('-').reverse().join('/'):'—'}</td><td class="mono">${e.produto}</td>
+      <td>${e.descricao||'—'}</td><td class="mono">${fmtNum(e.qtde_mov,2)}</td><td class="mono">${fmtBRL(e.valor_mov)}</td><td class="mono">${fmtNum(e.qtde_restante,0)}</td></tr>`).join('') || `<tr><td colspan="6" class="empty">Nenhuma retirada encontrada</td></tr>`;
+  }
+  document.getElementById('est-search').addEventListener('input', drawEst);
+
+  const nfgMesSel = document.getElementById('nfg-mes-filter');
+  [...new Set((DATA.nf_geral_list||[]).map(n=> n.data ? n.data.slice(0,7) : null).filter(Boolean))].sort().forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); nfgMesSel.appendChild(o); });
+  document.getElementById('nfg-count-sub').textContent = ` · ${(DATA.nf_geral_list||[]).length} lançamentos no centro de custo`;
+
+  function nfgFiltered(){
+    const mn = nfgMesSel.value, q = document.getElementById('nfg-search').value.toLowerCase(), fl = document.getElementById('nfg-flag-filter').value;
+    return (DATA.nf_geral_list||[]).filter(n=>{
+      const matchMes = !mn || (n.data && n.data.slice(0,7)===mn);
+      const hay = (String(n.nota)+(n.fornecedor||'')).toLowerCase();
+      const matchFlag = !fl || (fl==='nao' ? !n.lancada_pela_manutencao : n.lancada_pela_manutencao);
+      return matchMes && (!q||hay.includes(q)) && matchFlag;
+    });
+  }
+  function drawNFG(){
+    const rows = nfgFiltered();
+    const naoLancadas = rows.filter(n=>!n.lancada_pela_manutencao);
+    const lancadas = rows.filter(n=>n.lancada_pela_manutencao);
+    document.getElementById('nfg-k-qtd').textContent = fmtNum(naoLancadas.length);
+    document.getElementById('nfg-k-valor').textContent = fmtBRL(naoLancadas.reduce((a,n)=>a+(n.valor||0),0));
+    document.getElementById('nfg-k-ok').textContent = fmtNum(lancadas.length);
+    document.getElementById('nfg-tbody').innerHTML = rows.map(n=>`
+      <tr><td class="mono">${n.nota}</td><td>${n.fornecedor||'—'}</td>
+      <td class="mono">${n.data?n.data.split(' ')[0].split('-').reverse().join('/'):'—'}</td>
+      <td class="mono">${fmtBRL(n.valor)}</td><td>${n.status||'—'}</td>
+      <td><span class="badge ${n.lancada_pela_manutencao?'b-green':'b-red'}">${n.lancada_pela_manutencao?'Sim':'Não'}</span></td></tr>`).join('') || `<tr><td colspan="6" class="empty">Nenhuma nota encontrada</td></tr>`;
+  }
+  [nfgMesSel, document.getElementById('nfg-flag-filter')].forEach(el=>el.addEventListener('change', drawNFG));
+  document.getElementById('nfg-search').addEventListener('input', drawNFG);
+
+  drawCards(); drawHistChart(); drawComp(); drawNF(); drawEst(); drawNFG();
+}
+
+/* ===================== ORDENS DE SERVIÇO ===================== */
+let osPage=1; const OS_PAGE_SIZE=25;
+function renderOS(){
+  const mesSel = document.getElementById('os-mes-select');
+  const mesesRanking = DATA.ranking_preventiva_mensal.filter(r=>r.total>0);
+  mesesRanking.forEach(r=>{ const o=document.createElement('option'); o.value=r.mes; o.textContent=monthLabel(r.mes); mesSel.appendChild(o); });
+  mesSel.value = mesesRanking.slice(-1)[0].mes;
+
+  function drawPrevCards(){
+    const r = DATA.ranking_preventiva_mensal.find(x=>x.mes===mesSel.value);
+    document.getElementById('os-prev-total').textContent = r ? fmtNum(r.total) : '—';
+    document.getElementById('os-prev-encerradas').textContent = r ? fmtNum(r.encerradas) : '—';
+    document.getElementById('os-prev-pct-concluido').textContent = r ? fmtPct(r.encerradas / r.total) : '—';
+    document.getElementById('os-prev-pct').textContent = r ? fmtPct(r.pct_conclusao_dia) : '—';
+  }
+
+  function drawGeralCharts(){
+    const rows = DATA.os_list;
+    const byTipo = {}; rows.forEach(o=>{ byTipo[o.tipo]=(byTipo[o.tipo]||0)+1; });
+    const byStatus = {}; rows.forEach(o=>{ byStatus[o.status]=(byStatus[o.status]||0)+1; });
+    const tipoColors = [PAL.os,PAL.amber,PAL.pessoas,PAL.compras,PAL.agenda,PAL.gray];
+    if(window.__osTipoChart) window.__osTipoChart.destroy();
+    window.__osTipoChart = new Chart(document.getElementById('chart-os-tipo-mes'), {type:'pie', data:{labels:Object.keys(byTipo), datasets:[{data:Object.values(byTipo), backgroundColor:tipoColors, borderColor:'#171819', borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:7,boxHeight:7,usePointStyle:true,font:{size:9.5}}}, title:{display:true, text:'Por tipo', color:'#9a9c9e', font:{size:10.5}}}}});
+    if(window.__osStatusChart) window.__osStatusChart.destroy();
+    const statusColors = {'Encerrado':PAL.green,'1-Em curso':PAL.os,'Concluído':PAL.mapa,'Anulado . Fora de prazo':PAL.red};
+    window.__osStatusChart = new Chart(document.getElementById('chart-os-status-mes'), {type:'pie', data:{labels:Object.keys(byStatus), datasets:[{data:Object.values(byStatus), backgroundColor:Object.keys(byStatus).map(k=>statusColors[k]||PAL.gray), borderColor:'#171819', borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:7,boxHeight:7,usePointStyle:true,font:{size:9.5}}}, title:{display:true, text:'Por status', color:'#9a9c9e', font:{size:10.5}}}}});
+  }
+  mesSel.addEventListener('change', drawPrevCards);
+
+
+  const list = DATA.os_list;
+  document.getElementById('os-detail-sub').textContent = ` · ${list.length} OS (últimos 6 meses)`;
+  const statusSel=document.getElementById('os-status-filter'), tipoSel=document.getElementById('os-tipo-filter'), prioSel=document.getElementById('os-prio-filter');
+  [...new Set(list.map(o=>o.status))].forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; statusSel.appendChild(o); });
+  [...new Set(list.map(o=>o.tipo))].forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; tipoSel.appendChild(o); });
+  [...new Set(list.map(o=>o.prioridade))].filter(Boolean).forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; prioSel.appendChild(o); });
+  const statusBadge = s=> s==='Encerrado'?'b-green': s==='1-Em curso'?'b-blue': s==='Concluído'?'b-blue': (s&&s.includes('Anulad'))?'b-red':'b-gray';
+  const prioBadge = p=> p==='1-Alta'?'b-red': p==='2-Média'?'b-amber':'b-gray';
+
+  function drawTable(){
+    const q=document.getElementById('os-search').value.toLowerCase();
+    const st=statusSel.value, tp=tipoSel.value, pr=prioSel.value;
+    const filtered = list.filter(o=>{
+      const hay=(String(o.ot)+(o.desc||'')+(o.equipamento_desc||'')+(o.atribuido_a||'')).toLowerCase();
+      return (!q||hay.includes(q)) && (!st||o.status===st) && (!tp||o.tipo===tp) && (!pr||o.prioridade===pr);
+    });
+    const totalPages=Math.max(1,Math.ceil(filtered.length/OS_PAGE_SIZE)); osPage=Math.min(osPage,totalPages);
+    const pageRows=filtered.slice((osPage-1)*OS_PAGE_SIZE, osPage*OS_PAGE_SIZE);
+    document.getElementById('os-tbody').innerHTML = pageRows.map(o=>`
+      <tr><td class="mono">${o.ot}</td><td>${o.tipo}</td><td><span class="badge ${statusBadge(o.status)}">${o.status||'—'}</span></td>
+      <td><span class="badge ${prioBadge(o.prioridade)}">${o.prioridade||'—'}</span></td><td>${o.equipamento_desc||'—'}</td><td>${o.desc||'—'}</td>
+      <td>${o.atribuido_a||'—'}</td><td class="mono">${o.data_prog?o.data_prog.split(' ')[0].split('-').reverse().join('/'):'—'}</td>
+      <td class="mono">${o.horas_estimadas??'—'}</td></tr>`).join('') || `<tr><td colspan="9" class="empty">Nenhuma OS encontrada</td></tr>`;
+    document.getElementById('os-pager').innerHTML = `<button ${osPage<=1?'disabled':''} id="os-prev">‹ anterior</button><span>página ${osPage} de ${totalPages} · ${filtered.length} OS</span><button ${osPage>=totalPages?'disabled':''} id="os-next">próxima ›</button>`;
+    const pb=document.getElementById('os-prev'), nb=document.getElementById('os-next');
+    if(pb) pb.onclick=()=>{osPage--; drawTable();}; if(nb) nb.onclick=()=>{osPage++; drawTable();};
+  }
+  document.getElementById('os-search').addEventListener('input', ()=>{osPage=1; drawTable();});
+  [statusSel,tipoSel,prioSel].forEach(el=>el.addEventListener('change', ()=>{osPage=1; drawTable();}));
+
+  drawPrevCards(); drawGeralCharts(); drawTable();
+}
+
+/* ===================== EQUIPAMENTOS ===================== */
+function renderEquip(){
+  const list = DATA.equipment;
+  document.getElementById('eq-count-pill').textContent = list.length+' CADASTRADOS';
+  document.getElementById('eq-k-total').textContent = list.length;
+  document.getElementById('eq-k-alta').textContent = list.filter(e=>e.criticidade==='1-Alta').length;
+  document.getElementById('eq-k-aa').textContent = list.filter(e=>e.classif==='AA').length;
+  document.getElementById('eq-k-fora').textContent = list.filter(e=>e.fora_servico==='SIM').length;
+
+  const classeSel=document.getElementById('eq-classe-filter'), critSel=document.getElementById('eq-crit-filter'), classifSel=document.getElementById('eq-classif-filter');
+  [...new Set(list.map(e=>e.classe))].filter(Boolean).sort().forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; classeSel.appendChild(o); });
+  [...new Set(list.map(e=>e.criticidade))].filter(Boolean).forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; critSel.appendChild(o); });
+  ['AA','A','B','C'].forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; classifSel.appendChild(o); });
+  const classifBadge = c=>({AA:'b-red',A:'b-amber',B:'b-blue',C:'b-gray'})[c]||'b-gray';
+  const critBadge = c=> c==='1-Alta'?'b-red': c==='2-Média'?'b-amber': c==='3-Baixa'?'b-green':'b-gray';
+
+  function draw(){
+    const q=document.getElementById('eq-search').value.toLowerCase();
+    const cl=classeSel.value, cr=critSel.value, cf=classifSel.value;
+    const rows = list.filter(e=>{
+      const hay=((e.tag||'')+(e.desc||'')+(e.fabricante||'')).toLowerCase();
+      return (!q||hay.includes(q)) && (!cl||e.classe===cl) && (!cr||e.criticidade===cr) && (!cf||e.classif===cf);
+    });
+    document.getElementById('eq-tbody').innerHTML = rows.map(e=>`
+      <tr><td><span class="tagbadge">${e.tag}</span></td><td>${e.desc||'—'}</td><td class="mono">${e.classe||'—'}</td>
+      <td>${e.fabricante||'—'}</td><td class="mono">${e.ano?Math.trunc(e.ano):'—'}</td>
+      <td><span class="badge ${critBadge(e.criticidade)}">${e.criticidade||'—'}</span></td>
+      <td>${e.classif?`<span class="badge ${classifBadge(e.classif)}">${e.classif}</span>`:'<span style="color:var(--text-dimmer)">—</span>'}</td>
+      <td style="font-size:11px; color:var(--text-dim)">${e.estado||'—'}</td></tr>`).join('') || `<tr><td colspan="8" class="empty">Nenhum equipamento encontrado</td></tr>`;
+  }
+  document.getElementById('eq-search').addEventListener('input', draw);
+  classeSel.addEventListener('change', draw); critSel.addEventListener('change', draw); classifSel.addEventListener('change', draw);
+  draw();
+}
+
+/* ===================== GESTÃO DE PESSOAS ===================== */
+async function renderPessoas(){
+  const mesSel = document.getElementById('hh-mes-select');
+  DATA.hh_meses_disponiveis.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); mesSel.appendChild(o); });
+  mesSel.value = DATA.hh_meses_disponiveis.slice(-1)[0];
+
+  let escalaH = await loadKV('hh_escala_padrao', 220);
+  const escalaInput = document.getElementById('hh-escala-input');
+  escalaInput.value = escalaH;
+  escalaInput.addEventListener('change', async ()=>{ escalaH = parseFloat(escalaInput.value)||220; await saveKV('hh_escala_padrao', escalaH); drawCards(); drawIndiv(); });
+
+  const cargoMap = {}; DATA.funcionarios_cargos.forEach(f=>{ cargoMap[f.nome_tom]=f.cargo; });
+
+  function drawCards(){
+    const ym = mesSel.value;
+    const rows = DATA.hh_por_funcionario_mes.filter(r=>r.mes===ym);
+    const totalHoras = rows.reduce((a,r)=>a+r.horas,0);
+    document.getElementById('hh-k-horas').textContent = fmtNum(totalHoras,0)+'h';
+    document.getElementById('hh-k-headcount').textContent = rows.length;
+    const escalaTotal = rows.length * escalaH;
+    document.getElementById('hh-k-apropriacao').textContent = escalaTotal ? fmtPct(totalHoras/escalaTotal) : '—';
+  }
+  function drawIndiv(){
+    const ym = mesSel.value;
+    const rows = DATA.hh_por_funcionario_mes.filter(r=>r.mes===ym).sort((a,b)=>b.horas-a.horas);
+    document.getElementById('hh-individual-tbody').innerHTML = rows.map(r=>{
+      const pct = escalaH ? r.horas/escalaH : 0;
+      const color = pct>1 ? 'var(--red)' : pct>0.85 ? 'var(--green)' : 'var(--amber)';
+      return `<tr><td>${r.nome}</td><td style="color:var(--text-dim); font-size:11px;">${cargoMap[r.nome]||'Não identificado'}</td>
+      <td class="mono">${fmtNum(r.horas,1)}h</td><td class="mono">${fmtNum(escalaH,0)}h</td>
+      <td class="mono" style="color:${color}; font-weight:700;">${fmtPct(pct)}</td></tr>`;
+    }).join('') || `<tr><td colspan="5" class="empty">Sem apontamentos neste mês</td></tr>`;
+  }
+  mesSel.addEventListener('change', ()=>{ drawCards(); drawIndiv(); });
+
+  const tt = DATA.hh_tipo_trend;
+  const colors=[PAL.amber,PAL.mapa,PAL.compras,PAL.os,PAL.green,PAL.red,'#e8e8e8','#7d8ba1'];
+  const keys = Object.keys(tt.series);
+  new Chart(document.getElementById('chart-hh-trend'), {type:'bar', data:{labels:tt.months.map(monthLabel), datasets:keys.map((k,i)=>({label:k, data:tt.series[k], backgroundColor:colors[i%colors.length], stack:'s'}))}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,font:{size:9}}}}, scales:{x:{grid:{display:false}, stacked:true}, y:{grid:{color:'#26282a'}, stacked:true}}}});
+
+  const maxH = Math.max(...DATA.hh_por_funcionario.map(d=>d.horas));
+  new Chart(document.getElementById('chart-hh-ranking'), {type:'bar', data:{labels:DATA.hh_por_funcionario.map(d=>d.nome), datasets:[{data:DATA.hh_por_funcionario.map(d=>d.horas), backgroundColor:PAL.pessoas, borderRadius:4, maxBarThickness:14}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
+
+  drawCards(); drawIndiv();
+}
+
+/* ===================== MAPA ===================== */
+function renderMapa(){
+  document.getElementById('map-img').src = 'data:image/jpeg;base64,'+IMG_B64;
+  const corr = DATA.corretivas_por_tag;
+  const maxCorr = Math.max(1, ...Object.values(corr));
+  function corColor(n){ const r = n/maxCorr; if(r>0.6) return PAL.red; if(r>0.25) return PAL.amber; return PAL.green; }
+  function corSize(n){ const r = n/maxCorr; return 16 + r*18; }
+
+  const eqOptions = DATA.equipment.map(e=>({tag:e.tag, label:`${e.tag} — ${e.desc}${corr[e.tag]?' · '+corr[e.tag]+' corretivas':''}`}));
+  const pinSelect = document.getElementById('pin-select');
+  function fillPinOptions(filter){
+    const f=(filter||'').toLowerCase();
+    pinSelect.innerHTML = eqOptions.filter(e=>e.label.toLowerCase().includes(f)).slice(0,200).map(e=>`<option value="${e.tag}">${e.label}</option>`).join('');
+  }
+  fillPinOptions();
+  document.getElementById('pin-search').addEventListener('input', e=>fillPinOptions(e.target.value));
+
+  const floorSel = document.getElementById('map-floor-select');
+  async function loadPins(){ return await loadKV('equipment_pins_'+floorSel.value, []); }
+  async function savePins(p){ await saveKV('equipment_pins_'+floorSel.value, p); }
+
+  let pendingPin=null;
+  async function drawPins(){
+    const pins = await loadPins();
+    document.getElementById('map-count-pill').textContent = pins.length+' VINCULADOS';
+    const wrap = document.getElementById('map-pins'); wrap.innerHTML='';
+    pins.forEach((p,idx)=>{
+      const n = corr[p.tag]||0; const col = corColor(n); const size = corSize(n);
+      const el = document.createElement('div'); el.className='map-pin'; el.style.left=p.x+'%'; el.style.top=p.y+'%';
+      el.innerHTML = `<div class="halo" style="width:${size+16}px;height:${size+16}px;left:${-((size+16-22)/2)}px;top:${-((size+16-22)/2)}px;background:${col}55;"></div>
+        <div class="dot" style="width:${size}px;height:${size}px;left:${(22-size)/2}px;top:${(22-size)/2}px;background:${col};">${n||''}</div>
+        <div class="pin-label">${p.tag}</div><div class="pin-remove" data-idx="${idx}">&times;</div>`;
+      wrap.appendChild(el);
+    });
+    wrap.querySelectorAll('.pin-remove').forEach(btn=>{
+      btn.addEventListener('click', async ev=>{ ev.stopPropagation(); const pins2=await loadPins(); pins2.splice(parseInt(btn.dataset.idx),1); await savePins(pins2); drawPins(); });
+    });
+  }
+  document.getElementById('map-wrap').addEventListener('click', e=>{
+    if(e.target.closest('.map-pin')) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    pendingPin = {x:((e.clientX-rect.left)/rect.width*100).toFixed(2), y:((e.clientY-rect.top)/rect.height*100).toFixed(2)};
+    document.getElementById('pin-modal').classList.add('active'); fillPinOptions(); document.getElementById('pin-search').value='';
+  });
+  document.getElementById('pin-cancel').onclick = ()=>{ document.getElementById('pin-modal').classList.remove('active'); pendingPin=null; };
+  document.getElementById('pin-confirm').onclick = async ()=>{
+    const sel = pinSelect.value; if(!sel||!pendingPin) return;
+    const pins = await loadPins(); pins.push({x:pendingPin.x, y:pendingPin.y, tag:sel}); await savePins(pins);
+    document.getElementById('pin-modal').classList.remove('active'); pendingPin=null; drawPins();
+  };
+  floorSel.addEventListener('change', drawPins);
+  drawPins();
+}
+
+/* ===================== CALENDÁRIO ===================== */
+const EVENT_COLORS = {'Preventiva':PAL.mapa,'Corretiva':PAL.amber,'Visita':PAL.os,'Serviço de Terceiros':PAL.compras,'Auditoria':PAL.equip,'Treinamento':PAL.pessoas,'Reunião':PAL.agenda,'Outro':PAL.gray};
+function calPad(n){ return n<10?'0'+n:''+n; }
+let calState = {date:new Date()};
+
+function renderCalendario(){
+  const osByDate = {};
+  DATA.os_list.forEach(o=>{ if(!o.data_prog) return; const d=o.data_prog.split(' ')[0]; (osByDate[d]=osByDate[d]||[]).push(o); });
+  const sheetByDate = {};
+  (DATA.agenda_sheet||[]).forEach(a=>{ if(!a.data) return; const d=String(a.data).split(' ')[0]; (sheetByDate[d]=sheetByDate[d]||[]).push(a); });
+
+  const monthNames=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const weekDays=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  document.getElementById('cal-grid-head').innerHTML = weekDays.map(d=>`<div>${d}</div>`).join('');
+  document.getElementById('cal-legend').innerHTML = Object.entries(EVENT_COLORS).map(([k,c])=>`<span><span class="legend-dot" style="background:${c}"></span>${k}</span>`).join('');
+
+  let events = [];
+  async function loadEvents(){ return await loadKV('calendar_events', []); }
+  async function saveEvents(e){ await saveKV('calendar_events', e); }
+
+  function draw(){
+    const y=calState.date.getFullYear(), m=calState.date.getMonth();
+    document.getElementById('cal-month-label').textContent = monthNames[m]+' / '+y;
+    const firstDay=new Date(y,m,1), startOffset=firstDay.getDay(), daysInMonth=new Date(y,m+1,0).getDate(), daysInPrevMonth=new Date(y,m,0).getDate();
+    const todayStr = new Date().toISOString().slice(0,10);
+    let cells=[];
+    for(let i=0;i<startOffset;i++) cells.push({dnum:daysInPrevMonth-startOffset+i+1, other:true});
+    for(let d=1; d<=daysInMonth; d++) cells.push({dnum:d, other:false, dateStr:`${y}-${calPad(m+1)}-${calPad(d)}`});
+    const rem = cells.length%7; if(rem!==0){ const tr=7-rem; for(let i=1;i<=tr;i++) cells.push({dnum:i, other:true}); }
+    let total=0;
+    document.getElementById('cal-grid').innerHTML = cells.map(c=>{
+      if(c.other) return `<div class="cal-cell other-month"><div class="cal-daynum">${c.dnum}</div></div>`;
+      const osHere=osByDate[c.dateStr]||[], shHere=sheetByDate[c.dateStr]||[], evHere=events.filter(e=>e.date===c.dateStr);
+      const count=osHere.length+shHere.length+evHere.length; total+=count;
+      const tc={}; osHere.forEach(o=>{const t=o.tipo==='Corretiva'?'Corretiva':'Preventiva'; tc[t]=(tc[t]||0)+1;});
+      evHere.forEach(e=>tc[e.tipo]=(tc[e.tipo]||0)+1); shHere.forEach(()=>tc['Outro']=(tc['Outro']||0)+1);
+      const dots = Object.keys(tc).map(t=>`<span class="cal-dot" style="background:${EVENT_COLORS[t]||PAL.gray}"></span>`).join('');
+      const isToday = c.dateStr===todayStr;
+      return `<div class="cal-cell ${isToday?'today':''}" data-date="${c.dateStr}"><div class="cal-daynum">${c.dnum}</div><div class="cal-dots">${dots}</div>${count>0?`<span class="cal-count-pill">${count} ativ.</span>`:''}</div>`;
+    }).join('');
+    document.getElementById('cal-count-pill').textContent = total+' EVENTOS NO MÊS';
+    document.getElementById('nav-cal-count').textContent = total;
+    document.querySelectorAll('.cal-cell[data-date]').forEach(el=>{
+      el.addEventListener('click', ()=>openDayModal(el.dataset.date, osByDate[el.dataset.date]||[], shEvents=sheetByDate[el.dataset.date]||[], events.filter(e=>e.date===el.dataset.date)));
+    });
+  }
+  function openDayModal(dateStr, osHere, shHere, evHere){
+    document.getElementById('day-modal-title').textContent = dateStr.split('-').reverse().join('/');
+    document.getElementById('day-modal').dataset.currentDate = dateStr;
+    const osHtml = osHere.map(o=>{ const c=o.tipo==='Corretiva'?PAL.amber:PAL.mapa; return `<div class="day-event-item"><span class="ev-tag" style="background:${c}22; color:${c};">TOM · ${o.tipo}</span><div class="ev-title">${o.equipamento_desc||o.desc||('OS '+o.ot)}</div><div class="ev-meta">OT ${o.ot} · ${o.status||'—'} · ${o.atribuido_a||'sem atribuição'}</div></div>`; }).join('');
+    const shHtml = shHere.map(a=>`<div class="day-event-item"><span class="ev-tag" style="background:${PAL.gray}22; color:${PAL.gray};">Agenda</span><div class="ev-title">${a.atividade||'—'}</div><div class="ev-meta">${a.equipamento||''} ${a.responsavel?'· '+a.responsavel:''}</div></div>`).join('');
+    const evHtml = evHere.map(e=>{ const c=EVENT_COLORS[e.tipo]||PAL.gray; return `<div class="day-event-item"><span class="ev-tag" style="background:${c}22; color:${c};">${e.tipo}</span><div class="ev-remove" data-id="${e.id}">&times;</div><div class="ev-title">${e.titulo}</div><div class="ev-meta">${e.horario?e.horario+' · ':''}${e.responsavel||'sem responsável definido'}</div></div>`; }).join('');
+    document.getElementById('day-events-list').innerHTML = (osHtml+shHtml+evHtml) || `<div class="empty">Nenhuma atividade neste dia</div>`;
+    document.getElementById('day-modal').classList.add('active');
+    document.querySelectorAll('#day-events-list .ev-remove').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{ events = events.filter(e=>e.id!==btn.dataset.id); await saveEvents(events); document.getElementById('day-modal').classList.remove('active'); draw(); });
+    });
+  }
+  document.getElementById('cal-prev').onclick=()=>{ calState.date.setMonth(calState.date.getMonth()-1); draw(); };
+  document.getElementById('cal-next').onclick=()=>{ calState.date.setMonth(calState.date.getMonth()+1); draw(); };
+  document.getElementById('cal-today').onclick=()=>{ calState.date=new Date(); draw(); };
+  document.getElementById('day-modal-close').onclick=()=>document.getElementById('day-modal').classList.remove('active');
+  document.getElementById('cal-new-event').onclick=()=>{
+    const cur=document.getElementById('day-modal').dataset.currentDate; const y=calState.date.getFullYear(), m=calState.date.getMonth();
+    document.getElementById('ev-date').value = cur || `${y}-${calPad(m+1)}-${calPad(new Date().getDate())}`;
+    document.getElementById('ev-titulo').value=''; document.getElementById('ev-responsavel').value=''; document.getElementById('ev-horario').value='';
+    document.getElementById('day-modal').classList.remove('active'); document.getElementById('event-modal').classList.add('active');
+  };
+  document.getElementById('ev-cancel').onclick=()=>document.getElementById('event-modal').classList.remove('active');
+  document.getElementById('ev-confirm').onclick=async ()=>{
+    const date=document.getElementById('ev-date').value.trim(), titulo=document.getElementById('ev-titulo').value.trim();
+    if(!date||!titulo) return;
+    events.push({id:'ev'+Date.now()+Math.floor(Math.random()*1000), date, tipo:document.getElementById('ev-tipo').value, titulo, responsavel:document.getElementById('ev-responsavel').value.trim(), horario:document.getElementById('ev-horario').value.trim()});
+    await saveEvents(events); document.getElementById('event-modal').classList.remove('active'); draw();
+  };
+  (async ()=>{ events = await loadEvents(); draw(); })();
+}
+
+/* ===================== GESTÃO DE COMPRAS ===================== */
+function renderCompras(){
+  const list = DATA.compras_list || [];
+  const mesSel = document.getElementById('compras-mes-select');
+  const mesesSet = [...new Set(list.map(c=> c.data_emissao ? c.data_emissao.slice(0,7) : null).filter(Boolean))].sort();
+  mesesSet.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); mesSel.appendChild(o); });
+
+  const fornSel = document.getElementById('compras-forn-filter'), statusSel = document.getElementById('compras-status-filter');
+  [...new Set(list.map(c=>c.fornecedor))].filter(Boolean).sort().forEach(f=>{ const o=document.createElement('option'); o.value=f; o.textContent=f; fornSel.appendChild(o); });
+  [...new Set(list.map(c=>c.status))].filter(Boolean).forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; statusSel.appendChild(o); });
+
+  document.getElementById('compras-count-sub').textContent = ` · ${list.length} ordens de compra`;
+
+  function filtered(){
+    const mn = mesSel.value, q = document.getElementById('compras-search').value.toLowerCase(), fn = fornSel.value, st = statusSel.value;
+    return list.filter(c=>{
+      const matchMes = !mn || (c.data_emissao && c.data_emissao.slice(0,7)===mn);
+      const hay = (String(c.oc)+(c.fornecedor||'')).toLowerCase();
+      return matchMes && (!q||hay.includes(q)) && (!fn||c.fornecedor===fn) && (!st||c.status===st);
+    });
+  }
+
+  function drawCards(){
+    const rows = filtered();
+    document.getElementById('compras-k-qtd').textContent = fmtNum(rows.length);
+    document.getElementById('compras-k-valor').textContent = fmtBRL(rows.reduce((a,c)=>a+(c.valor||0),0));
+    document.getElementById('compras-k-forn').textContent = new Set(rows.map(c=>c.fornecedor)).size;
+    document.getElementById('compras-k-parcial').textContent = fmtNum(rows.filter(c=>c.status==='Aberto Parcial').length);
+  }
+  function drawTable(){
+    const rows = filtered();
+    const statusBadge = s => s==='Aberto Total'?'b-green': s==='Aberto Parcial'?'b-amber':'b-gray';
+    document.getElementById('compras-tbody').innerHTML = rows.map(c=>`
+      <tr><td class="mono">${c.oc}</td><td>${c.fornecedor||'—'}</td>
+      <td class="mono">${c.data_emissao?c.data_emissao.split(' ')[0].split('-').reverse().join('/'):'—'}</td>
+      <td class="mono">${fmtBRL(c.valor)}</td><td class="mono">${fmtNum(c.tns_produto,0)}</td><td class="mono">${fmtNum(c.tns_servico,0)}</td>
+      <td><span class="badge ${statusBadge(c.status)}">${c.status||'—'}</span></td></tr>`).join('') || `<tr><td colspan="7" class="empty">Nenhuma ordem de compra encontrada</td></tr>`;
+  }
+  [mesSel, fornSel, statusSel].forEach(el=>el.addEventListener('change', ()=>{ drawCards(); drawTable(); }));
+  document.getElementById('compras-search').addEventListener('input', ()=>{ drawCards(); drawTable(); });
+  drawCards(); drawTable();
+}
+
+/* ===================== INIT ===================== */
+renderGeral();
+renderOrcamento();
+renderOS();
+renderEquip();
+renderPessoas();
+renderMapa();
+renderCompras();
+renderCalendario();
+</script>
+</body>
+</html>
