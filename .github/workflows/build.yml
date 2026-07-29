@@ -1,0 +1,54 @@
+name: Atualizar APP Manutenção
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 9-23 * * *'
+    - cron: '0 0-1 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o repositório
+        uses: actions/checkout@v4
+
+      - name: Baixar a planilha mais recente do OneDrive
+        env:
+          ONEDRIVE_URL: ${{ secrets.ONEDRIVE_PLANILHA_URL }}
+        run: |
+          curl -L -f -o data/planilha_novo.xlsx "${ONEDRIVE_URL}&download=1"
+
+      - name: Validar se o arquivo baixado é realmente um .xlsx
+        run: |
+          SIG=$(head -c 2 data/planilha_novo.xlsx)
+          if [ "$SIG" != "PK" ]; then
+            echo "❌ O arquivo baixado não parece ser um .xlsx válido (pode ser uma página de login/erro)."
+            echo "Conteúdo recebido (primeiros 300 caracteres):"
+            head -c 300 data/planilha_novo.xlsx
+            exit 1
+          fi
+          mv data/planilha_novo.xlsx data/planilha.xlsx
+          echo "✅ Arquivo validado, $(du -h data/planilha.xlsx | cut -f1)"
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências
+        run: pip install pandas openpyxl numpy
+
+      - name: Rodar extração e montar o app
+        run: python scripts/extract.py
+
+      - name: Publicar docs/index.html atualizado
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/index.html
+          git diff --quiet --cached || git commit -m "Atualização automática do APP Manutenção"
+          git push
