@@ -17,7 +17,7 @@ Estrutura de pastas esperada (raiz do repositório):
 import pandas as pd, numpy as np, json, datetime, os, base64
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-F = os.path.join(ROOT, 'data', 'planilha.xlsx')
+F = os.environ.get('PLANILHA_PATH', os.path.join(ROOT, 'data', 'planilha.xlsx'))
 CRIT_F = os.path.join(ROOT, 'assets', 'Analise_de_criticidade.xlsx')
 BUILD_DIR = os.path.join(ROOT, 'build')
 os.makedirs(BUILD_DIR, exist_ok=True)
