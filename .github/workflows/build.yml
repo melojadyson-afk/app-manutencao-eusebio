@@ -20,6 +20,7 @@ jobs:
         env:
           ONEDRIVE_URL: ${{ secrets.ONEDRIVE_PLANILHA_URL }}
         run: |
+          mkdir -p data
           curl -L -f -o data/planilha_novo.xlsx \
             -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" \
             "${ONEDRIVE_URL}&download=1"
@@ -27,14 +28,15 @@ jobs:
       - name: Validar se o arquivo baixado é realmente um .xlsx
         run: |
           SIG=$(head -c 2 data/planilha_novo.xlsx)
-          if [ "$SIG" != "PK" ]; then
-            echo "❌ O arquivo baixado não parece ser um .xlsx válido (pode ser uma página de login/erro)."
+          SIZE_KB=$(du -k data/planilha_novo.xlsx | cut -f1)
+          if [ "$SIG" != "PK" ] || [ "$SIZE_KB" -lt 500 ]; then
+            echo "❌ O arquivo baixado não parece ser a planilha completa (assinatura: '$SIG', tamanho: ${SIZE_KB}KB)."
             echo "Conteúdo recebido (primeiros 300 caracteres):"
             head -c 300 data/planilha_novo.xlsx
             exit 1
           fi
           mv data/planilha_novo.xlsx data/planilha.xlsx
-          echo "✅ Arquivo validado, $(du -h data/planilha.xlsx | cut -f1)"
+          echo "✅ Arquivo validado, ${SIZE_KB}KB"
 
       - name: Configurar Python
         uses: actions/setup-python@v5
