@@ -20,7 +20,9 @@ jobs:
         env:
           ONEDRIVE_URL: ${{ secrets.ONEDRIVE_PLANILHA_URL }}
         run: |
-          curl -L -f -o data/planilha_novo.xlsx "${ONEDRIVE_URL}&download=1"
+          curl -L -f -o data/planilha_novo.xlsx \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" \
+            "${ONEDRIVE_URL}&download=1"
 
       - name: Validar se o arquivo baixado é realmente um .xlsx
         run: |
