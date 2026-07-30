@@ -471,6 +471,7 @@ body.force-mobile .sidebar-fmt{display:none;}
           <button class="btn primary" id="cal-new-event">+ Novo evento</button>
         </div>
         <div class="legend-row" id="cal-legend"></div>
+        <div class="foot-note">Do TOM, só aparecem aqui as OS que já têm alguém atribuído ou que estão Encerradas/Concluídas — ordens ainda sem responsável e não finalizadas ficam de fora do calendário.</div>
       </div>
       <div class="card"><div class="cal-grid-head" id="cal-grid-head"></div><div class="cal-grid" id="cal-grid"></div></div>
     </div>
@@ -971,7 +972,13 @@ let calState = {date:new Date()};
 
 function renderCalendario(){
   const osByDate = {};
-  DATA.os_list.forEach(o=>{ if(!o.data_prog) return; const d=o.data_prog.split(' ')[0]; (osByDate[d]=osByDate[d]||[]).push(o); });
+  DATA.os_list.forEach(o=>{
+    if(!o.data_prog) return;
+    const temAtribuido = o.atribuido_a && String(o.atribuido_a).trim() && String(o.atribuido_a).trim().toLowerCase()!=='nan';
+    const statusOk = o.status==='Encerrado' || o.status==='Concluído';
+    if(!temAtribuido && !statusOk) return; // ignora OS sem responsável e ainda não encerrada/concluída
+    const d=o.data_prog.split(' ')[0]; (osByDate[d]=osByDate[d]||[]).push(o);
+  });
   const sheetByDate = {};
   (DATA.agenda_sheet||[]).forEach(a=>{ if(!a.data) return; const d=String(a.data).split(' ')[0]; (sheetByDate[d]=sheetByDate[d]||[]).push(a); });
 
