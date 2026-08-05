@@ -296,6 +296,43 @@ body.force-mobile .sidebar-fmt{display:none;}
         <div class="card kpi"><div class="kpi-label">Saldo do mês</div><div class="kpi-value" id="orc-saldo">–</div></div>
         <div class="card kpi"><div class="kpi-label">Biomassa (mês) — R$ / TN</div><div class="kpi-value" id="orc-bio-mes">–</div><div class="kpi-delta" id="orc-bio-mes-tn"></div></div>
       </div>
+
+      <div class="card" style="margin-bottom:14px; border-top:2px solid var(--c-compras);">
+        <div class="card-head">
+          <div class="card-title">Simulação de Gastos Futuros — Ordens de Compra em Aberto<span class="sub">Baseado nas ordens cadastradas em Gestão de Compras hoje · projeção paralela, não entra no "Realizado" acima</span></div>
+        </div>
+        <div class="grid g3" style="margin-bottom:14px;">
+          <div class="card kpi" style="border-top:2px solid var(--blue); padding-top:12px;">
+            <div class="kpi-label">Comprometido <span style="color:var(--text-dimmer)">(Aberto Total + Parcial)</span></div>
+            <div class="kpi-value" id="sim-comprometido-valor" style="color:var(--blue);">–</div>
+            <div class="kpi-delta" id="sim-comprometido-qtd"></div>
+          </div>
+          <div class="card kpi" style="border-top:2px solid var(--amber); padding-top:12px;">
+            <div class="kpi-label">Pendente de Aprovação <span style="color:var(--text-dimmer)">(Não Fechado)</span></div>
+            <div class="kpi-value" id="sim-pendente-valor" style="color:var(--amber);">–</div>
+            <div class="kpi-delta" id="sim-pendente-qtd"></div>
+          </div>
+          <div class="card kpi" style="border-top:2px solid var(--red); padding-top:12px;">
+            <div class="kpi-label">Exposição Total Possível</div>
+            <div class="kpi-value" id="sim-total-valor" style="color:var(--red);">–</div>
+            <div class="kpi-delta" style="color:var(--text-dimmer)">soma dos dois cenários</div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-dim); margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em;">
+          <span>Cenário Otimista — nenhuma pendente aprovada</span>
+          <span>Cenário Pessimista — todas as pendentes aprovadas</span>
+        </div>
+        <div class="pbar-track" style="height:18px; border-radius:9px;">
+          <div id="sim-bar-comprometido" style="height:100%; background:var(--blue); float:left;"></div>
+          <div id="sim-bar-pendente" style="height:100%; background:var(--amber); float:left;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:7px; font-size:12.5px;">
+          <span id="sim-otimista-label"></span>
+          <span id="sim-pessimista-label"></span>
+        </div>
+        <div class="foot-note" id="sim-nota-metodologia" style="margin-top:12px;"></div>
+      </div>
+
       <div class="grid g2" style="margin-bottom:14px;">
         <div class="card"><div class="card-head"><div class="card-title">Histórico mensal — Custo vs. Budget<span class="sub">Jan a Jun/2026 — cada barra é um mês</span></div></div><div class="chart-box tall"><canvas id="chart-orc-hist"></canvas></div></div>
         <div class="card"><div class="card-head"><div class="card-title">Composição do gasto (mês selecionado)<span class="sub">Por tipo de lançamento</span></div></div><div class="chart-box tall"><canvas id="chart-orc-comp"></canvas></div></div>
@@ -810,7 +847,33 @@ async function renderOrcamento(){
   [nfgMesSel, document.getElementById('nfg-flag-filter')].forEach(el=>el.addEventListener('change', drawNFG));
   document.getElementById('nfg-search').addEventListener('input', drawNFG);
 
-  drawCards(); drawHistChart(); drawComp(); drawNF(); drawEst(); drawNFG();
+  function drawSimulacaoCompras(){
+    const lista = DATA.compras_list || [];
+    const comprometido = lista.filter(c => c.status==='Aberto Total' || c.status==='Aberto Parcial');
+    const pendente = lista.filter(c => c.status==='Não Fechado');
+    const valComprometido = comprometido.reduce((a,c)=>a+(c.valor||0),0);
+    const valPendente = pendente.reduce((a,c)=>a+(c.valor||0),0);
+    const valTotal = valComprometido + valPendente;
+
+    document.getElementById('sim-comprometido-valor').textContent = fmtBRL(valComprometido);
+    document.getElementById('sim-comprometido-qtd').innerHTML = `<span class="mono">${comprometido.length} ordens</span>`;
+    document.getElementById('sim-pendente-valor').textContent = fmtBRL(valPendente);
+    document.getElementById('sim-pendente-qtd').innerHTML = `<span class="mono">${pendente.length} ordens</span>`;
+    document.getElementById('sim-total-valor').textContent = fmtBRL(valTotal);
+
+    const pctComp = valTotal ? (valComprometido/valTotal*100) : 0;
+    const pctPend = valTotal ? (valPendente/valTotal*100) : 0;
+    document.getElementById('sim-bar-comprometido').style.width = pctComp+'%';
+    document.getElementById('sim-bar-pendente').style.width = pctPend+'%';
+
+    document.getElementById('sim-otimista-label').innerHTML = `Otimista: <b style="color:var(--blue)">${fmtBRL(valComprometido)}</b>`;
+    document.getElementById('sim-pessimista-label').innerHTML = `Pessimista: <b style="color:var(--red)">${fmtBRL(valTotal)}</b>`;
+
+    document.getElementById('sim-nota-metodologia').innerHTML =
+      `<b>Metodologia:</b> "Comprometido" (Aberto Total/Parcial) já foi aprovado e entra como certo. "Pendente" (Não Fechado) ainda depende da superintendência — como ainda não há histórico suficiente cruzando ordens antigas com notas fiscais lançadas pra calcular uma taxa real de aprovação, mostramos os dois extremos (nenhuma vs. todas aprovadas) em vez de arriscar uma probabilidade sem base estatística. Conforme mais meses forem se acumulando, essa faixa pode evoluir para um valor esperado calculado a partir do histórico real.`;
+  }
+
+  drawCards(); drawHistChart(); drawComp(); drawNF(); drawEst(); drawNFG(); drawSimulacaoCompras();
 }
 
 /* ===================== ORDENS DE SERVIÇO ===================== */
