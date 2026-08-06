@@ -2,9 +2,16 @@
 chcp 65001 >nul
 cd /d "C:\Users\mello\OneDrive\Documentos\GitHub\app-manutencao-eusebio"
 
-set "PLANILHA_PATH=C:\Users\mello\ELIS\SpO-BR-Management-Eusébio - Manutenção\26 - PCM\Salomão\01 - Jadyson\01- App Manutenção\Planilha Integrada de Indicadores APP Manutenção.xlsx"
+echo Procurando a planilha...
+for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -Path 'C:\Users\mello\ELIS' -Filter *.xlsx -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like '*App Manuten*' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName"') do set "PLANILHA_PATH=%%F"
 
-echo Caminho configurado:
+if "%PLANILHA_PATH%"=="" (
+    echo Nao encontrei nenhuma planilha com "App Manuten" no caminho, dentro de C:\Users\mello\ELIS
+    echo Abortando.
+    exit /b 1
+)
+
+echo Planilha encontrada:
 echo %PLANILHA_PATH%
 echo.
 
@@ -16,7 +23,7 @@ if errorlevel 1 (
 )
 
 echo Publicando no GitHub...
-git add docs/index.html
+git add .
 git commit -m "Atualizacao automatica local"
 git push
 
