@@ -49,6 +49,22 @@ body{
 .brand{display:flex; align-items:center; gap:10px; padding:4px 8px 14px 8px; border-bottom:1px solid var(--line-soft); margin-bottom:10px;}
 .brand-logo{width:38px;height:38px;border-radius:8px; background:linear-gradient(145deg,#dfe2e5,#8b9095); display:flex;align-items:center;justify-content:center; flex:none; box-shadow:0 4px 14px -4px #00000066, inset 0 1px 0 #ffffff55;}
 .brand-logo svg{width:22px;height:22px;}
+.brand-logo-stage{
+  width:100%; max-width:196px; margin:0 auto; perspective:900px;
+}
+.brand-logo-spin{
+  width:100%; height:auto; display:block;
+  animation: logoSpin3D 10s linear infinite;
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 6px 10px #00000066);
+}
+@keyframes logoSpin3D{
+  from{ transform: rotateY(0deg); }
+  to{ transform: rotateY(360deg); }
+}
+@media (prefers-reduced-motion: reduce){
+  .brand-logo-spin{ animation: none; }
+}
 .brand-title{font-family:'Space Grotesk'; font-weight:700; font-size:13.5px; line-height:1.2;}
 .brand-sub{color:var(--text-dimmer); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; margin-top:2px;}
 .logo-note{font-size:9px; color:var(--text-dimmer); padding:6px 8px 10px; border-bottom:1px solid var(--line-soft); margin-bottom:8px; line-height:1.4;}
@@ -137,6 +153,17 @@ input[type=text]{min-width:200px;}
 .map-pin .dot{position:absolute; inset:0; border-radius:50%; border:2px solid #14151688; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono'; font-size:8.5px; font-weight:700; color:#141516; cursor:pointer;}
 .map-pin .pin-label{position:absolute; bottom:26px; left:50%; transform:translateX(-50%); font-family:'IBM Plex Mono'; font-size:9.5px; background:#0d0e0eee; color:var(--c-mapa); padding:2px 6px; border-radius:3px; white-space:nowrap; border:1px solid #2a4a48; opacity:0; pointer-events:none; transition:opacity .15s;}
 .map-pin:hover .pin-label{opacity:1;}
+
+.fixo-pin{position:absolute; margin-left:-11px; margin-top:-11px; width:22px; height:22px; cursor:pointer;}
+.fixo-pin .dot{width:100%; height:100%; border-radius:50%; background:var(--c-mapa); color:#0c1615; border:2px solid #141516cc; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono'; font-size:9px; font-weight:700; box-shadow:0 0 0 1px var(--c-mapa);}
+.fixo-pin.highlight .dot{background:var(--amber); box-shadow:0 0 0 3px #e0972f55;}
+.fixo-pin .pin-label{position:absolute; bottom:26px; left:50%; transform:translateX(-50%); font-family:'IBM Plex Mono'; font-size:9.5px; background:#0d0e0eee; color:var(--c-mapa); padding:3px 7px; border-radius:3px; white-space:normal; width:max-content; max-width:220px; border:1px solid #2a4a48; opacity:0; pointer-events:none; transition:opacity .15s; z-index:5;}
+.fixo-pin:hover .pin-label{opacity:1;}
+.fixo-leg-item{display:flex; gap:8px; padding:7px 0; border-bottom:1px solid var(--line-soft); font-size:11.5px; cursor:pointer;}
+.fixo-leg-item:hover{background:#ffffff05;}
+.fixo-leg-item.highlight{background:color-mix(in srgb, var(--c-mapa) 14%, transparent);}
+.fixo-leg-num{flex:none; width:26px; height:20px; text-align:center; line-height:20px; background:var(--c-mapa); color:#0c1615; border-radius:4px; font-family:'IBM Plex Mono'; font-size:10.5px; font-weight:700;}
+.fixo-leg-desc{color:var(--text);}
 .pin-remove{position:absolute; top:-6px; right:-6px; width:14px;height:14px;background:var(--red); color:#fff; border-radius:50%; font-size:9px; display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0; transition:opacity .15s;}
 .map-pin:hover .pin-remove{opacity:1;}
 .map-note{margin-top:10px; font-size:11px; color:var(--text-dim); display:flex; gap:8px; align-items:flex-start; background:var(--amber-dim); border:1px solid #e0972f33; padding:9px 11px; border-radius:8px;}
@@ -201,7 +228,7 @@ body.force-mobile .sidebar-fmt{display:none;}
 <div id="app">
   <div class="sidebar">
     <div class="brand" style="flex-direction:column; align-items:flex-start; gap:8px;">
-      <img src="data:image/png;base64,__LOGO_B64__" alt="Elis Brasil" style="width:100%; max-width:196px; height:auto; display:block;">
+      <div class="brand-logo-stage"><img class="brand-logo-spin" src="data:image/png;base64,__LOGO_B64__" alt="Elis Brasil"></div>
       <div>
         <div class="brand-title">APP Manutenção</div>
         <div class="brand-sub">elis Brasil · Eusébio</div>
@@ -269,6 +296,43 @@ body.force-mobile .sidebar-fmt{display:none;}
         <div class="card kpi"><div class="kpi-label">Saldo do mês</div><div class="kpi-value" id="orc-saldo">–</div></div>
         <div class="card kpi"><div class="kpi-label">Biomassa (mês) — R$ / TN</div><div class="kpi-value" id="orc-bio-mes">–</div><div class="kpi-delta" id="orc-bio-mes-tn"></div></div>
       </div>
+
+      <div class="card" style="margin-bottom:14px; border-top:2px solid var(--c-compras);">
+        <div class="card-head">
+          <div class="card-title">Simulação de Gastos Futuros — Ordens de Compra em Aberto<span class="sub">Baseado nas ordens cadastradas em Gestão de Compras hoje · projeção paralela, não entra no "Realizado" acima</span></div>
+        </div>
+        <div class="grid g3" style="margin-bottom:14px;">
+          <div class="card kpi" style="border-top:2px solid var(--blue); padding-top:12px;">
+            <div class="kpi-label">Comprometido <span style="color:var(--text-dimmer)">(Aberto Total + Parcial)</span></div>
+            <div class="kpi-value" id="sim-comprometido-valor" style="color:var(--blue);">–</div>
+            <div class="kpi-delta" id="sim-comprometido-qtd"></div>
+          </div>
+          <div class="card kpi" style="border-top:2px solid var(--amber); padding-top:12px;">
+            <div class="kpi-label">Pendente de Aprovação <span style="color:var(--text-dimmer)">(Não Fechado)</span></div>
+            <div class="kpi-value" id="sim-pendente-valor" style="color:var(--amber);">–</div>
+            <div class="kpi-delta" id="sim-pendente-qtd"></div>
+          </div>
+          <div class="card kpi" style="border-top:2px solid var(--red); padding-top:12px;">
+            <div class="kpi-label">Exposição Total Possível</div>
+            <div class="kpi-value" id="sim-total-valor" style="color:var(--red);">–</div>
+            <div class="kpi-delta" style="color:var(--text-dimmer)">soma dos dois cenários</div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-dim); margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em;">
+          <span>Cenário Otimista — nenhuma pendente aprovada</span>
+          <span>Cenário Pessimista — todas as pendentes aprovadas</span>
+        </div>
+        <div class="pbar-track" style="height:18px; border-radius:9px;">
+          <div id="sim-bar-comprometido" style="height:100%; background:var(--blue); float:left;"></div>
+          <div id="sim-bar-pendente" style="height:100%; background:var(--amber); float:left;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:7px; font-size:12.5px;">
+          <span id="sim-otimista-label"></span>
+          <span id="sim-pessimista-label"></span>
+        </div>
+        <div class="foot-note" id="sim-nota-metodologia" style="margin-top:12px;"></div>
+      </div>
+
       <div class="grid g2" style="margin-bottom:14px;">
         <div class="card"><div class="card-head"><div class="card-title">Histórico mensal — Custo vs. Budget<span class="sub">Jan a Jun/2026 — cada barra é um mês</span></div></div><div class="chart-box tall"><canvas id="chart-orc-hist"></canvas></div></div>
         <div class="card"><div class="card-head"><div class="card-title">Composição do gasto (mês selecionado)<span class="sub">Por tipo de lançamento</span></div></div><div class="chart-box tall"><canvas id="chart-orc-comp"></canvas></div></div>
@@ -321,6 +385,7 @@ body.force-mobile .sidebar-fmt{display:none;}
         <div class="table-wrap tbl-scroll">
           <table><thead><tr><th>Data</th><th>Produto</th><th>Descrição</th><th>Qtde mov.</th><th>Valor (R$)</th><th>Saldo estoque</th></tr></thead><tbody id="est-tbody"></tbody></table>
         </div>
+        <div class="foot-note">Detalhamento item a item só do período mais recente — meses anteriores entram nos cálculos de orçamento (cards e gráfico acima) pelo total consolidado, sem o detalhe de cada retirada.</div>
       </div>
     </div>
 
@@ -422,7 +487,7 @@ body.force-mobile .sidebar-fmt{display:none;}
         <div class="card kpi">
           <div class="kpi-label">Horas/mês por pessoa (escala)</div>
           <input type="number" id="hh-escala-input" value="220" style="width:100%; font-family:'Space Grotesk'; font-size:17px; font-weight:700; background:transparent; border:none; padding:6px 0 0; color:var(--text);">
-          <div class="foot-note">Não há escala real na planilha — estimativa editável (padrão 220h).</div>
+
         </div>
         <div class="card kpi"><div class="kpi-label">% Apropriação média</div><div class="kpi-value" id="hh-k-apropriacao">–</div></div>
       </div>
@@ -431,7 +496,7 @@ body.force-mobile .sidebar-fmt{display:none;}
         <div class="card"><div class="card-head"><div class="card-title">Ranking de apropriações<span class="sub">Total acumulado por técnico</span></div></div><div class="chart-box tall"><canvas id="chart-hh-ranking"></canvas></div></div>
       </div>
       <div class="card">
-        <div class="card-head"><div class="card-title">Hora-Homem individual<span class="sub">Horas TOM × Horas de escala (estimada) × % apropriação — mês selecionado</span></div></div>
+        <div class="card-head"><div class="card-title">Hora-Homem individual<span class="sub">Horas TOM × Horas de escala × % apropriação — mês selecionado. <b>*</b> = valor estimado, sem escala real cadastrada para a pessoa/mês</span></div></div>
         <div class="table-wrap tbl-scroll">
           <table><thead><tr><th>Funcionário</th><th>Cargo</th><th>Horas TOM</th><th>Horas escala</th><th>% Apropriação</th></tr></thead><tbody id="hh-individual-tbody"></tbody></table>
         </div>
@@ -455,6 +520,7 @@ body.force-mobile .sidebar-fmt{display:none;}
           <button class="btn primary" id="cal-new-event">+ Novo evento</button>
         </div>
         <div class="legend-row" id="cal-legend"></div>
+        <div class="foot-note">Do TOM, só aparecem aqui as OS que já têm alguém atribuído ou que estão Encerradas/Concluídas — ordens ainda sem responsável e não finalizadas ficam de fora do calendário.</div>
       </div>
       <div class="card"><div class="cal-grid-head" id="cal-grid-head"></div><div class="cal-grid" id="cal-grid"></div></div>
     </div>
@@ -462,26 +528,54 @@ body.force-mobile .sidebar-fmt{display:none;}
     <!-- ============ MAPA ============ -->
     <div class="view" id="view-mapa" style="--tab-color:var(--c-mapa)">
       <div class="topbar">
-        <div><div class="pagetitle"><span class="dot"></span>Mapa de Equipamentos</div><div class="pagesub">Planta interativa — incidência de corretivas por local (estilo mapa de calor)</div></div>
-        <div class="period-pill mono" id="map-count-pill">0 VINCULADOS</div>
+        <div><div class="pagetitle"><span class="dot"></span>Mapa</div><div class="pagesub" id="mapa-subtitle">Planta interativa — incidência de corretivas por local (estilo mapa de calor)</div></div>
+        <select id="mapa-tipo-select" class="period-pill mono" style="border:1px solid color-mix(in srgb, var(--c-mapa) 35%, transparent);">
+          <option value="equipamentos">Mapa de Equipamentos</option>
+          <option value="eletrico">Mapa Elétrico</option>
+          <option value="hidraulico">Mapa Hidráulico</option>
+          <option value="vapor">Mapa de Vapor</option>
+          <option value="ar">Mapa de Linha de Ar</option>
+        </select>
       </div>
-      <div class="card">
-        <div class="toolbar" style="justify-content:space-between;">
-          <select id="map-floor-select"><option value="terreo">Planta baixa — Térreo</option><option value="superior">Planta baixa — Superior</option></select>
-          <span style="color:var(--text-dimmer); font-size:11px;">Clique na planta para vincular um equipamento · o tamanho/cor do pino reflete o volume de corretivas</span>
+
+      <!-- ---- Mapa de Equipamentos (dinâmico, existente) ---- -->
+      <div id="mapa-view-equipamentos">
+        <div class="card">
+          <div class="toolbar" style="justify-content:space-between;">
+            <select id="map-floor-select"><option value="terreo">Planta baixa — Térreo</option><option value="superior">Planta baixa — Superior</option></select>
+            <span style="color:var(--text-dimmer); font-size:11px;"><span id="map-count-pill" class="mono"></span> · Clique na planta para vincular um equipamento · o tamanho/cor do pino reflete o volume de corretivas</span>
+          </div>
+          <div class="map-wrap" id="map-wrap"><img id="map-img" src="" alt="Planta baixa BR-Eusébio"><div id="map-pins"></div></div>
+          <div class="legend-row" style="margin-top:12px;">
+            <span><span class="legend-dot" style="background:#5c9c6f"></span>Baixa incidência</span>
+            <span><span class="legend-dot" style="background:#e0972f"></span>Média incidência</span>
+            <span><span class="legend-dot" style="background:#cc4a3c"></span>Alta incidência (foco de ação)</span>
+          </div>
+          <div class="map-note">
+            <span>⚠</span>
+            <span>Térreo e Superior já têm plantas próprias e independentes. Pinos ficam salvos por piso, em <strong>armazenamento compartilhado</strong> (visíveis a todos que abrirem este painel).</span>
+          </div>
         </div>
-        <div class="map-wrap" id="map-wrap"><img id="map-img" src="" alt="Planta baixa BR-Eusébio"><div id="map-pins"></div></div>
-        <div class="legend-row" style="margin-top:12px;">
-          <span><span class="legend-dot" style="background:#5c9c6f"></span>Baixa incidência</span>
-          <span><span class="legend-dot" style="background:#e0972f"></span>Média incidência</span>
-          <span><span class="legend-dot" style="background:#cc4a3c"></span>Alta incidência (foco de ação)</span>
-        </div>
-        <div class="map-note">
-          <span>⚠</span>
-          <span>Esta é a planta do <strong>Térreo</strong>, já em versão limpa (arquivo enviado). A opção "Superior" ainda usa a mesma imagem — envie o desenho do piso superior separadamente para eu trocar. Pinos ficam salvos em <strong>armazenamento compartilhado</strong> (visíveis a todos que abrirem este painel).</span>
+      </div>
+
+      <!-- ---- Mapas fixos (Elétrico / Hidráulico / Vapor / Ar) ---- -->
+      <div id="mapa-view-fixo" style="display:none;">
+        <div class="grid" style="grid-template-columns:1fr 300px; gap:14px;">
+          <div class="card">
+            <div class="toolbar" style="justify-content:flex-end;">
+              <span style="color:var(--text-dimmer); font-size:11px; margin-right:auto;" id="mapa-fixo-count"></span>
+              <input type="text" id="mapa-fixo-search" placeholder="Buscar ponto...">
+            </div>
+            <div class="map-wrap" id="mapa-fixo-wrap"><img id="mapa-fixo-img" src="" alt="Planta — pontos de referência"><div id="mapa-fixo-pins"></div></div>
+          </div>
+          <div class="card" style="max-height:640px; overflow-y:auto;" id="mapa-fixo-legend-card">
+            <div style="font-family:'Space Grotesk'; font-weight:600; font-size:13px; margin-bottom:10px;">Legenda</div>
+            <div id="mapa-fixo-legend"></div>
+          </div>
         </div>
       </div>
     </div>
+
 
   </div>
 </div>
@@ -521,7 +615,9 @@ body.force-mobile .sidebar-fmt{display:none;}
 
 <script id="app-data" type="application/json">__DATA_JSON__</script>
 <script>
-const IMG_B64 = "__IMAGE_B64__";
+const IMG_TERREO_B64 = "__IMAGE_TERREO_B64__";
+const IMG_SUPERIOR_B64 = "__IMAGE_SUPERIOR_B64__";
+const PLANTA_QUADROS_B64 = "__PLANTA_QUADROS_B64__";
 const DATA = JSON.parse(document.getElementById('app-data').textContent);
 
 const fmtBRL = n => (n==null||isNaN(n)) ? '—' : n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
@@ -620,7 +716,11 @@ async function renderOrcamento(){
     return DATA.nf_list.filter(n=> n.mes_num===mn && (n.centro_custo||'').toUpperCase().includes('MANUTEN')).reduce((a,n)=>a+(n.valor||0),0);
   }
   function estoqueMes(mn){
-    return DATA.estoque_list.filter(e=>{ if(!e.data) return false; return parseInt(e.data.slice(5,7))===mn; }).reduce((a,e)=>a+(e.valor_mov||0),0);
+    const detalhe = DATA.estoque_list.filter(e=>{ if(!e.data) return false; return parseInt(e.data.slice(5,7))===mn; });
+    if(detalhe.length) return detalhe.reduce((a,e)=>a+(e.valor_mov||0),0);
+    // sem detalhe para esse mês (período anterior) — usa o total consolidado preservado
+    const cons = (DATA.estoque_mensal_consolidado||[]).find(c=>c.mes_num===mn);
+    return cons ? cons.valor : 0;
   }
 
   function drawCards(){
@@ -741,13 +841,39 @@ async function renderOrcamento(){
     document.getElementById('nfg-tbody').innerHTML = rows.map(n=>`
       <tr><td class="mono">${n.nota}</td><td>${n.fornecedor||'—'}</td>
       <td class="mono">${n.data?n.data.split(' ')[0].split('-').reverse().join('/'):'—'}</td>
-      <td class="mono">${fmtBRL(n.valor)}</td><td>${n.status||'—'}</td>
+      <td class="mono">${fmtBRL(n.valor)}</td><td>${n.situacao||'—'}</td>
       <td><span class="badge ${n.lancada_pela_manutencao?'b-green':'b-red'}">${n.lancada_pela_manutencao?'Sim':'Não'}</span></td></tr>`).join('') || `<tr><td colspan="6" class="empty">Nenhuma nota encontrada</td></tr>`;
   }
   [nfgMesSel, document.getElementById('nfg-flag-filter')].forEach(el=>el.addEventListener('change', drawNFG));
   document.getElementById('nfg-search').addEventListener('input', drawNFG);
 
-  drawCards(); drawHistChart(); drawComp(); drawNF(); drawEst(); drawNFG();
+  function drawSimulacaoCompras(){
+    const lista = DATA.compras_list || [];
+    const comprometido = lista.filter(c => c.status==='Aberto Total' || c.status==='Aberto Parcial');
+    const pendente = lista.filter(c => c.status==='Não Fechado');
+    const valComprometido = comprometido.reduce((a,c)=>a+(c.valor||0),0);
+    const valPendente = pendente.reduce((a,c)=>a+(c.valor||0),0);
+    const valTotal = valComprometido + valPendente;
+
+    document.getElementById('sim-comprometido-valor').textContent = fmtBRL(valComprometido);
+    document.getElementById('sim-comprometido-qtd').innerHTML = `<span class="mono">${comprometido.length} ordens</span>`;
+    document.getElementById('sim-pendente-valor').textContent = fmtBRL(valPendente);
+    document.getElementById('sim-pendente-qtd').innerHTML = `<span class="mono">${pendente.length} ordens</span>`;
+    document.getElementById('sim-total-valor').textContent = fmtBRL(valTotal);
+
+    const pctComp = valTotal ? (valComprometido/valTotal*100) : 0;
+    const pctPend = valTotal ? (valPendente/valTotal*100) : 0;
+    document.getElementById('sim-bar-comprometido').style.width = pctComp+'%';
+    document.getElementById('sim-bar-pendente').style.width = pctPend+'%';
+
+    document.getElementById('sim-otimista-label').innerHTML = `Otimista: <b style="color:var(--blue)">${fmtBRL(valComprometido)}</b>`;
+    document.getElementById('sim-pessimista-label').innerHTML = `Pessimista: <b style="color:var(--red)">${fmtBRL(valTotal)}</b>`;
+
+    document.getElementById('sim-nota-metodologia').innerHTML =
+      `<b>Metodologia:</b> "Comprometido" (Aberto Total/Parcial) já foi aprovado e entra como certo. "Pendente" (Não Fechado) ainda depende da superintendência — como ainda não há histórico suficiente cruzando ordens antigas com notas fiscais lançadas pra calcular uma taxa real de aprovação, mostramos os dois extremos (nenhuma vs. todas aprovadas) em vez de arriscar uma probabilidade sem base estatística. Conforme mais meses forem se acumulando, essa faixa pode evoluir para um valor esperado calculado a partir do histórico real.`;
+  }
+
+  drawCards(); drawHistChart(); drawComp(); drawNF(); drawEst(); drawNFG(); drawSimulacaoCompras();
 }
 
 /* ===================== ORDENS DE SERVIÇO ===================== */
@@ -851,8 +977,10 @@ function renderEquip(){
 /* ===================== GESTÃO DE PESSOAS ===================== */
 async function renderPessoas(){
   const mesSel = document.getElementById('hh-mes-select');
-  DATA.hh_meses_disponiveis.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); mesSel.appendChild(o); });
-  mesSel.value = DATA.hh_meses_disponiveis.slice(-1)[0];
+  const escalaMeses = Object.keys(DATA.escala_disponibilidade||{});
+  const todosMeses = [...new Set([...DATA.hh_meses_disponiveis, ...escalaMeses])].sort();
+  todosMeses.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); mesSel.appendChild(o); });
+  mesSel.value = todosMeses.slice(-1)[0];
 
   let escalaH = await loadKV('hh_escala_padrao', 220);
   const escalaInput = document.getElementById('hh-escala-input');
@@ -861,23 +989,67 @@ async function renderPessoas(){
 
   const cargoMap = {}; DATA.funcionarios_cargos.forEach(f=>{ cargoMap[f.nome_tom]=f.cargo; });
 
+  // Mapa nome_tom -> horas reais da escala, por mês (só para meses com escala carregada)
+  function escalaRealMap(mes){
+    const lst = (DATA.escala_disponibilidade||{})[mes];
+    if(!lst) return null;
+    const map = {};
+    lst.forEach(item=>{ if(item.nome_tom) map[item.nome_tom] = item.horas_disponiveis; });
+    return map;
+  }
+  function naoLocalizados(mes){
+    const lst = (DATA.escala_disponibilidade||{})[mes];
+    return lst ? lst.filter(i=>!i.nome_tom) : [];
+  }
+
+  function updateEscalaBadge(mes){
+    const box = document.getElementById('hh-escala-input').parentElement;
+    let badge = box.querySelector('.escala-fonte-badge');
+    if(!badge){ badge = document.createElement('div'); badge.className='escala-fonte-badge foot-note'; box.appendChild(badge); }
+    const real = escalaRealMap(mes);
+    if(real){
+      const naoLoc = naoLocalizados(mes);
+      badge.innerHTML = `<span style="color:var(--green)">✓ Escala real de ${monthLabel(mes)} carregada</span> — horas por pessoa abaixo já usam o valor real.${naoLoc.length? ` ${naoLoc.length} pessoa(s) da escala não localizada(s) no TOM.`:''}`;
+    } else {
+      badge.innerHTML = `Sem escala real para ${monthLabel(mes)} — usando estimativa editável abaixo.`;
+    }
+  }
+
   function drawCards(){
     const ym = mesSel.value;
     const rows = DATA.hh_por_funcionario_mes.filter(r=>r.mes===ym);
     const totalHoras = rows.reduce((a,r)=>a+r.horas,0);
     document.getElementById('hh-k-horas').textContent = fmtNum(totalHoras,0)+'h';
-    document.getElementById('hh-k-headcount').textContent = rows.length;
-    const escalaTotal = rows.length * escalaH;
+    const real = escalaRealMap(ym);
+    const headcount = real ? Object.keys(real).length : rows.length;
+    document.getElementById('hh-k-headcount').textContent = headcount;
+    let escalaTotal;
+    if(real){
+      escalaTotal = rows.reduce((a,r)=> a + (real[r.nome] ?? escalaH), 0);
+      if(rows.length===0) escalaTotal = Object.values(real).reduce((a,v)=>a+v,0);
+    } else {
+      escalaTotal = rows.length * escalaH;
+    }
     document.getElementById('hh-k-apropriacao').textContent = escalaTotal ? fmtPct(totalHoras/escalaTotal) : '—';
+    updateEscalaBadge(ym);
   }
   function drawIndiv(){
     const ym = mesSel.value;
-    const rows = DATA.hh_por_funcionario_mes.filter(r=>r.mes===ym).sort((a,b)=>b.horas-a.horas);
+    const real = escalaRealMap(ym);
+    let rows = DATA.hh_por_funcionario_mes.filter(r=>r.mes===ym);
+    // Se há escala real e alguém da escala ainda não tem apontamento no mês, mostra com 0h TOM
+    if(real){
+      const jaListados = new Set(rows.map(r=>r.nome));
+      Object.keys(real).forEach(nome=>{ if(!jaListados.has(nome)) rows.push({nome, mes:ym, horas:0}); });
+    }
+    rows = rows.sort((a,b)=>b.horas-a.horas);
     document.getElementById('hh-individual-tbody').innerHTML = rows.map(r=>{
-      const pct = escalaH ? r.horas/escalaH : 0;
+      const horasEscala = real ? (real[r.nome] ?? escalaH) : escalaH;
+      const pct = horasEscala ? r.horas/horasEscala : 0;
       const color = pct>1 ? 'var(--red)' : pct>0.85 ? 'var(--green)' : 'var(--amber)';
+      const fonte = real && real[r.nome]!=null ? '' : ' *';
       return `<tr><td>${r.nome}</td><td style="color:var(--text-dim); font-size:11px;">${cargoMap[r.nome]||'Não identificado'}</td>
-      <td class="mono">${fmtNum(r.horas,1)}h</td><td class="mono">${fmtNum(escalaH,0)}h</td>
+      <td class="mono">${fmtNum(r.horas,1)}h</td><td class="mono">${fmtNum(horasEscala,0)}h${fonte}</td>
       <td class="mono" style="color:${color}; font-weight:700;">${fmtPct(pct)}</td></tr>`;
     }).join('') || `<tr><td colspan="5" class="empty">Sem apontamentos neste mês</td></tr>`;
   }
@@ -896,7 +1068,12 @@ async function renderPessoas(){
 
 /* ===================== MAPA ===================== */
 function renderMapa(){
-  document.getElementById('map-img').src = 'data:image/jpeg;base64,'+IMG_B64;
+  const FLOOR_IMAGES = { terreo: IMG_TERREO_B64, superior: IMG_SUPERIOR_B64 };
+  const floorSel = document.getElementById('map-floor-select');
+  function updateFloorImage(){
+    document.getElementById('map-img').src = 'data:image/jpeg;base64,'+FLOOR_IMAGES[floorSel.value];
+  }
+  updateFloorImage();
   const corr = DATA.corretivas_por_tag;
   const maxCorr = Math.max(1, ...Object.values(corr));
   function corColor(n){ const r = n/maxCorr; if(r>0.6) return PAL.red; if(r>0.25) return PAL.amber; return PAL.green; }
@@ -911,14 +1088,13 @@ function renderMapa(){
   fillPinOptions();
   document.getElementById('pin-search').addEventListener('input', e=>fillPinOptions(e.target.value));
 
-  const floorSel = document.getElementById('map-floor-select');
   async function loadPins(){ return await loadKV('equipment_pins_'+floorSel.value, []); }
   async function savePins(p){ await saveKV('equipment_pins_'+floorSel.value, p); }
 
   let pendingPin=null;
   async function drawPins(){
     const pins = await loadPins();
-    document.getElementById('map-count-pill').textContent = pins.length+' VINCULADOS';
+    document.getElementById('map-count-pill').textContent = pins.length+' vinculados';
     const wrap = document.getElementById('map-pins'); wrap.innerHTML='';
     pins.forEach((p,idx)=>{
       const n = corr[p.tag]||0; const col = corColor(n); const size = corSize(n);
@@ -944,9 +1120,76 @@ function renderMapa(){
     const pins = await loadPins(); pins.push({x:pendingPin.x, y:pendingPin.y, tag:sel}); await savePins(pins);
     document.getElementById('pin-modal').classList.remove('active'); pendingPin=null; drawPins();
   };
-  floorSel.addEventListener('change', drawPins);
+  floorSel.addEventListener('change', ()=>{ updateFloorImage(); drawPins(); });
   drawPins();
 }
+
+/* ===================== SELETOR DE TIPO DE MAPA + MAPAS FIXOS ===================== */
+const MAPA_FIXO_LABELS = {
+  eletrico: {titulo:'Mapa Elétrico', sub:'Quadros elétricos — pontos de referência marcados na planta'},
+  hidraulico: {titulo:'Mapa Hidráulico', sub:'Rede hidráulica — pontos de referência marcados na planta'},
+  vapor: {titulo:'Mapa de Vapor', sub:'Rede de vapor — pontos de referência marcados na planta'},
+  ar: {titulo:'Mapa de Linha de Ar', sub:'Linha de ar comprimido — pontos de referência marcados na planta'},
+};
+let fixoAtual = null;
+
+function renderMapaTipoSelector(){
+  const sel = document.getElementById('mapa-tipo-select');
+  sel.addEventListener('change', ()=>{
+    const tipo = sel.value;
+    if(tipo==='equipamentos'){
+      document.getElementById('mapa-subtitle').textContent = 'Planta interativa — incidência de corretivas por local (estilo mapa de calor)';
+      document.getElementById('mapa-view-equipamentos').style.display = '';
+      document.getElementById('mapa-view-fixo').style.display = 'none';
+    } else {
+      document.getElementById('mapa-subtitle').textContent = MAPA_FIXO_LABELS[tipo].sub;
+      document.getElementById('mapa-view-equipamentos').style.display = 'none';
+      document.getElementById('mapa-view-fixo').style.display = '';
+      drawMapaFixo(tipo);
+    }
+  });
+}
+
+function drawMapaFixo(tipo){
+  fixoAtual = tipo;
+  const pontos = (DATA.mapas_fixos||{})[tipo] || [];
+  document.getElementById('mapa-fixo-img').src = 'data:image/jpeg;base64,'+PLANTA_QUADROS_B64;
+  document.getElementById('mapa-fixo-count').textContent = pontos.length+' pontos';
+
+  function render(filtro){
+    const f = (filtro||'').toLowerCase();
+    const visiveis = pontos.filter(p=> !f || p.desc.toLowerCase().includes(f) || String(p.num).includes(f));
+    document.getElementById('mapa-fixo-pins').innerHTML = pontos.map(p=>{
+      const oculto = !visiveis.includes(p);
+      return `<div class="fixo-pin" style="left:${p.x}%; top:${p.y}%; ${oculto?'opacity:.15;':''}" data-num="${p.num}">
+        <div class="dot">${p.num}</div>
+        <div class="pin-label">${p.num} — ${p.desc}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('mapa-fixo-legend').innerHTML = visiveis.length ? visiveis.map(p=>`
+      <div class="fixo-leg-item" data-num="${p.num}">
+        <div class="fixo-leg-num">${p.num}</div>
+        <div class="fixo-leg-desc">${p.desc}</div>
+      </div>`).join('') : `<div class="empty">Nenhum ponto encontrado</div>`;
+
+    document.querySelectorAll('#mapa-fixo-legend .fixo-leg-item').forEach(el=>{
+      el.addEventListener('mouseenter', ()=>{
+        document.querySelectorAll('.fixo-pin').forEach(p=>p.classList.remove('highlight'));
+        const pin = document.querySelector(`.fixo-pin[data-num="${el.dataset.num}"]`);
+        if(pin) pin.classList.add('highlight');
+      });
+    });
+  }
+  render('');
+
+  document.getElementById('mapa-fixo-search').oninput = (e)=>render(e.target.value);
+
+  if(pontos.length===0){
+    document.getElementById('mapa-fixo-legend').innerHTML = `<div class="empty">Ainda não há pontos cadastrados para este mapa.</div>`;
+  }
+}
+
+renderMapaTipoSelector();
 
 /* ===================== CALENDÁRIO ===================== */
 const EVENT_COLORS = {'Preventiva':PAL.mapa,'Corretiva':PAL.amber,'Visita':PAL.os,'Serviço de Terceiros':PAL.compras,'Auditoria':PAL.equip,'Treinamento':PAL.pessoas,'Reunião':PAL.agenda,'Outro':PAL.gray};
@@ -955,7 +1198,13 @@ let calState = {date:new Date()};
 
 function renderCalendario(){
   const osByDate = {};
-  DATA.os_list.forEach(o=>{ if(!o.data_prog) return; const d=o.data_prog.split(' ')[0]; (osByDate[d]=osByDate[d]||[]).push(o); });
+  DATA.os_list.forEach(o=>{
+    if(!o.data_prog) return;
+    const temAtribuido = o.atribuido_a && String(o.atribuido_a).trim() && String(o.atribuido_a).trim().toLowerCase()!=='nan';
+    const statusOk = o.status==='Encerrado' || o.status==='Concluído';
+    if(!temAtribuido && !statusOk) return; // ignora OS sem responsável e ainda não encerrada/concluída
+    const d=o.data_prog.split(' ')[0]; (osByDate[d]=osByDate[d]||[]).push(o);
+  });
   const sheetByDate = {};
   (DATA.agenda_sheet||[]).forEach(a=>{ if(!a.data) return; const d=String(a.data).split(' ')[0]; (sheetByDate[d]=sheetByDate[d]||[]).push(a); });
 

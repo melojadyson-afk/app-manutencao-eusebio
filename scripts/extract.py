@@ -61,8 +61,7 @@ out['nf_list'] = nf_list
 
 # --- Notas de entrada Geral (centro de custo Manutenção, nem sempre lançadas pela manutenção) ---
 try:
-    geral_block = orc.iloc[:, 37:46].dropna(subset=['Nota'])
-    geral_block = geral_block.rename(columns={'Fornecedor.2':'fornecedor_cod'})
+    geral_block = orc.iloc[:, 39:45].dropna(subset=['Nota'])
     geral_block['nota_num'] = pd.to_numeric(geral_block['Nota'], errors='coerce')
     nf_nums_manutencao = set()
     for x in nf_list:
@@ -78,11 +77,10 @@ try:
             d2 = None
         lancada_manutencao = (not pd.isna(nota_n)) and (int(nota_n) in nf_nums_manutencao)
         nf_geral_list.append({
-            'nota': clean(r['Nota']), 'fornecedor_cod': clean(r['fornecedor_cod']),
-            'fornecedor': clean(r['Descrição Fornecedor']), 'valor': clean(r['Valor Rateado']),
+            'nota': clean(r['Nota']), 'fornecedor_cod': clean(r['Cód. Fornecedor']),
+            'fornecedor': clean(r['Fornecedor.2']), 'valor': clean(r['Valor Rateado (R$)']),
             'data': clean(d2) if d2 is not None and pd.notna(d2) else None,
-            'tns_produto': clean(r['Tns.Produto']), 'tns_servico': clean(r['Tns.Serviço']),
-            'situacao': clean(r['Situação']), 'status': clean(r['Status']),
+            'situacao': clean(r['Situação']),
             'lancada_pela_manutencao': bool(lancada_manutencao),
         })
     out['nf_geral_list'] = nf_geral_list
@@ -151,14 +149,34 @@ for _, r in est.iterrows():
     })
 out['estoque_list'] = est_list
 
+# --- Consolidado mensal de retiradas de estoque (meses anteriores) ---
+# A partir de agora, a lista detalhada de estoque só traz o período mais
+# recente; os meses anteriores ficam preservados nesta tabela de totais.
+try:
+    mes_valor = orc.iloc[:, 34:36].dropna(subset=[orc.columns[34]])
+    mes_valor.columns = ['mes_txt', 'valor']
+    estoque_mensal = []
+    for _, r in mes_valor.iterrows():
+        mes_txt = str(r['mes_txt']).strip().upper()
+        mes_num = MESES_PT.get(mes_txt)
+        if mes_num:
+            estoque_mensal.append({'mes': mes_txt.title(), 'mes_num': mes_num, 'valor': clean(r['valor'])})
+    out['estoque_mensal_consolidado'] = estoque_mensal
+    print("Estoque consolidado (meses anteriores):", estoque_mensal)
+except Exception as e:
+    print("estoque consolidado: não encontrado/erro ->", e)
+    out['estoque_mensal_consolidado'] = []
+
 json.dump(out, open(os.path.join(BUILD_DIR, 'part_orcamento.json'), 'w'), ensure_ascii=False)
 print("NF:", len(nf_list), "Bio:", len(bio_list), "Estoque:", len(est_list))
 print(out['orcamento_mensal'])
 print(out['biomassa_total'])
 
 # ================= ORDENS DE SERVIÇO =================
-os_raw = pd.read_excel(F, sheet_name='Ordens de Serviço', header=1)
-b1 = os_raw.iloc[:, 0:20].dropna(subset=['Ordem de Trabalho']).copy()
+# Agora vem em duas abas separadas (mais fácil de colar a extração completa do TOM,
+# sem precisar recortar linhas/colunas em blocos lado a lado).
+b1 = pd.read_excel(F, sheet_name='Ordem de Serviço Extração TOM', header=0)
+b1 = b1.dropna(subset=['Ordem de Trabalho']).copy()
 b1['status_base'] = b1['Ícone de status'].astype(str).str.split('@').str[0]
 b1['prioridade_base'] = b1['Ícone de prioridade'].astype(str).str.split('@').str[0]
 b1['data_prog'] = pd.to_datetime(b1['Data de início programada'], errors='coerce')
@@ -219,32 +237,38 @@ out2['corretivas_por_tag'] = {str(k): int(v) for k,v in by_tag.items() if pd.not
 top_tec = b1['Atribuido a'].value_counts().head(12)
 out2['top_tecnicos_os'] = [{'nome': k, 'count': int(v)} for k,v in top_tec.items() if k and str(k)!='nan']
 
-# --- Block 2: Preventiva ranking detail ---
-b2 = os_raw.iloc[:, 20:39].dropna(subset=['Ordem de Trabalho.1']).copy()
-b2['data_prog'] = pd.to_datetime(b2['Data de início programada.1'], errors='coerce')
-b2['data_compromisso'] = pd.to_datetime(b2['Data de compromisso (TIM)'], errors='coerce')
-b2['data_conclusao'] = pd.to_datetime(b2['Data de conclusão.1'], errors='coerce')
-b2['ym'] = b2['data_prog'].dt.strftime('%Y-%m')
-b2['no_prazo'] = (b2['data_conclusao'].notna()) & (b2['data_compromisso'].notna()) & (b2['data_conclusao'] <= b2['data_compromisso'])
-
+# --- Ranking de Preventivas — usa a aba dedicada "Extração Prev", que já traz
+# a fórmula oficial de pontualidade da empresa (coluna "Status.1" = "EM DIA").
+# Essa aba é um recorte (geralmente só do mês corrente), então o ranking só
+# fica disponível para os meses que ela contiver — nos demais meses, mostramos
+# "indisponível" em vez de arriscar uma aproximação que não bate com a regra real.
 ranking_by_month = []
-for ym, g in b2.groupby('ym'):
-    if pd.isna(ym): continue
-    total = len(g)
-    encerradas = int((g['Status']=='Encerrado').sum())
-    em_curso = int((g['Status']=='1-Em curso').sum())
-    anuladas = int(g['Status'].astype(str).str.contains('Anulad').sum())
-    concl_prazo = int(g[g['Status']=='Encerrado']['no_prazo'].sum())
-    concl_atraso = encerradas - concl_prazo
-    ranking_by_month.append({
-        'mes': ym, 'total': total, 'encerradas': encerradas, 'em_curso': em_curso,
-        'anuladas': anuladas, 'concluidas_no_prazo': concl_prazo, 'concluidas_atraso': concl_atraso,
-        'pct_conclusao_dia': round(concl_prazo/total, 4) if total else 0,
-        'pct_concluido': round(encerradas/total, 4) if total else 0,
-        'pct_anulado': round(anuladas/total, 4) if total else 0,
-    })
+try:
+    prevx = pd.read_excel(F, sheet_name='Ordens de Serviço Extração Prev', header=1)
+    prevx = prevx.dropna(subset=['Ordem de Trabalho']).copy()
+    status_calc_col = prevx.columns[-1]  # captura ANTES de adicionar colunas derivadas abaixo
+    prevx['data_prog'] = pd.to_datetime(prevx['Data de início programada'], errors='coerce')
+    prevx['ym'] = prevx['data_prog'].dt.strftime('%Y-%m')
+    for ym, g in prevx.groupby('ym'):
+        if pd.isna(ym): continue
+        total = len(g)
+        encerradas = int((g['Status']=='Encerrado').sum())
+        em_curso = int((g['Status']=='1-Em curso').sum())
+        anuladas = int(g['Status'].astype(str).str.contains('Anulad').sum())
+        no_prazo = int((g[status_calc_col].astype(str).str.upper()=='EM DIA').sum())
+        concl_atraso = encerradas - no_prazo
+        ranking_by_month.append({
+            'mes': ym, 'total': total, 'encerradas': encerradas, 'em_curso': em_curso,
+            'anuladas': anuladas, 'concluidas_no_prazo': no_prazo, 'concluidas_atraso': concl_atraso,
+            'pct_conclusao_dia': round(no_prazo/total, 4) if total else 0,
+            'pct_concluido': round(encerradas/total, 4) if total else 0,
+            'pct_anulado': round(anuladas/total, 4) if total else 0,
+            'fonte': 'oficial',
+        })
+    print(f"Ranking (Extração Prev) — meses disponíveis: {[r['mes'] for r in ranking_by_month]}")
+except Exception as e:
+    print("Extração Prev não encontrada/erro:", e)
 ranking_by_month.sort(key=lambda x: x['mes'])
-ranking_by_month = [r for r in ranking_by_month if r['mes'] >= '2024-01']
 out2['ranking_preventiva_mensal'] = ranking_by_month
 
 json.dump(out2, open(os.path.join(BUILD_DIR, 'part_os.json'), 'w'), ensure_ascii=False)
@@ -334,6 +358,57 @@ for d in out3['hh_por_funcionario']:
     func_info.append({'nome_tom': nn, 'nome_completo': match[1] if match else nn, 'cargo': match[0] if match else 'Não identificado'})
 out3['funcionarios_cargos'] = func_info
 
+# ================= ESCALA DE MANUTENÇÃO (disponibilidade real de horas) =================
+# Bloco lateral da aba "Gestão de Pessoas" com a escala de turnos do mês.
+# Layout: colunas 25 (Cargo) a 58 (Total de hrs), com blocos de cabeçalho
+# repetidos entre grupos de funcionários — identificamos as linhas de dado
+# real pelo fato de terem um valor numérico na coluna de "Total de hrs".
+escala_mensal = {}
+try:
+    raw_gp = pd.read_excel(F, sheet_name='Gestão de Pessoas', header=None)
+    if raw_gp.shape[1] >= 59:
+        sub = raw_gp.iloc[:, 25:59]
+        sub.columns = range(25, 59)
+        is_num = sub[58].apply(lambda v: isinstance(v, (int, float, np.integer, np.floating)) and not pd.isna(v))
+        escala_rows = sub[is_num]
+        # título do bloco (ex: "Escala de manutenção Agosto") fica na linha 0, coluna 24
+        titulo = raw_gp.iloc[0, 24] if raw_gp.shape[1] > 24 else None
+        mes_escala = None
+        if isinstance(titulo, str):
+            meses_map = {'JANEIRO':'01','FEVEREIRO':'02','MARÇO':'03','ABRIL':'04','MAIO':'05','JUNHO':'06',
+                         'JULHO':'07','AGOSTO':'08','SETEMBRO':'09','OUTUBRO':'10','NOVEMBRO':'11','DEZEMBRO':'12'}
+            for nome_mes, num in meses_map.items():
+                if nome_mes in titulo.upper():
+                    mes_escala = f'2026-{num}'  # assume ano corrente da planilha
+                    break
+        escala_list = []
+        for _, r in escala_rows.iterrows():
+            escala_list.append({'cargo': clean(r[25]), 'colaborador': clean(r[26]), 'horas_disponiveis': clean(r[58])})
+        if mes_escala:
+            escala_mensal[mes_escala] = escala_list
+        print(f"Escala de manutenção encontrada: {mes_escala} — {len(escala_list)} funcionários")
+except Exception as e:
+    print("escala de manutenção: não encontrada/erro ->", e)
+
+# Vincula cada linha da escala ao "Nome do funcionário" (formato TOM: SOBRENOME Nome)
+nomes_tom = sorted({d['nome'] for d in out3['hh_por_funcionario_mes']})
+def match_tom_name(colaborador):
+    full = strip_accents(colaborador).upper()
+    for nome_tom in nomes_tom:
+        toks = [t for t in strip_accents(nome_tom).upper().replace('.', '').split() if len(t) > 2]
+        if toks and all(t in full for t in toks):
+            return nome_tom
+    return None
+
+escala_out = {}
+for mes, lst in escala_mensal.items():
+    linhas = []
+    for item in lst:
+        nome_tom = match_tom_name(item['colaborador']) if item['colaborador'] else None
+        linhas.append({**item, 'nome_tom': nome_tom})
+    escala_out[mes] = linhas
+out3['escala_disponibilidade'] = escala_out
+
 # ================= AGENDA / COMPRAS (empty for now, schema-ready) =================
 try:
     ag = pd.read_excel(F, sheet_name='Agenda Calendário')
@@ -362,6 +437,19 @@ except Exception as e:
     print("compras error", e)
     compras_list = []
 out3['compras_list'] = compras_list
+
+# ================= MAPAS FIXOS (Elétrico, Hidráulico, Vapor, Ar) =================
+# Pontos de referência marcados manualmente na planta — não vêm da planilha,
+# ficam em arquivos próprios dentro de assets/. Adicione mapa_hidraulico.json,
+# mapa_vapor.json e mapa_ar.json (mesmo formato) quando estiverem prontos.
+mapas_fixos = {}
+for nome_mapa, arquivo in [('eletrico','mapa_eletrico.json'), ('hidraulico','mapa_hidraulico.json'),
+                            ('vapor','mapa_vapor.json'), ('ar','mapa_ar.json')]:
+    caminho = os.path.join(ROOT, 'assets', arquivo)
+    if os.path.exists(caminho):
+        mapas_fixos[nome_mapa] = json.load(open(caminho, encoding='utf-8'))
+        print(f"Mapa {nome_mapa}: {len(mapas_fixos[nome_mapa])} pontos carregados")
+out3['mapas_fixos'] = mapas_fixos
 print("Compras:", len(compras_list))
 
 # ================= MERGE ALL =================
@@ -378,20 +466,26 @@ print("size KB:", os.path.getsize(data_json_path)/1024)
 # ================= MONTAGEM DO HTML FINAL =================
 TEMPLATE_PATH = os.path.join(ROOT, 'template', 'template2.html')
 LOGO_PATH = os.path.join(ROOT, 'assets', 'logo.png')
-MAPA_PATH = os.path.join(ROOT, 'assets', 'mapa_planta.jpg')
+MAPA_TERREO_PATH = os.path.join(ROOT, 'assets', 'mapa_planta_terreo.jpg')
+MAPA_SUPERIOR_PATH = os.path.join(ROOT, 'assets', 'mapa_planta_superior.jpg')
+PLANTA_QUADROS_PATH = os.path.join(ROOT, 'assets', 'planta_quadros.jpg')
 DOCS_DIR = os.path.join(ROOT, 'docs')
 os.makedirs(DOCS_DIR, exist_ok=True)
 
 data_json_str = json.dumps(final, ensure_ascii=False)
 logo_b64 = base64.b64encode(open(LOGO_PATH, 'rb').read()).decode()
-mapa_b64 = base64.b64encode(open(MAPA_PATH, 'rb').read()).decode()
+mapa_terreo_b64 = base64.b64encode(open(MAPA_TERREO_PATH, 'rb').read()).decode()
+mapa_superior_b64 = base64.b64encode(open(MAPA_SUPERIOR_PATH, 'rb').read()).decode()
+planta_quadros_b64 = base64.b64encode(open(PLANTA_QUADROS_PATH, 'rb').read()).decode() if os.path.exists(PLANTA_QUADROS_PATH) else ''
 
 tpl = open(TEMPLATE_PATH, encoding='utf-8').read()
-assert '__DATA_JSON__' in tpl and '__IMAGE_B64__' in tpl and '__LOGO_B64__' in tpl, \
+assert '__DATA_JSON__' in tpl and '__IMAGE_TERREO_B64__' in tpl and '__IMAGE_SUPERIOR_B64__' in tpl and '__LOGO_B64__' in tpl, \
     "Template sem os marcadores esperados — verifique template/template2.html"
 tpl = tpl.replace('__DATA_JSON__', data_json_str)
-tpl = tpl.replace('__IMAGE_B64__', mapa_b64)
+tpl = tpl.replace('__IMAGE_TERREO_B64__', mapa_terreo_b64)
+tpl = tpl.replace('__IMAGE_SUPERIOR_B64__', mapa_superior_b64)
 tpl = tpl.replace('__LOGO_B64__', logo_b64)
+tpl = tpl.replace('__PLANTA_QUADROS_B64__', planta_quadros_b64)
 
 out_path = os.path.join(DOCS_DIR, 'index.html')
 with open(out_path, 'w', encoding='utf-8') as f:

@@ -1,0 +1,494 @@
+[
+ {
+  "num": 1,
+  "desc": "QUADRO ELÉTRICO N° 01 - EXAUSTORES",
+  "x": 11.33,
+  "y": 82.83
+ },
+ {
+  "num": 2,
+  "desc": "QUADRO ELÉTRICO N° 02 - ESTEIRAS TRANSPORTADORAS",
+  "x": 12.83,
+  "y": 72.54
+ },
+ {
+  "num": 3,
+  "desc": "QUADRO ELÉTRICO ILUMINAÇÃO N° 03 - TUNEIS",
+  "x": 11.67,
+  "y": 60.59
+ },
+ {
+  "num": 4,
+  "desc": "QUADRO ELÉTRICO GERAL N° 04 - WSP",
+  "x": 13.85,
+  "y": 60.84
+ },
+ {
+  "num": 5,
+  "desc": "QUADRO ELÉTRICO GERAL N° 05 - CB 01",
+  "x": 15.8,
+  "y": 60.76
+ },
+ {
+  "num": 6,
+  "desc": "QUADRO ELÉTRICO GERAL N° 06 - TUNEL 03",
+  "x": 17.63,
+  "y": 60.43
+ },
+ {
+  "num": 7,
+  "desc": "QUADRO ELÉTRICO GERAL N° 07 - TUNEL 02",
+  "x": 19.69,
+  "y": 60.68
+ },
+ {
+  "num": 8,
+  "desc": "QUADRO ELÉTRICO GERAL N° 08 - TUNEL 01",
+  "x": 21.64,
+  "y": 60.51
+ },
+ {
+  "num": 9,
+  "desc": "QUADRO ELÉTRICO GERAL N° 09 - INVERSOR DO MOTOR DOS CESTOS",
+  "x": 17.86,
+  "y": 61.93
+ },
+ {
+  "num": 10,
+  "desc": "QUADRO ELÉTRICO GERAL N° 10 - WSP ÁREA LIMPA",
+  "x": 19.81,
+  "y": 61.93
+ },
+ {
+  "num": 11,
+  "desc": "QUADRO ELÉTRICO GERAL N° 11 - INVERSORES DO MOTOR DO EXAUSTOR DAS SECADORAS",
+  "x": 21.75,
+  "y": 62.01
+ },
+ {
+  "num": 12,
+  "desc": "QUADRO ELÉTRICO GERAL N° 12 - INVERSORES DO MOTOR DO EXAUSTOR DAS SECADORAS 751 A 754",
+  "x": 23.82,
+  "y": 62.01
+ },
+ {
+  "num": 13,
+  "desc": "QUADRO ELÉTRICO GERAL N°  13 - CB-01 A",
+  "x": 25.75,
+  "y": 62.01
+ },
+ {
+  "num": 14,
+  "desc": "QUADRO ELÉTRICO  N°  14 - ILUMINAÇÃO TUNEL 04",
+  "x": 27.48,
+  "y": 61.62
+ },
+ {
+  "num": 15,
+  "desc": "QUADRO ELÉTRICO N° 15 -  COMANDO ELEVADOR",
+  "x": 12.14,
+  "y": 58.55
+ },
+ {
+  "num": 16,
+  "desc": "QUADRO ELÉTRICO N° 16 -  COMANDO FORÇA TÚNEL 04",
+  "x": 36.29,
+  "y": 56.98
+ },
+ {
+  "num": 17,
+  "desc": "QUADRO ELÉTRICO N° 17 - ILUMINAÇÃO DOCAS",
+  "x": 36.41,
+  "y": 58.87
+ },
+ {
+  "num": 18,
+  "desc": "QUADRO ELÉTRICO N° 18 - ILHA QUÍMICA",
+  "x": 15.46,
+  "y": 54.55
+ },
+ {
+  "num": 19,
+  "desc": "QUADRO ELÉTRICO N° 19 - ESTEIRAS SORTING (P22 A P23)",
+  "x": 48.43,
+  "y": 52.97
+ },
+ {
+  "num": 20,
+  "desc": "QUADRO ELÉTRICO N° 20 - CLIMATIZADORAS",
+  "x": 48.88,
+  "y": 55.56
+ },
+ {
+  "num": 21,
+  "desc": "QUADRO ELÉTRICO N° 21 - CLIMATIZADORAS",
+  "x": 49.23,
+  "y": 57.22
+ },
+ {
+  "num": 22,
+  "desc": "QUADRO ELÉTRICO N° 22 -  LAVADOR DE GAIOLA",
+  "x": 55.18,
+  "y": 67.59
+ },
+ {
+  "num": 23,
+  "desc": "QUADRO ELÉTRICO N° 23 - EXTRATORAS 04",
+  "x": 58.27,
+  "y": 67.28
+ },
+ {
+  "num": 24,
+  "desc": "QUADRO ELÉTRICO N° 24 - BOMBAS DE DOSAGEM",
+  "x": 71.78,
+  "y": 62.8
+ },
+ {
+  "num": 25,
+  "desc": "QUADRO ELÉTRICO GERAL N° 25 - EXTRATOR SUZUKI 1",
+  "x": 71.67,
+  "y": 66.56
+ },
+ {
+  "num": 26,
+  "desc": "QUADRO ELÉTRICO GERAL N° 26 - EXTRATOR SUZUKI 2",
+  "x": 71.67,
+  "y": 68.22
+ },
+ {
+  "num": 27,
+  "desc": "QUADRO ELÉTRICO GERAL N° 27 - EXTRATOR SUZUKI 3",
+  "x": 70.18,
+  "y": 71.04
+ },
+ {
+  "num": 28,
+  "desc": "QUADRO ELÉTRICO N° 28 -COMANDO DE FORÇA CIRURGICO",
+  "x": 72.59,
+  "y": 64.6
+ },
+ {
+  "num": 29,
+  "desc": "QUADRO ELÉTRICO GERAL N° 29 - EXTRATOR 03",
+  "x": 62.86,
+  "y": 71.44
+ },
+ {
+  "num": 30,
+  "desc": "QUADRO ELÉTRICO N° 30 - ILUMINAÇÃO EXTRATORAS",
+  "x": 62.86,
+  "y": 69.24
+ },
+ {
+  "num": 31,
+  "desc": "QUADRO ELÉTRICO N° 31 - CLIMATIZADORES DOBRA",
+  "x": 80.83,
+  "y": 76.39
+ },
+ {
+  "num": 32,
+  "desc": "QUADRO ELÉTRICO N° 32 - BANCO DE CAPACITOR",
+  "x": 80.95,
+  "y": 77.89
+ },
+ {
+  "num": 33,
+  "desc": "QUADRO ELÉTRICO N° 33 - GERAL PICADOR",
+  "x": 80.95,
+  "y": 79.21
+ },
+ {
+  "num": 34,
+  "desc": "QUADRO ELÉTRICO N° 34 -  ILUMINAÇÃO DOBRA E ADM",
+  "x": 80.71,
+  "y": 80.55
+ },
+ {
+  "num": 35,
+  "desc": "QUADRO ELÉTRICO N° 35 - CLIMATIZADORAS",
+  "x": 58.51,
+  "y": 62.71
+ },
+ {
+  "num": 36,
+  "desc": "QUADRO ELÉTRICO N° 36 - DIVERSOS (CALANDRA, SECADORA, ALIMENTADOR)",
+  "x": 46.26,
+  "y": 77.73
+ },
+ {
+  "num": 37,
+  "desc": "QUADRO ELÉTRICO N° 37 - CLIMATIZADORAS (CIRÚRGICO / PROP. COSTURA)",
+  "x": 45.34,
+  "y": 81.18
+ },
+ {
+  "num": 38,
+  "desc": "QUADRO ELÉTRICO ILUMINAÇÃO N° 38 - CHO",
+  "x": 75.79,
+  "y": 64.92
+ },
+ {
+  "num": 39,
+  "desc": "QUADRO ELÉTRICO GERAL N° 39 - EXTRATORA 01",
+  "x": 78.53,
+  "y": 66.41
+ },
+ {
+  "num": 40,
+  "desc": "QUADRO ELÉTRICO GERAL N° 40 - EXTRATORA 02",
+  "x": 80.95,
+  "y": 64.44
+ },
+ {
+  "num": 41,
+  "desc": "QUADRO ELÉTRICO N° 41 - CLIMATIZADORAS CHO",
+  "x": 83.69,
+  "y": 64.6
+ },
+ {
+  "num": 42,
+  "desc": "QUADRO ELÉTRICO GERAL N° 42 -BANCO CAPACITOR 01 (CALDEIRA)",
+  "x": 84.49,
+  "y": 90.22
+ },
+ {
+  "num": 43,
+  "desc": "QUADRO ELÉTRICO GERAL N° 43 - BANCO CAPACITOR 02",
+  "x": 87.01,
+  "y": 90.22
+ },
+ {
+  "num": 44,
+  "desc": "QUADRO ELÉTRICO GERAL N° 44 - BANCO CAPACITOR 03 (ETE)",
+  "x": 88.5,
+  "y": 90.15
+ },
+ {
+  "num": 45,
+  "desc": "QUADRO ELÉTRICO GERAL N° 45 - BANCO CAPACITOR 04",
+  "x": 90.1,
+  "y": 90.15
+ },
+ {
+  "num": 46,
+  "desc": "QUADRO ELÉTRICO GERAL N° 46 - BOMBA DE INCÊNDIO",
+  "x": 90.1,
+  "y": 94.31
+ },
+ {
+  "num": 47,
+  "desc": "QUADRO ELÉTRICO N° 47 - GERADOR 03",
+  "x": 58.04,
+  "y": 96.75
+ },
+ {
+  "num": 48,
+  "desc": "QUADRO ELÉTRICO GERAL N° 48 - BANCO CAPACITOR 05",
+  "x": 35.6,
+  "y": 91.55
+ },
+ {
+  "num": 49,
+  "desc": "QUADRO GERAL N° 49 - BANCO CAPACITOR 06",
+  "x": 35.72,
+  "y": 92.81
+ },
+ {
+  "num": 50,
+  "desc": "QUADRO ELÉTRICO N° 50 - PORTARIA (ILUMINAÇÃO E TOMADAS)",
+  "x": 36.29,
+  "y": 97.06
+ },
+ {
+  "num": 51,
+  "desc": "QUADRO ELÉTRICO N° 51 - PORTARIA (ILUMINAÇÃO)",
+  "x": 37.9,
+  "y": 98.0
+ },
+ {
+  "num": 52,
+  "desc": "QUADRO ELÉTRICO N° 52 - TRAFO GERADOR 03",
+  "x": 59.99,
+  "y": 97.76
+ },
+ {
+  "num": 53,
+  "desc": "QUADRO ELÉTRICO N° 53 - GERADOR GMG 02",
+  "x": 92.04,
+  "y": 96.67
+ },
+ {
+  "num": 54,
+  "desc": "QUADRO GERAL N° 54 - GERADOR GMG 01",
+  "x": 95.6,
+  "y": 96.82
+ },
+ {
+  "num": 55,
+  "desc": "QUADRO ELÉTRICO N° 55 - ALIM. CALDEIRA 01",
+  "x": 67.89,
+  "y": 52.43
+ },
+ {
+  "num": 56,
+  "desc": "QUADRO ELÉTRICO N° 56 - ALIM. CALDEIRA 02",
+  "x": 67.89,
+  "y": 51.24
+ },
+ {
+  "num": 57,
+  "desc": "QUADRO GERAL N° 57 - CALDEIRA BREMMER 5 TON",
+  "x": 67.77,
+  "y": 49.98
+ },
+ {
+  "num": 58,
+  "desc": "QUADRO GERAL N° 58 - CALDEIRA BREMMER 10 TON",
+  "x": 67.77,
+  "y": 48.81
+ },
+ {
+  "num": 59,
+  "desc": "QUADRO ELÉTRICO N° 59 - COMPRESSOR",
+  "x": 67.77,
+  "y": 47.7
+ },
+ {
+  "num": 60,
+  "desc": "QUADRO ELÉTRICO GERAL N° 60 - ETE",
+  "x": 63.31,
+  "y": 49.98
+ },
+ {
+  "num": 61,
+  "desc": "QUADRO ELÉTRICO GERAL N° 61 - ETE (BOMBAS E SOPRADOR)",
+  "x": 63.08,
+  "y": 48.18
+ },
+ {
+  "num": 62,
+  "desc": "QUADRO ELÉTRICO GERAL N° 62 - COMPRESSORES",
+  "x": 58.85,
+  "y": 27.83
+ },
+ {
+  "num": 63,
+  "desc": "QUADRO ELÉTRICO N° 63 - ETA (BOMBAS TUNEIS)",
+  "x": 61.6,
+  "y": 27.91
+ },
+ {
+  "num": 64,
+  "desc": "QUADRO ELÉTRICO N° 64 - ETA (REMOTO/OSMOSE)",
+  "x": 63.77,
+  "y": 26.49
+ },
+ {
+  "num": 65,
+  "desc": "QUADRO ELÉTRICO N° 65 - C.C.M 2",
+  "x": 62.17,
+  "y": 25.15
+ },
+ {
+  "num": 66,
+  "desc": "QUADRO ELÉTRICO N° 66 - COMPRESSORES (INGERSOL)",
+  "x": 60.1,
+  "y": 25.71
+ },
+ {
+  "num": 67,
+  "desc": "QUADRO ELÉTRICO GERAL N° 67 - QUADRO DE COMANDO",
+  "x": 57.93,
+  "y": 25.78
+ },
+ {
+  "num": 68,
+  "desc": "QUADRO ELÉTRICO N° 68 - CALDEIRA (CONTROLE DESAERADOR)",
+  "x": 65.71,
+  "y": 22.48
+ },
+ {
+  "num": 69,
+  "desc": "QUADRO ELÉTRICO N° 69 - (REMOTO RESERVATÓRIO)",
+  "x": 65.49,
+  "y": 20.28
+ },
+ {
+  "num": 70,
+  "desc": "QUADRO ELÉTRICO N° 70 - (ILUMINAÇÃO E TOMADAS)",
+  "x": 40.3,
+  "y": 4.01
+ },
+ {
+  "num": 71,
+  "desc": "QUADRO ELÉTRICO GERAL N° 71 - PICADOR",
+  "x": 26.91,
+  "y": 7.79
+ },
+ {
+  "num": 72,
+  "desc": "QUADRO ELÉTRICO N° 72 - (ABRANDADOR/ILUMINAÇÃO)",
+  "x": 56.78,
+  "y": 14.62
+ },
+ {
+  "num": 73,
+  "desc": "QUADRO ELÉTRICO  N° 73 - DIVERSO",
+  "x": 74.52,
+  "y": 27.98
+ },
+ {
+  "num": 74,
+  "desc": "QUADRO ELÉTRICO N° 74 - ELEVADOR ALMOXARIFADO",
+  "x": 77.62,
+  "y": 20.59
+ },
+ {
+  "num": 75,
+  "desc": "QUADRO GERAL N° 75 - MANUTENÇÃO (ILUMINAÇÃO/TOMADAS)",
+  "x": 73.38,
+  "y": 4.8
+ },
+ {
+  "num": 76,
+  "desc": "QUADRO GERAL N° 76 -VESTIÁRIO FEM (DIVERSOS RESERVATÓRIOS/TOMADAS/ILUMINAÇÃO EXTERNA)",
+  "x": 84.03,
+  "y": 29.31
+ },
+ {
+  "num": 77,
+  "desc": "QUADRO ELÉTRICO N° 77 - REFEITÓRIO",
+  "x": 79.57,
+  "y": 14.07
+ },
+ {
+  "num": 78,
+  "desc": "QUADRO ELÉTRICO GERAL N° 78 - REFEITÓRIO",
+  "x": 79.22,
+  "y": 12.9
+ },
+ {
+  "num": 79,
+  "desc": "QUADRO ELÉTRICO N° 79 - RECEPÇÃO (ILUMINAÇÃO)",
+  "x": 58.39,
+  "y": 91.16
+ },
+ {
+  "num": 80,
+  "desc": "QUADRO ELÉTRICO  N° 80 - ADMINSTRATIVO (ILUMINAÇÃO /AR CONDICIONADO)",
+  "x": 59.53,
+  "y": 87.0
+ },
+ {
+  "num": 81,
+  "desc": "QUADRO ELÉTRICO  N° 81 - CN 95",
+  "x": 11.67,
+  "y": 61.93
+ },
+ {
+  "num": 82,
+  "desc": "QUADRO ELÉTRICO  N° 82 - ILUMINAÇÃO CALDEIRA",
+  "x": 71.55,
+  "y": 48.65
+ }
+]
