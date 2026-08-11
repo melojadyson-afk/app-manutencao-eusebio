@@ -827,7 +827,6 @@ async function renderOrcamento(){
     saldoEl.textContent = fmtBRL(saldo);
     saldoEl.style.color = saldo>=0 ? 'var(--green)' : 'var(--red)';
   }
-  }
   mesSel.addEventListener('change', ()=>{ drawCards(); drawComp(); drawNF(); });
 
   function drawHistChart(){
@@ -915,7 +914,6 @@ async function renderOrcamento(){
   [nfgMesSel, document.getElementById('nfg-flag-filter')].forEach(el=>el.addEventListener('change', drawNFG));
   document.getElementById('nfg-search').addEventListener('input', drawNFG);
 
-  function drawSimulacaoCompras(){
   drawCards(); drawHistChart(); drawComp(); drawNF(); drawEst(); drawNFG();
 }
 
