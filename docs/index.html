@@ -267,6 +267,13 @@ body.force-mobile .sidebar-fmt{display:none;}
 .tunel-card{margin-bottom:16px;}
 .tunel-kpis{display:flex; gap:18px; flex-wrap:wrap; margin:4px 0 14px; font-size:11.5px; color:var(--text-dim);}
 .tunel-kpis b{color:var(--text); font-family:'Space Grotesk'; font-size:15px; display:block; margin-bottom:1px;}
+
+/* ===================== ORDENAÇÃO DE TABELAS ===================== */
+th.sortable{cursor:pointer; user-select:none; white-space:nowrap; position:relative; transition:color .12s;}
+th.sortable:hover{color:var(--text);}
+th.sortable::after{content:'⇅'; font-size:9px; opacity:.35; margin-left:5px;}
+th.sortable.sort-asc::after{content:'▲'; opacity:1; color:var(--tab-color, var(--teal));}
+th.sortable.sort-desc::after{content:'▼'; opacity:1; color:var(--tab-color, var(--teal));}
 </style>
 </head>
 <body>
@@ -361,7 +368,7 @@ body.force-mobile .sidebar-fmt{display:none;}
           <select id="nfg-flag-filter"><option value="">Todas</option><option value="nao">Só não lançadas por Manutenção</option><option value="sim">Só já lançadas por Manutenção</option></select>
         </div>
         <div class="table-wrap tbl-scroll">
-          <table><thead><tr><th>Nota</th><th>Fornecedor</th><th>Data entrada</th><th>Valor</th><th>Situação</th><th>Lançada p/ Manutenção?</th></tr></thead><tbody id="nfg-tbody"></tbody></table>
+          <table><thead id="nfg-thead"><tr><th data-key="nota" data-type="num">Nota</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="data" data-type="date">Data entrada</th><th data-key="valor" data-type="num">Valor</th><th data-key="situacao" data-type="text">Situação</th><th data-key="lancada_pela_manutencao" data-type="text">Lançada p/ Manutenção?</th></tr></thead><tbody id="nfg-tbody"></tbody></table>
         </div>
         <div class="foot-note">Este bloco vem da nova aba "Notas de entrada Geral" — todas as notas de fato lançadas no centro de custo de Manutenção, mesmo que não tenham passado pelo controle interno da sala de manutenção (aba de NF original). O sinalizador compara pelo número da nota/NF; quando não há correspondência, a nota provavelmente foi lançada por outro setor mas ainda afeta nosso número — vale revisar essas linhas para não perder o registro nem contar em duplicidade.</div>
       </div>
@@ -373,14 +380,14 @@ body.force-mobile .sidebar-fmt{display:none;}
           <select id="nf-tipo-filter"><option value="">Todos os tipos</option></select>
         </div>
         <div class="table-wrap tbl-scroll">
-          <table><thead><tr><th>Mês</th><th>NF</th><th>Fornecedor</th><th>Tipo</th><th>Valor (R$)</th><th>Centro custo</th><th>Descrição</th></tr></thead><tbody id="nf-tbody"></tbody></table>
+          <table><thead id="nf-thead"><tr><th data-key="mes" data-type="text">Mês</th><th data-key="nf" data-type="num">NF</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="tipo" data-type="text">Tipo</th><th data-key="valor" data-type="num">Valor (R$)</th><th data-key="centro_custo" data-type="text">Centro custo</th><th data-key="descricao" data-type="text">Descrição</th></tr></thead><tbody id="nf-tbody"></tbody></table>
         </div>
       </div>
       <div class="card">
         <div class="card-head"><div class="card-title">Retiradas de Estoque<span class="sub" id="est-count-sub"></span></div></div>
         <div class="toolbar"><input type="text" id="est-search" placeholder="Buscar produto ou descrição..."></div>
         <div class="table-wrap tbl-scroll">
-          <table><thead><tr><th>Data</th><th>Produto</th><th>Descrição</th><th>Qtde mov.</th><th>Valor (R$)</th><th>Saldo estoque</th></tr></thead><tbody id="est-tbody"></tbody></table>
+          <table><thead id="est-thead"><tr><th data-key="data" data-type="date">Data</th><th data-key="produto" data-type="text">Produto</th><th data-key="descricao" data-type="text">Descrição</th><th data-key="qtde_mov" data-type="num">Qtde mov.</th><th data-key="valor_mov" data-type="num">Valor (R$)</th><th data-key="qtde_restante" data-type="num">Saldo estoque</th></tr></thead><tbody id="est-tbody"></tbody></table>
         </div>
         <div class="foot-note">Detalhamento item a item só do período mais recente — meses anteriores entram nos cálculos de orçamento (cards e gráfico acima) pelo total consolidado, sem o detalhe de cada retirada.</div>
       </div>
@@ -414,7 +421,7 @@ body.force-mobile .sidebar-fmt{display:none;}
           <select id="os-prio-filter"><option value="">Todas as prioridades</option></select>
         </div>
         <div class="table-wrap">
-          <table><thead><tr><th>OT</th><th>Tipo</th><th>Status</th><th>Prioridade</th><th>Equipamento</th><th>Descrição</th><th>Atribuído a</th><th>Prog.</th><th>Horas est.</th></tr></thead><tbody id="os-tbody"></tbody></table>
+          <table><thead id="os-thead"><tr><th data-key="ot" data-type="num">OT</th><th data-key="tipo" data-type="text">Tipo</th><th data-key="status" data-type="text">Status</th><th data-key="prioridade" data-type="text">Prioridade</th><th data-key="equipamento_desc" data-type="text">Equipamento</th><th data-key="desc" data-type="text">Descrição</th><th data-key="atribuido_a" data-type="text">Atribuído a</th><th data-key="data_prog" data-type="date">Prog.</th><th data-key="horas_estimadas" data-type="num">Horas est.</th></tr></thead><tbody id="os-tbody"></tbody></table>
         </div>
         <div class="pager" id="os-pager"></div>
         <div class="foot-note">Tabela detalhada limitada aos últimos 6 meses para manter o painel leve. Os gráficos de tendência usam o histórico completo (desde ago/2024).</div>
@@ -441,7 +448,7 @@ body.force-mobile .sidebar-fmt{display:none;}
           <select id="compras-status-filter"><option value="">Todos os status</option></select>
         </div>
         <div class="table-wrap tbl-scroll">
-          <table><thead><tr><th>OC</th><th>Fornecedor</th><th>Data emissão</th><th>Valor rateado</th><th>Tns. Produto</th><th>Tns. Serviço</th><th>Status</th></tr></thead><tbody id="compras-tbody"></tbody></table>
+          <table><thead id="compras-thead"><tr><th data-key="oc" data-type="num">OC</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="data_emissao" data-type="date">Data emissão</th><th data-key="valor" data-type="num">Valor rateado</th><th data-key="tns_produto" data-type="num">Tns. Produto</th><th data-key="tns_servico" data-type="num">Tns. Serviço</th><th data-key="status" data-type="text">Status</th></tr></thead><tbody id="compras-tbody"></tbody></table>
         </div>
         <div class="foot-note">Não há status "Aguardando Aprovação" explícito nesta planilha — todas as linhas listadas na aba "Gestão de Compras" já representam ordens em aberto (Não Fechado / Aberto Total / Aberto Parcial).</div>
       </div>
@@ -467,7 +474,7 @@ body.force-mobile .sidebar-fmt{display:none;}
           <select id="eq-classif-filter"><option value="">Toda classificação (score)</option></select>
         </div>
         <div class="table-wrap tbl-scroll">
-          <table><thead><tr><th>Tag</th><th>Descrição</th><th>Classe</th><th>Fabricante</th><th>Ano</th><th>Criticidade (TOM)</th><th>Classif. (score)</th><th>Estado</th></tr></thead><tbody id="eq-tbody"></tbody></table>
+          <table><thead id="eq-thead"><tr><th data-key="tag" data-type="text">Tag</th><th data-key="desc" data-type="text">Descrição</th><th data-key="classe" data-type="text">Classe</th><th data-key="fabricante" data-type="text">Fabricante</th><th data-key="ano" data-type="num">Ano</th><th data-key="criticidade" data-type="text">Criticidade (TOM)</th><th data-key="classif" data-type="text">Classif. (score)</th><th data-key="estado" data-type="text">Estado</th></tr></thead><tbody id="eq-tbody"></tbody></table>
         </div>
       </div>
     </div>
@@ -501,7 +508,7 @@ body.force-mobile .sidebar-fmt{display:none;}
         </div>
         <div class="card">
           <div class="card-title" style="margin-bottom:9px;">Referência de vazão nominal por fabricante</div>
-          <div class="table-wrap"><table><thead><tr><th>Marca</th><th>Modelo</th><th>Vazão nominal (m³/h)</th></tr></thead><tbody id="sec-ref-tbody"></tbody></table></div>
+          <div class="table-wrap"><table><thead id="sec-ref-thead"><tr><th data-key="marca" data-type="text">Marca</th><th data-key="modelo" data-type="text">Modelo</th><th data-key="vazao_nominal" data-type="text">Vazão nominal (m³/h)</th></tr></thead><tbody id="sec-ref-tbody"></tbody></table></div>
         </div>
       </div>
 
@@ -545,7 +552,7 @@ body.force-mobile .sidebar-fmt{display:none;}
       <div class="card">
         <div class="card-head"><div class="card-title">Hora-Homem individual<span class="sub">Horas TOM × Horas de escala × % apropriação — mês selecionado. <b>*</b> = valor estimado, sem escala real cadastrada para a pessoa/mês</span></div></div>
         <div class="table-wrap tbl-scroll">
-          <table><thead><tr><th>Funcionário</th><th>Cargo</th><th>Horas TOM</th><th>Horas escala</th><th>% Apropriação</th></tr></thead><tbody id="hh-individual-tbody"></tbody></table>
+          <table><thead id="hh-thead"><tr><th data-key="nome" data-type="text">Funcionário</th><th data-key="cargo" data-type="text">Cargo</th><th data-key="horas" data-type="num">Horas TOM</th><th data-key="horas_escala" data-type="num">Horas escala</th><th data-key="pct" data-type="num">% Apropriação</th></tr></thead><tbody id="hh-individual-tbody"></tbody></table>
         </div>
       </div>
     </div>
@@ -581,7 +588,7 @@ body.force-mobile .sidebar-fmt{display:none;}
         <div class="card">
           <div class="card-head"><div class="card-title">Lançamentos do mês selecionado<span class="sub" id="bio-count-sub"></span></div></div>
           <div class="table-wrap tbl-scroll">
-            <table><thead><tr><th>Data</th><th>N° NF</th><th>Fornecedor</th><th>Produto</th><th>Qtde (TN)</th><th>Valor unit.</th><th>Valor total</th></tr></thead><tbody id="bio-tbody"></tbody></table>
+            <table><thead id="bio-thead"><tr><th data-key="data" data-type="date">Data</th><th data-key="nf" data-type="text">N° NF</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="produto" data-type="text">Produto</th><th data-key="quantidade_tn" data-type="num">Qtde (TN)</th><th data-key="valor_unitario" data-type="num">Valor unit.</th><th data-key="valor" data-type="num">Valor total</th></tr></thead><tbody id="bio-tbody"></tbody></table>
           </div>
         </div>
       </div>
@@ -713,6 +720,39 @@ const fmtBRL = n => (n==null||isNaN(n)) ? '—' : n.toLocaleString('pt-BR',{styl
 const fmtNum = (n,d=0) => (n==null||isNaN(n)) ? '—' : n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtPct = n => (n==null||isNaN(n)) ? '—' : (n*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%';
 const monthLabel = ym => { const [y,m]=ym.split('-'); const names=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']; return names[parseInt(m)-1]+'/'+y.slice(2); };
+
+/* ===================== ORDENAÇÃO GENÉRICA DE TABELAS ===================== */
+const __sortState = {};
+function applySort(tableId, rows){
+  const st = __sortState[tableId];
+  if(!st || !st.key) return rows;
+  const {key, dir, type} = st;
+  return [...rows].sort((a,b)=>{
+    let va = a[key], vb = b[key];
+    if(va===undefined) va = null; if(vb===undefined) vb = null;
+    if(va==null && vb==null) return 0;
+    if(va==null) return 1;
+    if(vb==null) return -1;
+    if(type==='num'){ va = Number(va); vb = Number(vb); if(isNaN(va)) va=-Infinity; if(isNaN(vb)) vb=-Infinity; return (va-vb)*dir; }
+    return String(va).localeCompare(String(vb), 'pt-BR', {numeric:true})*dir;
+  });
+}
+function wireSortHeaders(theadId, tableId, redrawFn){
+  const thead = document.getElementById(theadId);
+  if(!thead) return;
+  thead.querySelectorAll('th[data-key]').forEach(th=>{
+    th.classList.add('sortable');
+    th.addEventListener('click', ()=>{
+      const key = th.dataset.key, type = th.dataset.type||'text';
+      const cur = __sortState[tableId];
+      const dir = (cur && cur.key===key) ? cur.dir*-1 : 1;
+      __sortState[tableId] = {key, dir, type};
+      thead.querySelectorAll('th[data-key]').forEach(t=>t.classList.remove('sort-asc','sort-desc'));
+      th.classList.add(dir===1 ? 'sort-asc' : 'sort-desc');
+      redrawFn();
+    });
+  });
+}
 Chart.defaults.color = '#9a9c9e'; Chart.defaults.font.family = "Inter, sans-serif"; Chart.defaults.font.size = 11; Chart.defaults.borderColor = '#333537';
 const PAL = {geral:'#00a3a0', orc:'#d31d29', os:'#8b98a3', compras:'#ef5c66', equip:'#0d7a78', pessoas:'#57646e', agenda:'#a11520', mapa:'#4fc9c4', performance:'#e0972f', utilidades:'#6a93b0', red:'#cc4a3c', green:'#00a3a0', amber:'#e0972f', gray:'#9a9c9e'};
 
@@ -867,11 +907,12 @@ async function renderOrcamento(){
       const matchQ = !q || ((n.fornecedor||'')+(n.descricao||'')+String(n.nf)).toLowerCase().includes(q);
       return matchQ && (!mf||n.mes===mf) && (!tf2||n.tipo===tf2);
     });
-    document.getElementById('nf-tbody').innerHTML = rows.map(n=>`
+    document.getElementById('nf-tbody').innerHTML = applySort('nf', rows).map(n=>`
       <tr><td class="mono">${(n.mes||'').slice(0,3)}</td><td class="mono">${n.nf}</td><td>${(n.fornecedor||'').trim()}</td>
       <td><span class="badge ${n.tipo==='SERVIÇO'?'b-blue':n.tipo==='CONTRATO'?'b-amber':'b-gray'}">${n.tipo}</span></td>
       <td class="mono">${fmtBRL(n.valor)}</td><td>${n.centro_custo||'—'}</td><td>${n.descricao||'—'}</td></tr>`).join('') || `<tr><td colspan="7" class="empty">Nenhum lançamento encontrado</td></tr>`;
   }
+  wireSortHeaders('nf-thead', 'nf', drawNF);
   document.getElementById('nf-search').addEventListener('input', drawNF);
   nfMesSel.addEventListener('change', drawNF); nfTipoSel.addEventListener('change', drawNF);
 
@@ -879,10 +920,11 @@ async function renderOrcamento(){
   function drawEst(){
     const q = document.getElementById('est-search').value.toLowerCase();
     const rows = DATA.estoque_list.filter(e=> !q || ((e.descricao||'')+String(e.produto)).toLowerCase().includes(q));
-    document.getElementById('est-tbody').innerHTML = rows.slice(0,300).map(e=>`
+    document.getElementById('est-tbody').innerHTML = applySort('est', rows).slice(0,300).map(e=>`
       <tr><td class="mono">${e.data?e.data.split(' ')[0].split('-').reverse().join('/'):'—'}</td><td class="mono">${e.produto}</td>
       <td>${e.descricao||'—'}</td><td class="mono">${fmtNum(e.qtde_mov,2)}</td><td class="mono">${fmtBRL(e.valor_mov)}</td><td class="mono">${fmtNum(e.qtde_restante,0)}</td></tr>`).join('') || `<tr><td colspan="6" class="empty">Nenhuma retirada encontrada</td></tr>`;
   }
+  wireSortHeaders('est-thead', 'est', drawEst);
   document.getElementById('est-search').addEventListener('input', drawEst);
 
   const nfgMesSel = document.getElementById('nfg-mes-filter');
@@ -905,12 +947,14 @@ async function renderOrcamento(){
     document.getElementById('nfg-k-qtd').textContent = fmtNum(naoLancadas.length);
     document.getElementById('nfg-k-valor').textContent = fmtBRL(naoLancadas.reduce((a,n)=>a+(n.valor||0),0));
     document.getElementById('nfg-k-ok').textContent = fmtNum(lancadas.length);
-    document.getElementById('nfg-tbody').innerHTML = rows.map(n=>`
+    const sorted = applySort('nfg', rows);
+    document.getElementById('nfg-tbody').innerHTML = sorted.map(n=>`
       <tr><td class="mono">${n.nota}</td><td>${n.fornecedor||'—'}</td>
       <td class="mono">${n.data?n.data.split(' ')[0].split('-').reverse().join('/'):'—'}</td>
       <td class="mono">${fmtBRL(n.valor)}</td><td>${n.situacao||'—'}</td>
       <td><span class="badge ${n.lancada_pela_manutencao?'b-green':'b-red'}">${n.lancada_pela_manutencao?'Sim':'Não'}</span></td></tr>`).join('') || `<tr><td colspan="6" class="empty">Nenhuma nota encontrada</td></tr>`;
   }
+  wireSortHeaders('nfg-thead', 'nfg', drawNFG);
   [nfgMesSel, document.getElementById('nfg-flag-filter')].forEach(el=>el.addEventListener('change', drawNFG));
   document.getElementById('nfg-search').addEventListener('input', drawNFG);
 
@@ -963,17 +1007,19 @@ function renderOS(){
       const hay=(String(o.ot)+(o.desc||'')+(o.equipamento_desc||'')+(o.atribuido_a||'')).toLowerCase();
       return (!q||hay.includes(q)) && (!st||o.status===st) && (!tp||o.tipo===tp) && (!pr||o.prioridade===pr);
     });
-    const totalPages=Math.max(1,Math.ceil(filtered.length/OS_PAGE_SIZE)); osPage=Math.min(osPage,totalPages);
-    const pageRows=filtered.slice((osPage-1)*OS_PAGE_SIZE, osPage*OS_PAGE_SIZE);
+    const sortedFiltered = applySort('os', filtered);
+    const totalPages=Math.max(1,Math.ceil(sortedFiltered.length/OS_PAGE_SIZE)); osPage=Math.min(osPage,totalPages);
+    const pageRows=sortedFiltered.slice((osPage-1)*OS_PAGE_SIZE, osPage*OS_PAGE_SIZE);
     document.getElementById('os-tbody').innerHTML = pageRows.map(o=>`
       <tr><td class="mono">${o.ot}</td><td>${o.tipo}</td><td><span class="badge ${statusBadge(o.status)}">${o.status||'—'}</span></td>
       <td><span class="badge ${prioBadge(o.prioridade)}">${o.prioridade||'—'}</span></td><td>${o.equipamento_desc||'—'}</td><td>${o.desc||'—'}</td>
       <td>${o.atribuido_a||'—'}</td><td class="mono">${o.data_prog?o.data_prog.split(' ')[0].split('-').reverse().join('/'):'—'}</td>
       <td class="mono">${o.horas_estimadas??'—'}</td></tr>`).join('') || `<tr><td colspan="9" class="empty">Nenhuma OS encontrada</td></tr>`;
-    document.getElementById('os-pager').innerHTML = `<button ${osPage<=1?'disabled':''} id="os-prev">‹ anterior</button><span>página ${osPage} de ${totalPages} · ${filtered.length} OS</span><button ${osPage>=totalPages?'disabled':''} id="os-next">próxima ›</button>`;
+    document.getElementById('os-pager').innerHTML = `<button ${osPage<=1?'disabled':''} id="os-prev">‹ anterior</button><span>página ${osPage} de ${totalPages} · ${sortedFiltered.length} OS</span><button ${osPage>=totalPages?'disabled':''} id="os-next">próxima ›</button>`;
     const pb=document.getElementById('os-prev'), nb=document.getElementById('os-next');
     if(pb) pb.onclick=()=>{osPage--; drawTable();}; if(nb) nb.onclick=()=>{osPage++; drawTable();};
   }
+  wireSortHeaders('os-thead', 'os', ()=>{osPage=1; drawTable();});
   document.getElementById('os-search').addEventListener('input', ()=>{osPage=1; drawTable();});
   [statusSel,tipoSel,prioSel].forEach(el=>el.addEventListener('change', ()=>{osPage=1; drawTable();}));
 
@@ -1003,13 +1049,14 @@ function renderEquip(){
       const hay=((e.tag||'')+(e.desc||'')+(e.fabricante||'')).toLowerCase();
       return (!q||hay.includes(q)) && (!cl||e.classe===cl) && (!cr||e.criticidade===cr) && (!cf||e.classif===cf);
     });
-    document.getElementById('eq-tbody').innerHTML = rows.map(e=>`
+    document.getElementById('eq-tbody').innerHTML = applySort('eq', rows).map(e=>`
       <tr><td><span class="tagbadge">${e.tag}</span></td><td>${e.desc||'—'}</td><td class="mono">${e.classe||'—'}</td>
       <td>${e.fabricante||'—'}</td><td class="mono">${e.ano?Math.trunc(e.ano):'—'}</td>
       <td><span class="badge ${critBadge(e.criticidade)}">${e.criticidade||'—'}</span></td>
       <td>${e.classif?`<span class="badge ${classifBadge(e.classif)}">${e.classif}</span>`:'<span style="color:var(--text-dimmer)">—</span>'}</td>
       <td style="font-size:11px; color:var(--text-dim)">${e.estado||'—'}</td></tr>`).join('') || `<tr><td colspan="8" class="empty">Nenhum equipamento encontrado</td></tr>`;
   }
+  wireSortHeaders('eq-thead', 'eq', draw);
   document.getElementById('eq-search').addEventListener('input', draw);
   classeSel.addEventListener('change', draw); critSel.addEventListener('change', draw); classifSel.addEventListener('change', draw);
   draw();
@@ -1083,17 +1130,21 @@ async function renderPessoas(){
       const jaListados = new Set(rows.map(r=>r.nome));
       Object.keys(real).forEach(nome=>{ if(!jaListados.has(nome)) rows.push({nome, mes:ym, horas:0}); });
     }
-    rows = rows.sort((a,b)=>b.horas-a.horas);
-    document.getElementById('hh-individual-tbody').innerHTML = rows.map(r=>{
+    rows = rows.map(r=>{
       const horasEscala = real ? (real[r.nome] ?? escalaH) : escalaH;
       const pct = horasEscala ? r.horas/horasEscala : 0;
-      const color = pct>1 ? 'var(--red)' : pct>0.85 ? 'var(--green)' : 'var(--amber)';
-      const fonte = real && real[r.nome]!=null ? '' : ' *';
-      return `<tr><td>${r.nome}</td><td style="color:var(--text-dim); font-size:11px;">${cargoMap[r.nome]||'Não identificado'}</td>
-      <td class="mono">${fmtNum(r.horas,1)}h</td><td class="mono">${fmtNum(horasEscala,0)}h${fonte}</td>
-      <td class="mono" style="color:${color}; font-weight:700;">${fmtPct(pct)}</td></tr>`;
+      return {...r, cargo: cargoMap[r.nome]||'Não identificado', horas_escala: horasEscala, pct, fonte_estimada: !(real && real[r.nome]!=null)};
+    });
+    rows = __sortState['hh-individual'] ? applySort('hh-individual', rows) : rows.sort((a,b)=>b.horas-a.horas);
+    document.getElementById('hh-individual-tbody').innerHTML = rows.map(r=>{
+      const color = r.pct>1 ? 'var(--red)' : r.pct>0.85 ? 'var(--green)' : 'var(--amber)';
+      const fonte = r.fonte_estimada ? ' *' : '';
+      return `<tr><td>${r.nome}</td><td style="color:var(--text-dim); font-size:11px;">${r.cargo}</td>
+      <td class="mono">${fmtNum(r.horas,1)}h</td><td class="mono">${fmtNum(r.horas_escala,0)}h${fonte}</td>
+      <td class="mono" style="color:${color}; font-weight:700;">${fmtPct(r.pct)}</td></tr>`;
     }).join('') || `<tr><td colspan="5" class="empty">Sem apontamentos neste mês</td></tr>`;
   }
+  wireSortHeaders('hh-thead', 'hh-individual', drawIndiv);
   mesSel.addEventListener('change', ()=>{ drawCards(); drawIndiv(); });
 
   const tt = DATA.hh_tipo_trend;
@@ -1348,12 +1399,13 @@ function renderCompras(){
   function drawTable(){
     const rows = filtered();
     const statusBadge = s => s==='Aberto Total'?'b-green': s==='Aberto Parcial'?'b-amber':'b-gray';
-    document.getElementById('compras-tbody').innerHTML = rows.map(c=>`
+    document.getElementById('compras-tbody').innerHTML = applySort('compras', rows).map(c=>`
       <tr><td class="mono">${c.oc}</td><td>${c.fornecedor||'—'}</td>
       <td class="mono">${c.data_emissao?c.data_emissao.split(' ')[0].split('-').reverse().join('/'):'—'}</td>
       <td class="mono">${fmtBRL(c.valor)}</td><td class="mono">${fmtNum(c.tns_produto,0)}</td><td class="mono">${fmtNum(c.tns_servico,0)}</td>
       <td><span class="badge ${statusBadge(c.status)}">${c.status||'—'}</span></td></tr>`).join('') || `<tr><td colspan="7" class="empty">Nenhuma ordem de compra encontrada</td></tr>`;
   }
+  wireSortHeaders('compras-thead', 'compras', drawTable);
   [mesSel, fornSel, statusSel].forEach(el=>el.addEventListener('change', ()=>{ drawCards(); drawTable(); }));
   document.getElementById('compras-search').addEventListener('input', ()=>{ drawCards(); drawTable(); });
   drawCards(); drawTable();
@@ -1442,9 +1494,14 @@ function renderPerformance(){
     });
   });
 
-  document.getElementById('sec-ref-tbody').innerHTML = (perf.secadores_referencia||[]).map(r=>`
+  document.getElementById('sec-ref-tbody').innerHTML = applySort('sec-ref', perf.secadores_referencia||[]).map(r=>`
     <tr><td>${r.marca}</td><td>${r.modelo}</td><td class="mono">${r.vazao_nominal}</td></tr>`).join('') ||
     `<tr><td colspan="3" class="empty">Sem referência cadastrada</td></tr>`;
+  wireSortHeaders('sec-ref-thead', 'sec-ref', ()=>{
+    document.getElementById('sec-ref-tbody').innerHTML = applySort('sec-ref', perf.secadores_referencia||[]).map(r=>`
+      <tr><td>${r.marca}</td><td>${r.modelo}</td><td class="mono">${r.vazao_nominal}</td></tr>`).join('') ||
+      `<tr><td colspan="3" class="empty">Sem referência cadastrada</td></tr>`;
+  });
 
   // ---- Túneis ----
   const diaShort = {'domingo':'Dom','segunda-feira':'Seg','terça-feira':'Ter','quarta-feira':'Qua','quinta-feira':'Qui','sexta-feira':'Sex','sábado':'Sáb'};
@@ -1532,11 +1589,12 @@ function renderUtilidades(){
     document.getElementById('bio-k-tn-mes').textContent = fmtNum(tnMes,1)+' TN';
     document.getElementById('bio-k-valor-mes').innerHTML = `<span class="mono">${fmtBRL(valorMes)}</span>`;
     document.getElementById('bio-count-sub').textContent = ` — ${doMes.length} lançamentos`;
-    document.getElementById('bio-tbody').innerHTML = doMes.map(b=>`
+    document.getElementById('bio-tbody').innerHTML = applySort('bio', doMes).map(b=>`
       <tr><td>${b.data?b.data.slice(0,10).split('-').reverse().join('/'):'—'}</td><td class="mono">${b.nf||'—'}</td><td>${b.fornecedor||'—'}</td><td>${b.produto||'—'}</td>
       <td class="mono">${fmtNum(b.quantidade_tn,2)}</td><td class="mono">${fmtBRL(b.valor_unitario)}</td><td class="mono">${fmtBRL(b.valor)}</td></tr>`).join('') ||
       `<tr><td colspan="7" class="empty">Sem lançamentos neste mês</td></tr>`;
   }
+  wireSortHeaders('bio-thead', 'bio', drawBioMes);
   if(mesesDisponiveis.length) drawBioMes();
   mesSel.addEventListener('change', drawBioMes);
 
