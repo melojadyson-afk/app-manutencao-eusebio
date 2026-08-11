@@ -14,6 +14,7 @@
   --nickel:#c7ccd1; --nickel-dim:#35373a;
   --c-geral:#00a3a0; --c-orc:#d31d29; --c-os:#8b98a3; --c-compras:#ef5c66;
   --c-equip:#0d7a78; --c-pessoas:#57646e; --c-agenda:#a11520; --c-mapa:#4fc9c4;
+  --c-performance:#e0972f; --c-utilidades:#6a93b0;
   --red:#cc4a3c; --green:#00a3a0; --amber:#e0972f; --blue:#6a93b0;
   --red-dim:#3d2421; --green-dim:#0f2b2a; --amber-dim:#3f331d; --blue-dim:#25313b;
   --radius:10px;
@@ -222,6 +223,50 @@ body.force-mobile .sidebar-fmt{display:none;}
   .main{padding:16px 14px 84px;}
   .g4,.g3,.g2{grid-template-columns:1fr 1fr;}
 }
+/* ===================== PERFORMANCE / UTILIDADES ===================== */
+.perf-tabs{display:flex; gap:8px; flex-wrap:wrap;}
+.perf-tab{font-family:'IBM Plex Mono'; font-size:11px; color:var(--text-dim); background:var(--panel); border:1px solid var(--line-soft); padding:7px 14px; border-radius:20px; cursor:pointer; transition:.15s;}
+.perf-tab:hover{color:var(--text);}
+.perf-tab.active{color:var(--tab-color); background:color-mix(in srgb, var(--tab-color) 16%, transparent); border-color:color-mix(in srgb, var(--tab-color) 40%, transparent); font-weight:600;}
+
+.filter-group{display:flex; gap:6px; align-items:center; flex-wrap:wrap;}
+.chip{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--text-dim); background:var(--bg2); border:1px solid var(--line-soft); padding:5px 11px; border-radius:14px; cursor:pointer;}
+.chip.active{color:#0c1615; background:var(--tab-color); border-color:var(--tab-color); font-weight:600;}
+
+.perf-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(270px,1fr)); gap:12px; margin-top:12px;}
+.sec-card{border:1px solid var(--line-soft); background:var(--bg2); border-radius:10px; padding:13px 15px 15px; transition:border-color .15s;}
+.sec-card.dim{opacity:.3; filter:grayscale(.4);}
+.sec-card:hover{border-color:var(--line);}
+.sec-card-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;}
+.sec-id{font-family:'Space Grotesk'; font-size:18px; font-weight:700;}
+.sec-model{font-size:10.5px; color:var(--text-dim); font-family:'IBM Plex Mono';}
+.status-tag{font-family:'IBM Plex Mono'; font-size:9.5px; text-transform:uppercase; padding:3px 8px; letter-spacing:.05em; border-radius:10px; border:1px solid; white-space:nowrap;}
+.status-tag.ok{color:var(--green); border-color:var(--green);}
+.status-tag.warn{color:var(--amber); border-color:var(--amber);}
+.status-tag.off{color:var(--text-dimmer); border-color:var(--line-soft);}
+
+.sec-points{display:grid; grid-template-columns:repeat(6,1fr); gap:3px; margin:9px 0 10px;}
+.sec-pt{text-align:center;}
+.sec-pt .v{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--text);}
+.sec-pt .l{font-size:8.5px; color:var(--text-dimmer);}
+.sec-pt-bar{height:22px; background:var(--bg); position:relative; margin-bottom:2px; border-radius:2px; border:1px solid var(--line-soft); overflow:hidden;}
+.sec-pt-bar i{position:absolute; bottom:0; left:0; right:0; background:var(--tab-color); opacity:.7; display:block;}
+
+.sec-metric-row{display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); margin:4px 0;}
+.sec-metric-row b{color:var(--text); font-family:'IBM Plex Mono'; font-weight:500;}
+
+.sec-gauge{margin-top:11px;}
+.sec-gauge .label{font-size:9.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; display:flex; justify-content:space-between;}
+.sec-gauge .track{height:14px; background:var(--bg); border:1px solid var(--line-soft); border-radius:3px; position:relative; overflow:visible;}
+.sec-gauge .band{position:absolute; top:0; bottom:0; background:#ffffff14; border-radius:3px;}
+.sec-gauge .fill{position:absolute; top:0; bottom:0; left:0; border-radius:3px;}
+.sec-gauge .fill.ok{background:var(--green);}
+.sec-gauge .fill.warn{background:var(--amber);}
+.sec-gauge .fill.off{background:var(--text-dimmer);}
+
+.tunel-card{margin-bottom:16px;}
+.tunel-kpis{display:flex; gap:18px; flex-wrap:wrap; margin:4px 0 14px; font-size:11.5px; color:var(--text-dim);}
+.tunel-kpis b{color:var(--text); font-family:'Space Grotesk'; font-size:15px; display:block; margin-bottom:1px;}
 </style>
 </head>
 <body>
@@ -240,7 +285,9 @@ body.force-mobile .sidebar-fmt{display:none;}
     <div class="navitem" data-view="os" style="--c:var(--c-os)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><path d="M9 3.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8v1.4a.8.8 0 01-.8.8H9.8a.8.8 0 01-.8-.8V3.8z"/><path d="M8.5 12.5l2 2 4-4.2"/></svg></span> Ordens de Serviço <span class="n" id="nav-os-count"></span></div>
     <div class="navitem" data-view="compras" style="--c:var(--c-compras)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="18" cy="21" r="1"/><path d="M2.5 3h2.5l2.7 12.4a2 2 0 002 1.6h8.1a2 2 0 002-1.6L21 7H6"/></svg></span> Gestão de Compras</div>
     <div class="navitem" data-view="equip" style="--c:var(--c-equip)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 2.5l1.2 2.7 2.9-.6 1 2.8 2.8 1-.6 2.9 2.7 1.2-.6 2.9.6 2.9-2.7 1.2.6 2.9-2.8 1-1 2.8-2.9-.6L12 24.5l-1.2-2.7-2.9.6-1-2.8-2.8-1 .6-2.9L2 12.5l.6-2.9L2 6.7l2.7-1.2-.6-2.9 2.8-1 1-2.8 2.9.6z" transform="scale(0.83) translate(2.2,2.2)"/><circle cx="12" cy="12" r="3.6"/></svg></span> Equipamentos <span class="n" id="nav-eq-count"></span></div>
+    <div class="navitem" data-view="performance" style="--c:var(--c-performance)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5.5 4 3 6-8"/><path d="M14 6.5h4.5V11"/></svg></span> Performance</div>
     <div class="navitem" data-view="pessoas" style="--c:var(--c-pessoas)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 00-3.5-3.5h-5A3.5 3.5 0 005 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path d="M19 20v-1.5a3.3 3.3 0 00-2.2-3.1"/><path d="M14.8 4.9a3.2 3.2 0 010 6.1"/></svg></span> Gestão de Pessoas</div>
+    <div class="navitem" data-view="utilidades" style="--c:var(--c-utilidades)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 10.5a6 6 0 01-12 0C6 9.5 12 3 12 3z"/></svg></span> Utilidades</div>
     <div class="navitem" data-view="calendario" style="--c:var(--c-agenda)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v4"/><path d="M16 3v4"/></svg></span> Agenda / Calendário <span class="n" id="nav-cal-count"></span></div>
     <div class="navitem" data-view="mapa" style="--c:var(--c-mapa)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11.5A7 7 0 105 9.5C5 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg></span> Mapa</div>
 
@@ -283,10 +330,10 @@ body.force-mobile .sidebar-fmt{display:none;}
     <!-- ============ ORÇAMENTO & CUSTOS ============ -->
     <div class="view" id="view-orcamento" style="--tab-color:var(--c-orc)">
       <div class="topbar">
-        <div><div class="pagetitle"><span class="dot"></span>Orçamento &amp; Custos</div><div class="pagesub">Notas fiscais, biomassa e estoque — Manutenção/Utilidades</div></div>
+        <div><div class="pagetitle"><span class="dot"></span>Orçamento &amp; Custos</div><div class="pagesub">Notas fiscais e estoque — Centro de custo Manutenção</div></div>
         <select id="orc-mes-select" class="period-pill mono" style="border:1px solid color-mix(in srgb, var(--c-orc) 35%, transparent);"></select>
       </div>
-      <div class="grid g4" style="margin-bottom:14px;">
+      <div class="grid g3" style="margin-bottom:14px;">
         <div class="card kpi">
           <div class="kpi-label">Budget do mês (fixo)</div>
           <div class="kpi-value" id="orc-budget-fixed" style="font-size:22px;">R$ 338.000</div>
@@ -294,62 +341,12 @@ body.force-mobile .sidebar-fmt{display:none;}
         </div>
         <div class="card kpi"><div class="kpi-label">Valor realizado (mês)</div><div class="kpi-value" id="orc-realizado">–</div></div>
         <div class="card kpi"><div class="kpi-label">Saldo do mês</div><div class="kpi-value" id="orc-saldo">–</div></div>
-        <div class="card kpi"><div class="kpi-label">Biomassa (mês) — R$ / TN</div><div class="kpi-value" id="orc-bio-mes">–</div><div class="kpi-delta" id="orc-bio-mes-tn"></div></div>
       </div>
 
-      <div class="card" style="margin-bottom:14px; border-top:2px solid var(--c-compras);">
-        <div class="card-head">
-          <div class="card-title">Simulação de Gastos Futuros — Ordens de Compra em Aberto<span class="sub">Baseado nas ordens cadastradas em Gestão de Compras hoje · projeção paralela, não entra no "Realizado" acima</span></div>
-        </div>
-        <div class="grid g3" style="margin-bottom:14px;">
-          <div class="card kpi" style="border-top:2px solid var(--blue); padding-top:12px;">
-            <div class="kpi-label">Comprometido <span style="color:var(--text-dimmer)">(Aberto Total + Parcial)</span></div>
-            <div class="kpi-value" id="sim-comprometido-valor" style="color:var(--blue);">–</div>
-            <div class="kpi-delta" id="sim-comprometido-qtd"></div>
-          </div>
-          <div class="card kpi" style="border-top:2px solid var(--amber); padding-top:12px;">
-            <div class="kpi-label">Pendente de Aprovação <span style="color:var(--text-dimmer)">(Não Fechado)</span></div>
-            <div class="kpi-value" id="sim-pendente-valor" style="color:var(--amber);">–</div>
-            <div class="kpi-delta" id="sim-pendente-qtd"></div>
-          </div>
-          <div class="card kpi" style="border-top:2px solid var(--red); padding-top:12px;">
-            <div class="kpi-label">Exposição Total Possível</div>
-            <div class="kpi-value" id="sim-total-valor" style="color:var(--red);">–</div>
-            <div class="kpi-delta" style="color:var(--text-dimmer)">soma dos dois cenários</div>
-          </div>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-dim); margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em;">
-          <span>Cenário Otimista — nenhuma pendente aprovada</span>
-          <span>Cenário Pessimista — todas as pendentes aprovadas</span>
-        </div>
-        <div class="pbar-track" style="height:18px; border-radius:9px;">
-          <div id="sim-bar-comprometido" style="height:100%; background:var(--blue); float:left;"></div>
-          <div id="sim-bar-pendente" style="height:100%; background:var(--amber); float:left;"></div>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-top:7px; font-size:12.5px;">
-          <span id="sim-otimista-label"></span>
-          <span id="sim-pessimista-label"></span>
-        </div>
-        <div class="foot-note" id="sim-nota-metodologia" style="margin-top:12px;"></div>
-      </div>
-
-      <div class="grid g2" style="margin-bottom:14px;">
+      <div class="grid g3" style="margin-bottom:14px;">
         <div class="card"><div class="card-head"><div class="card-title">Histórico mensal — Custo vs. Budget<span class="sub">Jan a Jun/2026 — cada barra é um mês</span></div></div><div class="chart-box tall"><canvas id="chart-orc-hist"></canvas></div></div>
         <div class="card"><div class="card-head"><div class="card-title">Composição do gasto (mês selecionado)<span class="sub">Por tipo de lançamento</span></div></div><div class="chart-box tall"><canvas id="chart-orc-comp"></canvas></div></div>
-      </div>
-      <div class="grid g3" style="margin-bottom:14px;">
-        <div class="card">
-          <div class="card-title" style="margin-bottom:9px;">Aquisição de Biomassa (acumulado)</div>
-          <div id="bio-produtos" style="display:flex; flex-direction:column; gap:8px;"></div>
-        </div>
-        <div class="card">
-          <div class="card-title" style="margin-bottom:9px;">Biomassa do mês selecionado</div>
-          <div id="bio-produtos-mes" style="display:flex; flex-direction:column; gap:8px;"></div>
-        </div>
-        <div class="card">
-          <div class="card-title" style="margin-bottom:9px;">Maiores fornecedores</div>
-          <div class="chart-box short"><canvas id="chart-fornecedores"></canvas></div>
-        </div>
+        <div class="card"><div class="card-head"><div class="card-title">Maiores fornecedores<span class="sub">Acumulado no período</span></div></div><div class="chart-box tall"><canvas id="chart-fornecedores"></canvas></div></div>
       </div>
       <div class="card" style="margin-bottom:14px;">
         <div class="card-head"><div class="card-title">Notas de Entrada Geral — Centro de Custo Manutenção<span class="sub" id="nfg-count-sub"></span></div></div>
@@ -475,6 +472,56 @@ body.force-mobile .sidebar-fmt{display:none;}
       </div>
     </div>
 
+    <!-- ============ PERFORMANCE ============ -->
+    <div class="view" id="view-performance" style="--tab-color:var(--c-performance)">
+      <div class="topbar">
+        <div><div class="pagetitle"><span class="dot"></span>Performance</div><div class="pagesub">Desempenho operacional dos equipamentos</div></div>
+        <div class="perf-tabs" id="perf-tabs">
+          <button class="perf-tab active" data-perf="secadoras">Secadoras</button>
+          <button class="perf-tab" data-perf="tuneis">Túneis</button>
+          <button class="perf-tab" data-perf="calandras">Calandras</button>
+        </div>
+      </div>
+
+      <!-- ---- Secadoras ---- -->
+      <div id="perf-view-secadoras">
+        <div class="grid g4" style="margin-bottom:14px;">
+          <div class="card kpi"><div class="kpi-label">Secadoras</div><div class="kpi-value" id="sec-k-total">–</div></div>
+          <div class="card kpi"><div class="kpi-label">OK</div><div class="kpi-value" id="sec-k-ok" style="color:var(--green);">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Avaliar</div><div class="kpi-value" id="sec-k-warn" style="color:var(--amber);">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Sem leitura</div><div class="kpi-value" id="sec-k-off" style="color:var(--text-dimmer);">–</div></div>
+        </div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="card-head"><div class="card-title">Verificação de Vazão de Ar<span class="sub">Cada secadora é comparada à vazão nominal do fabricante — pontos P1 a P6 medidos na saída de ar</span></div></div>
+          <div class="toolbar">
+            <div class="filter-group" id="sec-filter-marca"></div>
+            <div class="filter-group" id="sec-filter-status"></div>
+          </div>
+          <div class="perf-grid" id="sec-grid"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:9px;">Referência de vazão nominal por fabricante</div>
+          <div class="table-wrap"><table><thead><tr><th>Marca</th><th>Modelo</th><th>Vazão nominal (m³/h)</th></tr></thead><tbody id="sec-ref-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- ---- Túneis ---- -->
+      <div id="perf-view-tuneis" style="display:none;">
+        <div id="tuneis-container"></div>
+      </div>
+
+      <!-- ---- Calandras ---- -->
+      <div id="perf-view-calandras" style="display:none;">
+        <div class="card">
+          <div class="empty">
+            <div style="font-size:15px; color:var(--text); font-weight:600; margin-bottom:6px;">Ainda sem dados</div>
+            Projeto de automação de contagem de entrada e saída da dobra de lençóis — em desenvolvimento.<br>
+            Assim que os dados estiverem disponíveis na planilha, este painel é preenchido automaticamente.
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ============ GESTÃO DE PESSOAS ============ -->
     <div class="view" id="view-pessoas" style="--tab-color:var(--c-pessoas)">
       <div class="topbar">
@@ -501,6 +548,48 @@ body.force-mobile .sidebar-fmt{display:none;}
           <table><thead><tr><th>Funcionário</th><th>Cargo</th><th>Horas TOM</th><th>Horas escala</th><th>% Apropriação</th></tr></thead><tbody id="hh-individual-tbody"></tbody></table>
         </div>
       </div>
+    </div>
+
+    <!-- ============ UTILIDADES ============ -->
+    <div class="view" id="view-utilidades" style="--tab-color:var(--c-utilidades)">
+      <div class="topbar">
+        <div><div class="pagetitle"><span class="dot"></span>Utilidades</div><div class="pagesub">Biomassa, Energia, Água e Resíduos</div></div>
+        <div class="perf-tabs" id="util-tabs">
+          <button class="perf-tab active" data-util="biomassa">Biomassa</button>
+          <button class="perf-tab" data-util="energia">Energia</button>
+          <button class="perf-tab" data-util="agua">Água</button>
+          <button class="perf-tab" data-util="residuos">Resíduos</button>
+        </div>
+      </div>
+
+      <!-- ---- Biomassa ---- -->
+      <div id="util-view-biomassa">
+        <div class="topbar" style="margin-bottom:14px;">
+          <div></div>
+          <select id="util-bio-mes-select" class="period-pill mono" style="border:1px solid color-mix(in srgb, var(--c-utilidades) 35%, transparent);"></select>
+        </div>
+        <div class="grid g4" style="margin-bottom:14px;">
+          <div class="card kpi"><div class="kpi-label">Total adquirido (acumulado)</div><div class="kpi-value" id="bio-k-tn">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Valor total (acumulado)</div><div class="kpi-value" id="bio-k-valor">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Preço médio — R$/TN</div><div class="kpi-value" id="bio-k-preco">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Adquirido no mês</div><div class="kpi-value" id="bio-k-tn-mes">–</div><div class="kpi-delta" id="bio-k-valor-mes"></div></div>
+        </div>
+        <div class="grid g2" style="margin-bottom:14px;">
+          <div class="card"><div class="card-head"><div class="card-title">Histórico mensal — Toneladas adquiridas<span class="sub">Jan a Ago/2026</span></div></div><div class="chart-box tall"><canvas id="chart-bio-hist"></canvas></div></div>
+          <div class="card"><div class="card-head"><div class="card-title">Composição por produto<span class="sub">Acumulado no período</span></div></div><div class="chart-box tall"><canvas id="chart-bio-produto"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Lançamentos do mês selecionado<span class="sub" id="bio-count-sub"></span></div></div>
+          <div class="table-wrap tbl-scroll">
+            <table><thead><tr><th>Data</th><th>N° NF</th><th>Fornecedor</th><th>Produto</th><th>Qtde (TN)</th><th>Valor unit.</th><th>Valor total</th></tr></thead><tbody id="bio-tbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- Energia / Água / Resíduos (aguardando dados) ---- -->
+      <div id="util-view-energia" style="display:none;"></div>
+      <div id="util-view-agua" style="display:none;"></div>
+      <div id="util-view-residuos" style="display:none;"></div>
     </div>
 
     <!-- ============ AGENDA / CALENDÁRIO ============ -->
@@ -625,7 +714,7 @@ const fmtNum = (n,d=0) => (n==null||isNaN(n)) ? '—' : n.toLocaleString('pt-BR'
 const fmtPct = n => (n==null||isNaN(n)) ? '—' : (n*100).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%';
 const monthLabel = ym => { const [y,m]=ym.split('-'); const names=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']; return names[parseInt(m)-1]+'/'+y.slice(2); };
 Chart.defaults.color = '#9a9c9e'; Chart.defaults.font.family = "Inter, sans-serif"; Chart.defaults.font.size = 11; Chart.defaults.borderColor = '#333537';
-const PAL = {geral:'#00a3a0', orc:'#d31d29', os:'#8b98a3', compras:'#ef5c66', equip:'#0d7a78', pessoas:'#57646e', agenda:'#a11520', mapa:'#4fc9c4', red:'#cc4a3c', green:'#00a3a0', amber:'#e0972f', gray:'#9a9c9e'};
+const PAL = {geral:'#00a3a0', orc:'#d31d29', os:'#8b98a3', compras:'#ef5c66', equip:'#0d7a78', pessoas:'#57646e', agenda:'#a11520', mapa:'#4fc9c4', performance:'#e0972f', utilidades:'#6a93b0', red:'#cc4a3c', green:'#00a3a0', amber:'#e0972f', gray:'#9a9c9e'};
 
 document.querySelectorAll('.navitem').forEach(el=>{
   el.addEventListener('click', ()=>{
@@ -737,23 +826,7 @@ async function renderOrcamento(){
     const saldoEl = document.getElementById('orc-saldo');
     saldoEl.textContent = fmtBRL(saldo);
     saldoEl.style.color = saldo>=0 ? 'var(--green)' : 'var(--red)';
-
-    const bioMes = DATA.biomassa_list.filter(b=>{ const d=b.data; if(!d) return false; const bmn=parseInt(d.slice(5,7)); return bmn===mn; });
-    const bioValor = bioMes.reduce((a,b)=>a+(b.valor||0),0);
-    const bioTn = bioMes.reduce((a,b)=>a+(b.quantidade_tn||0),0);
-    document.getElementById('orc-bio-mes').textContent = fmtBRL(bioValor);
-    document.getElementById('orc-bio-mes-tn').innerHTML = `<span class="mono">${fmtNum(bioTn,1)} TN adquiridas</span>`;
-
-    const byProdMes = {};
-    bioMes.forEach(b=>{ const k=b.produto||'—'; if(!byProdMes[k]) byProdMes[k]={tn:0,valor:0}; byProdMes[k].tn+=(b.quantidade_tn||0); byProdMes[k].valor+=(b.valor||0); });
-    const prodEntries = Object.entries(byProdMes);
-    document.getElementById('bio-produtos-mes').innerHTML = prodEntries.length ? (
-      prodEntries.map(([k,v])=>`
-        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line-soft); font-size:12px;">
-          <span style="color:var(--text-dim)">${k}</span><span class="mono">${fmtNum(v.tn,1)} TN · ${fmtBRL(v.valor)}</span>
-        </div>`).join('') +
-      `<div style="display:flex; justify-content:space-between; padding:8px 0 0; font-weight:700;"><span>Total do mês</span><span class="mono">${fmtNum(bioTn,1)} TN · ${fmtBRL(bioValor)}</span></div>`
-    ) : `<div class="empty" style="padding:14px 6px;">Sem aquisição de biomassa neste mês</div>`;
+  }
   }
   mesSel.addEventListener('change', ()=>{ drawCards(); drawComp(); drawNF(); });
 
@@ -778,11 +851,6 @@ async function renderOrcamento(){
     if(window.__orcCompChart) window.__orcCompChart.destroy();
     window.__orcCompChart = new Chart(document.getElementById('chart-orc-comp'), {type:'doughnut', data:{labels, datasets:[{data:vals, backgroundColor:[PAL.orc,PAL.os,PAL.compras,PAL.pessoas,PAL.gray], borderColor:'#171819', borderWidth:3}]}, options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12,font:{size:10}}}, tooltip:{callbacks:{label:c=>c.label+': '+fmtBRL(c.parsed)}}}}});
   }
-
-  document.getElementById('bio-produtos').innerHTML = DATA.biomassa_por_produto.map(p=>`
-    <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--line-soft); font-size:12px;">
-      <span style="color:var(--text-dim)">${p.produto}</span><span class="mono">${fmtNum(p.tn,1)} TN · ${fmtBRL(p.valor)}</span>
-    </div>`).join('') + `<div style="display:flex; justify-content:space-between; padding:8px 0 0; font-weight:700;"><span>Total</span><span class="mono">${fmtNum(DATA.biomassa_total.tn,1)} TN · ${fmtBRL(DATA.biomassa_total.valor)}</span></div>`;
 
   const tf = DATA.top_fornecedores.slice(0,6);
   new Chart(document.getElementById('chart-fornecedores'), {type:'bar', data:{labels:tf.map(d=>d.fornecedor.length>16?d.fornecedor.slice(0,16)+'…':d.fornecedor), datasets:[{data:tf.map(d=>d.valor), backgroundColor:PAL.os, borderRadius:4, maxBarThickness:14}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtBRL(c.parsed.x)}}}, scales:{x:{grid:{color:'#26282a'}, ticks:{callback:v=>fmtBRL(v)}}, y:{grid:{display:false}}}}});
@@ -848,32 +916,7 @@ async function renderOrcamento(){
   document.getElementById('nfg-search').addEventListener('input', drawNFG);
 
   function drawSimulacaoCompras(){
-    const lista = DATA.compras_list || [];
-    const comprometido = lista.filter(c => c.status==='Aberto Total' || c.status==='Aberto Parcial');
-    const pendente = lista.filter(c => c.status==='Não Fechado');
-    const valComprometido = comprometido.reduce((a,c)=>a+(c.valor||0),0);
-    const valPendente = pendente.reduce((a,c)=>a+(c.valor||0),0);
-    const valTotal = valComprometido + valPendente;
-
-    document.getElementById('sim-comprometido-valor').textContent = fmtBRL(valComprometido);
-    document.getElementById('sim-comprometido-qtd').innerHTML = `<span class="mono">${comprometido.length} ordens</span>`;
-    document.getElementById('sim-pendente-valor').textContent = fmtBRL(valPendente);
-    document.getElementById('sim-pendente-qtd').innerHTML = `<span class="mono">${pendente.length} ordens</span>`;
-    document.getElementById('sim-total-valor').textContent = fmtBRL(valTotal);
-
-    const pctComp = valTotal ? (valComprometido/valTotal*100) : 0;
-    const pctPend = valTotal ? (valPendente/valTotal*100) : 0;
-    document.getElementById('sim-bar-comprometido').style.width = pctComp+'%';
-    document.getElementById('sim-bar-pendente').style.width = pctPend+'%';
-
-    document.getElementById('sim-otimista-label').innerHTML = `Otimista: <b style="color:var(--blue)">${fmtBRL(valComprometido)}</b>`;
-    document.getElementById('sim-pessimista-label').innerHTML = `Pessimista: <b style="color:var(--red)">${fmtBRL(valTotal)}</b>`;
-
-    document.getElementById('sim-nota-metodologia').innerHTML =
-      `<b>Metodologia:</b> "Comprometido" (Aberto Total/Parcial) já foi aprovado e entra como certo. "Pendente" (Não Fechado) ainda depende da superintendência — como ainda não há histórico suficiente cruzando ordens antigas com notas fiscais lançadas pra calcular uma taxa real de aprovação, mostramos os dois extremos (nenhuma vs. todas aprovadas) em vez de arriscar uma probabilidade sem base estatística. Conforme mais meses forem se acumulando, essa faixa pode evoluir para um valor esperado calculado a partir do histórico real.`;
-  }
-
-  drawCards(); drawHistChart(); drawComp(); drawNF(); drawEst(); drawNFG(); drawSimulacaoCompras();
+  drawCards(); drawHistChart(); drawComp(); drawNF(); drawEst(); drawNFG();
 }
 
 /* ===================== ORDENS DE SERVIÇO ===================== */
@@ -1318,12 +1361,204 @@ function renderCompras(){
   drawCards(); drawTable();
 }
 
+/* ===================== PERFORMANCE ===================== */
+function renderPerformance(){
+  document.querySelectorAll('#perf-tabs .perf-tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#perf-tabs .perf-tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const key = btn.dataset.perf;
+      document.getElementById('perf-view-secadoras').style.display = key==='secadoras' ? '' : 'none';
+      document.getElementById('perf-view-tuneis').style.display = key==='tuneis' ? '' : 'none';
+      document.getElementById('perf-view-calandras').style.display = key==='calandras' ? '' : 'none';
+    });
+  });
+
+  const perf = DATA.performance || {secadores:[], secadores_referencia:[], tuneis:[]};
+  const secadores = perf.secadores || [];
+  const statusLabel = {OK:'OK', Avaliar:'Avaliar', sem_leitura:'Sem leitura'};
+  function statusClass(s){ if(s==='OK') return 'ok'; if(s==='Avaliar') return 'warn'; return 'off'; }
+
+  document.getElementById('sec-k-total').textContent = secadores.length;
+  document.getElementById('sec-k-ok').textContent = secadores.filter(s=>s.status==='OK').length;
+  document.getElementById('sec-k-warn').textContent = secadores.filter(s=>s.status==='Avaliar').length;
+  document.getElementById('sec-k-off').textContent = secadores.filter(s=>s.status!=='OK'&&s.status!=='Avaliar').length;
+
+  const marcas = [...new Set(secadores.map(s=>s.marca).filter(Boolean))];
+  document.getElementById('sec-filter-marca').innerHTML = `<span class="chip active" data-f="marca" data-v="all">Todas</span>` +
+    marcas.map(m=>`<span class="chip" data-f="marca" data-v="${m}">${m}</span>`).join('');
+  document.getElementById('sec-filter-status').innerHTML = ['all','OK','Avaliar','off'].map(v=>{
+    const label = v==='all'?'Todos':(v==='off'?'Sem leitura':v);
+    return `<span class="chip ${v==='all'?'active':''}" data-f="status" data-v="${v}">${label}</span>`;
+  }).join('');
+
+  function nominalRange(vn){
+    if(vn==null) return [0,0];
+    if(typeof vn === 'string' && vn.includes('-')){ const [a,b]=vn.split('-').map(Number); return [a,b]; }
+    return [Number(vn), Number(vn)];
+  }
+
+  function secCardHtml(s){
+    const st = statusClass(s.status);
+    const [nomMin,nomMax] = nominalRange(s.vazao_nominal);
+    const smax = Math.max(nomMax*1.2, (s.vazao_h||0)*1.15, 1000);
+    const bandLeftPct = smax ? (nomMin/smax*100) : 0;
+    const bandWidthPct = smax ? ((nomMax-nomMin)/smax*100) : 0;
+    const fillPct = s.vazao_h!=null ? Math.min(100, s.vazao_h/smax*100) : 0;
+    const ptMax = 3;
+    const ptsHtml = (s.pontos||[]).map((v,i)=>{
+      const h = v!=null ? Math.min(100, v/ptMax*100) : 0;
+      return `<div class="sec-pt"><div class="sec-pt-bar"><i style="height:${h}%"></i></div><div class="v">${v!=null?v:'—'}</div><div class="l">P${i+1}</div></div>`;
+    }).join('');
+    return `<div class="sec-card" data-marca="${s.marca||''}" data-status="${st}">
+      <div class="sec-card-top">
+        <div><div class="sec-id">Secadora ${s.id}</div><div class="sec-model">${s.marca||'—'} · ${s.modelo||'—'}</div></div>
+        <div class="status-tag ${st}">${statusLabel[s.status]||'Sem leitura'}</div>
+      </div>
+      <div class="sec-points">${ptsHtml}</div>
+      <div class="sec-metric-row"><span>Velocidade média</span><b>${s.vel_media!=null?s.vel_media+' m/s':'—'}</b></div>
+      <div class="sec-metric-row"><span>Área do duto</span><b>${s.area!=null?s.area+' m²':'—'}</b></div>
+      <div class="sec-gauge">
+        <div class="label"><span>Vazão real</span><span>${s.vazao_h!=null? fmtNum(s.vazao_h,0)+' m³/h' : '—'}</span></div>
+        <div class="track"><div class="band" style="left:${bandLeftPct}%; width:${bandWidthPct}%"></div><div class="fill ${st}" style="width:${fillPct}%"></div></div>
+        <div class="label"><span>0</span><span>Nominal: ${nomMin===nomMax?nomMin:nomMin+'–'+nomMax}</span><span>${fmtNum(smax,0)}</span></div>
+      </div>
+      ${st==='off' ? '<div class="foot-note">Sem leitura registrada nesta verificação (equipamento pode estar em manutenção ou low-dry).</div>' : ''}
+    </div>`;
+  }
+  document.getElementById('sec-grid').innerHTML = secadores.map(secCardHtml).join('') ||
+    `<div class="empty">Nenhuma secadora cadastrada ainda.</div>`;
+
+  document.querySelectorAll('#sec-filter-marca .chip, #sec-filter-status .chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      const f = chip.dataset.f, v = chip.dataset.v;
+      document.querySelectorAll(`.chip[data-f="${f}"]`).forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      const activeMarca = document.querySelector('.chip[data-f="marca"].active').dataset.v;
+      const activeStatus = document.querySelector('.chip[data-f="status"].active').dataset.v;
+      document.querySelectorAll('#sec-grid .sec-card').forEach(card=>{
+        const mOk = activeMarca==='all' || card.dataset.marca===activeMarca;
+        const sOk = activeStatus==='all' || card.dataset.status===activeStatus;
+        card.style.display = (mOk&&sOk) ? '' : 'none';
+      });
+    });
+  });
+
+  document.getElementById('sec-ref-tbody').innerHTML = (perf.secadores_referencia||[]).map(r=>`
+    <tr><td>${r.marca}</td><td>${r.modelo}</td><td class="mono">${r.vazao_nominal}</td></tr>`).join('') ||
+    `<tr><td colspan="3" class="empty">Sem referência cadastrada</td></tr>`;
+
+  // ---- Túneis ----
+  const diaShort = {'domingo':'Dom','segunda-feira':'Seg','terça-feira':'Ter','quarta-feira':'Qua','quinta-feira':'Qui','sexta-feira':'Sex','sábado':'Sáb'};
+  const container = document.getElementById('tuneis-container');
+  const tuneis = perf.tuneis || [];
+  if(!tuneis.length){
+    container.innerHTML = `<div class="card"><div class="empty">Ainda não há dados registrados para os túneis de lavagem.</div></div>`;
+  } else {
+    container.innerHTML = tuneis.map(t=>{
+      const totalPeso = t.dados.reduce((a,d)=>a+(d.valores['Peso']||0),0);
+      const totalBatches = t.dados.reduce((a,d)=>a+(d.valores['Batches']||0),0);
+      const aguaKgVals = t.dados.map(d=>d.valores['Água/kg']).filter(v=>v!=null && v>0);
+      const aguaKgMed = aguaKgVals.length ? (aguaKgVals.reduce((a,b)=>a+b,0)/aguaKgVals.length) : null;
+      const rows = t.dados.map(d=>`
+        <tr>
+          <td>${diaShort[d.dia]||d.dia}</td>
+          <td class="mono">${fmtNum(d.valores['Água fria'],0)}</td>
+          <td class="mono">${fmtNum(d.valores['Água quente'],0)}</td>
+          <td class="mono">${fmtNum(d.valores['Gás'],0)}</td>
+          <td class="mono">${fmtNum(d.valores['Peso'],0)}</td>
+          <td class="mono">${fmtNum(d.valores['Batches'],0)}</td>
+          <td class="mono">${d.valores['Água/kg']!=null?fmtNum(d.valores['Água/kg'],1):'—'}</td>
+          <td class="mono">${fmtNum(d.valores['Peso médio'],0)}</td>
+        </tr>`).join('');
+      return `<div class="card tunel-card">
+        <div class="card-title" style="margin-bottom:4px;">${t.nome}</div>
+        <div class="tunel-kpis">
+          <div><b>${fmtNum(totalPeso,0)} kg</b>Peso total na semana</div>
+          <div><b>${fmtNum(totalBatches,0)}</b>Batches</div>
+          <div><b>${aguaKgMed!=null?fmtNum(aguaKgMed,1):'—'}</b>Água/kg médio</div>
+        </div>
+        <div class="table-wrap tbl-scroll">
+          <table><thead><tr><th>Dia</th><th>Água fria</th><th>Água quente</th><th>Gás</th><th>Peso (kg)</th><th>Batches</th><th>Água/kg</th><th>Peso médio</th></tr></thead>
+          <tbody>${rows}</tbody></table>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+/* ===================== UTILIDADES ===================== */
+function renderUtilidades(){
+  document.querySelectorAll('#util-tabs .perf-tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#util-tabs .perf-tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const key = btn.dataset.util;
+      ['biomassa','energia','agua','residuos'].forEach(k=>{
+        document.getElementById('util-view-'+k).style.display = (k===key) ? '' : 'none';
+      });
+    });
+  });
+
+  const util = DATA.utilidades || {biomassa_list:[], biomassa_por_produto:[], biomassa_total:{tn:0,valor:0}, biomassa_por_mes:[], energia_list:[], agua_list:[], residuos_list:[]};
+
+  const emptyMsgs = {
+    energia: 'Consumo e custo de energia elétrica.',
+    agua: 'Consumo de água — captação, tratamento e uso.',
+    residuos: 'Descarte e tratamento de resíduos — lodo, cinza e lixo séptico.',
+  };
+  ['energia','agua','residuos'].forEach(k=>{
+    document.getElementById('util-view-'+k).innerHTML = `<div class="card"><div class="empty">
+      <div style="font-size:15px; color:var(--text); font-weight:600; margin-bottom:6px;">Ainda sem dados</div>
+      ${emptyMsgs[k]}<br>Assim que forem adicionados na planilha, esse painel é preenchido automaticamente.
+    </div></div>`;
+  });
+
+  // ---- Biomassa ----
+  document.getElementById('bio-k-tn').textContent = fmtNum(util.biomassa_total.tn,1)+' TN';
+  document.getElementById('bio-k-valor').textContent = fmtBRL(util.biomassa_total.valor);
+  const precoMedio = util.biomassa_total.tn ? util.biomassa_total.valor/util.biomassa_total.tn : null;
+  document.getElementById('bio-k-preco').textContent = precoMedio!=null ? fmtBRL(precoMedio) : '—';
+
+  const mesSel = document.getElementById('util-bio-mes-select');
+  const monthNamesPt = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesesDisponiveis = (util.biomassa_por_mes||[]).map(m=>m.mes_num).sort((a,b)=>a-b);
+  mesSel.innerHTML = mesesDisponiveis.map(m=>`<option value="${m}">${monthNamesPt[m]}</option>`).join('');
+  if(mesesDisponiveis.length) mesSel.value = mesesDisponiveis[mesesDisponiveis.length-1];
+
+  function drawBioMes(){
+    const mn = parseInt(mesSel.value);
+    const doMes = util.biomassa_list.filter(b=>b.data && parseInt(b.data.slice(5,7))===mn);
+    const tnMes = doMes.reduce((a,b)=>a+(b.quantidade_tn||0),0);
+    const valorMes = doMes.reduce((a,b)=>a+(b.valor||0),0);
+    document.getElementById('bio-k-tn-mes').textContent = fmtNum(tnMes,1)+' TN';
+    document.getElementById('bio-k-valor-mes').innerHTML = `<span class="mono">${fmtBRL(valorMes)}</span>`;
+    document.getElementById('bio-count-sub').textContent = ` — ${doMes.length} lançamentos`;
+    document.getElementById('bio-tbody').innerHTML = doMes.map(b=>`
+      <tr><td>${b.data?b.data.slice(0,10).split('-').reverse().join('/'):'—'}</td><td class="mono">${b.nf||'—'}</td><td>${b.fornecedor||'—'}</td><td>${b.produto||'—'}</td>
+      <td class="mono">${fmtNum(b.quantidade_tn,2)}</td><td class="mono">${fmtBRL(b.valor_unitario)}</td><td class="mono">${fmtBRL(b.valor)}</td></tr>`).join('') ||
+      `<tr><td colspan="7" class="empty">Sem lançamentos neste mês</td></tr>`;
+  }
+  if(mesesDisponiveis.length) drawBioMes();
+  mesSel.addEventListener('change', drawBioMes);
+
+  const histLabels = (util.biomassa_por_mes||[]).map(m=>monthNamesPt[m.mes_num].slice(0,3));
+  new Chart(document.getElementById('chart-bio-hist'), {type:'bar', data:{labels:histLabels, datasets:[{label:'TN', data:util.biomassa_por_mes.map(m=>m.tn), backgroundColor:PAL.utilidades, borderRadius:4}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtNum(c.parsed.y,1)+' TN'}}}, scales:{x:{grid:{display:false}}, y:{grid:{color:'#26282a'}}}}});
+
+  const prod = util.biomassa_por_produto || [];
+  new Chart(document.getElementById('chart-bio-produto'), {type:'doughnut', data:{labels:prod.map(p=>p.produto), datasets:[{data:prod.map(p=>p.tn), backgroundColor:[PAL.utilidades,PAL.performance,PAL.equip,PAL.pessoas,PAL.gray], borderColor:'#171819', borderWidth:3}]},
+    options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12,font:{size:10}}}, tooltip:{callbacks:{label:c=>c.label+': '+fmtNum(c.parsed,1)+' TN'}}}}});
+}
+
 /* ===================== INIT ===================== */
 renderGeral();
 renderOrcamento();
 renderOS();
 renderEquip();
 renderPessoas();
+renderPerformance();
+renderUtilidades();
 renderMapa();
 renderCompras();
 renderCalendario();

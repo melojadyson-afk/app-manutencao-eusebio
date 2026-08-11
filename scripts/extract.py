@@ -61,7 +61,7 @@ out['nf_list'] = nf_list
 
 # --- Notas de entrada Geral (centro de custo Manutenção, nem sempre lançadas pela manutenção) ---
 try:
-    geral_block = orc.iloc[:, 39:45].dropna(subset=['Nota'])
+    geral_block = orc.iloc[:, 26:32].dropna(subset=['Nota'])
     geral_block['nota_num'] = pd.to_numeric(geral_block['Nota'], errors='coerce')
     nf_nums_manutencao = set()
     for x in nf_list:
@@ -78,7 +78,7 @@ try:
         lancada_manutencao = (not pd.isna(nota_n)) and (int(nota_n) in nf_nums_manutencao)
         nf_geral_list.append({
             'nota': clean(r['Nota']), 'fornecedor_cod': clean(r['Cód. Fornecedor']),
-            'fornecedor': clean(r['Fornecedor.2']), 'valor': clean(r['Valor Rateado (R$)']),
+            'fornecedor': clean(r['Fornecedor.1']), 'valor': clean(r['Valor Rateado (R$)']),
             'data': clean(d2) if d2 is not None and pd.notna(d2) else None,
             'situacao': clean(r['Situação']),
             'lancada_pela_manutencao': bool(lancada_manutencao),
@@ -104,35 +104,8 @@ out['nf_composicao_por_mes'] = {
     'tipos': {col: [clean(x) for x in by_tipo_mes[col].values] for col in by_tipo_mes.columns}
 }
 
-# --- Biomassa block ---
-bio = orc.iloc[:, 15:26].dropna(subset=['DATA'])
-bio_list = []
-for _, r in bio.iterrows():
-    d = r['DATA']
-    try:
-        if isinstance(d, str):
-            d = pd.to_datetime(d, dayfirst=False, errors='coerce')
-    except Exception:
-        d = None
-    bio_list.append({
-        'data': clean(d) if d is not None and pd.notna(d) else None,
-        'mes': clean(r['MÊS.1']),
-        'fornecedor': clean(r['Fornecedor.1']),
-        'produto': clean(r['DESCRIÇÃO']),
-        'quantidade_tn': clean(r['QUANTIDADE']),
-        'valor_unitario': clean(r['Valor unitário']),
-        'valor': clean(r['Valor Bruto ( sem dedução de impostos )']),
-    })
-out['biomassa_list'] = bio_list
-bdf = pd.DataFrame(bio_list)
-bdf['quantidade_tn'] = pd.to_numeric(bdf['quantidade_tn'], errors='coerce').fillna(0)
-bdf['valor'] = pd.to_numeric(bdf['valor'], errors='coerce').fillna(0)
-by_prod = bdf.groupby('produto').agg(tn=('quantidade_tn','sum'), valor=('valor','sum')).reset_index()
-out['biomassa_por_produto'] = [{'produto': r['produto'], 'tn': clean(r['tn']), 'valor': clean(r['valor'])} for _,r in by_prod.iterrows()]
-out['biomassa_total'] = {'tn': clean(bdf['quantidade_tn'].sum()), 'valor': clean(bdf['valor'].sum())}
-
 # --- Estoque block ---
-est = orc.iloc[:, 27:34].dropna(subset=['Produto'])
+est = orc.iloc[:, 14:20].dropna(subset=['Produto'])
 est_list = []
 for _, r in est.iterrows():
     d = r['Data']
@@ -153,7 +126,7 @@ out['estoque_list'] = est_list
 # A partir de agora, a lista detalhada de estoque só traz o período mais
 # recente; os meses anteriores ficam preservados nesta tabela de totais.
 try:
-    mes_valor = orc.iloc[:, 34:36].dropna(subset=[orc.columns[34]])
+    mes_valor = orc.iloc[:, 21:23].dropna(subset=[orc.columns[21]])
     mes_valor.columns = ['mes_txt', 'valor']
     estoque_mensal = []
     for _, r in mes_valor.iterrows():
@@ -168,9 +141,8 @@ except Exception as e:
     out['estoque_mensal_consolidado'] = []
 
 json.dump(out, open(os.path.join(BUILD_DIR, 'part_orcamento.json'), 'w'), ensure_ascii=False)
-print("NF:", len(nf_list), "Bio:", len(bio_list), "Estoque:", len(est_list))
+print("NF:", len(nf_list), "Estoque:", len(est_list))
 print(out['orcamento_mensal'])
-print(out['biomassa_total'])
 
 # ================= ORDENS DE SERVIÇO =================
 # Agora vem em duas abas separadas (mais fácil de colar a extração completa do TOM,
@@ -451,6 +423,140 @@ for nome_mapa, arquivo in [('eletrico','mapa_eletrico.json'), ('hidraulico','map
         print(f"Mapa {nome_mapa}: {len(mapas_fixos[nome_mapa])} pontos carregados")
 out3['mapas_fixos'] = mapas_fixos
 print("Compras:", len(compras_list))
+
+# ================= UTILIDADES (Biomassa, Energia, Água, Resíduos) =================
+out4 = {}
+try:
+    util_raw = pd.read_excel(F, sheet_name='Utilidades', header=1)
+    bio = util_raw.iloc[:, 0:10].dropna(subset=['DATA'])
+    bio_list = []
+    for _, r in bio.iterrows():
+        d = r['DATA']
+        try:
+            d2 = pd.to_datetime(d, dayfirst=True, errors='coerce') if isinstance(d, str) else pd.to_datetime(d, errors='coerce')
+        except Exception:
+            d2 = None
+        bio_list.append({
+            'data': clean(d2) if d2 is not None and pd.notna(d2) else None,
+            'mes': clean(r['MÊS']),
+            'nf': clean(r['N° NF ']),
+            'fornecedor': clean(r['Fornecedor']),
+            'produto': clean(r['DESCRIÇÃO']),
+            'quantidade_tn': clean(r['QUANTIDADE']),
+            'valor_unitario': clean(r['Valor unitário']),
+            'valor': clean(r['Valor Bruto ( sem dedução de impostos )']),
+        })
+    out4['biomassa_list'] = bio_list
+    bdf = pd.DataFrame(bio_list)
+    bdf['quantidade_tn'] = pd.to_numeric(bdf['quantidade_tn'], errors='coerce').fillna(0)
+    bdf['valor'] = pd.to_numeric(bdf['valor'], errors='coerce').fillna(0)
+    bdf['mes_num'] = bdf['data'].apply(lambda d: int(d[5:7]) if d else None)
+    by_prod = bdf.groupby('produto').agg(tn=('quantidade_tn', 'sum'), valor=('valor', 'sum')).reset_index()
+    out4['biomassa_por_produto'] = [{'produto': r['produto'], 'tn': clean(r['tn']), 'valor': clean(r['valor'])} for _, r in by_prod.iterrows()]
+    out4['biomassa_total'] = {'tn': clean(bdf['quantidade_tn'].sum()), 'valor': clean(bdf['valor'].sum())}
+    by_mes = bdf.dropna(subset=['mes_num']).groupby('mes_num').agg(tn=('quantidade_tn', 'sum'), valor=('valor', 'sum')).reset_index()
+    out4['biomassa_por_mes'] = [{'mes_num': int(r['mes_num']), 'tn': clean(r['tn']), 'valor': clean(r['valor'])} for _, r in by_mes.iterrows()]
+    print(f"Utilidades — Biomassa: {len(bio_list)} lançamentos, {out4['biomassa_total']}")
+except Exception as e:
+    print("Utilidades (Biomassa): não encontrado/erro ->", e)
+    out4['biomassa_list'] = []
+    out4['biomassa_por_produto'] = []
+    out4['biomassa_total'] = {'tn': 0, 'valor': 0}
+    out4['biomassa_por_mes'] = []
+
+# Energia, Água e Resíduos (lodo/cinza/lixo séptico) — seções ainda não preenchidas
+# na planilha. Assim que existirem (mesmo padrão de bloco titulado, dentro da
+# aba "Utilidades"), adicionar a leitura aqui seguindo o mesmo formato do
+# bloco de Biomassa acima. Por ora, ficam vazias — o app mostra "sem dados".
+out4['energia_list'] = []
+out4['agua_list'] = []
+out4['residuos_list'] = []
+
+out['utilidades'] = out4
+print("Utilidades OK")
+
+# ================= PERFORMANCE (Secadoras, Túneis, ...) =================
+out5 = {'secadores': [], 'secadores_referencia': [], 'tuneis': []}
+try:
+    perf_raw = pd.read_excel(F, sheet_name='Performance', header=None)
+
+    # --- Secadoras automáticas (Vazão de ar) ---
+    sec_block = perf_raw.iloc[3:16, 0:15].copy()
+    sec_block.columns = ['id', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'vel_media', 'area',
+                          'vazao_ms', 'vazao_h', 'vazao_nominal', 'status', 'marca', 'modelo']
+    secadores = []
+    for _, r in sec_block.iterrows():
+        if pd.isna(r['id']):
+            continue
+        pontos = [clean(r[f'p{i}']) for i in range(1, 7)]
+        status_raw = clean(r['status'])
+        tem_leitura = any(p is not None for p in pontos)
+        status = status_raw if status_raw else ('sem_leitura' if not tem_leitura else None)
+        secadores.append({
+            'id': clean(r['id']), 'pontos': pontos, 'vel_media': clean(r['vel_media']),
+            'area': clean(r['area']), 'vazao_ms': clean(r['vazao_ms']), 'vazao_h': clean(r['vazao_h']),
+            'vazao_nominal': clean(r['vazao_nominal']), 'status': status,
+            'marca': clean(r['marca']), 'modelo': clean(r['modelo']),
+        })
+    out5['secadores'] = secadores
+
+    ref1 = perf_raw.iloc[18:20, 0:3].dropna(subset=[0])
+    ref2 = perf_raw.iloc[19:24, 7:10].dropna(subset=[7])
+    ref_rows = [(r[0], r[1], r[2]) for _, r in ref1.iterrows()] + [(r[7], r[8], r[9]) for _, r in ref2.iterrows()]
+    seen = set()
+    referencia = []
+    for marca, modelo, vazao in ref_rows:
+        key = (clean(marca), clean(modelo))
+        if key in seen:
+            continue
+        seen.add(key)
+        referencia.append({'marca': clean(marca), 'modelo': clean(modelo), 'vazao_nominal': clean(vazao)})
+    out5['secadores_referencia'] = referencia
+    print(f"Performance — Secadores: {len(secadores)} equipamentos")
+except Exception as e:
+    print("Performance (Secadores): não encontrado/erro ->", e)
+
+# --- Túneis de Lavagem (busca dinâmica de blocos "Túnel de Lavagem N") ---
+try:
+    def extrai_blocos_tunel(raw_df, start_col, end_col):
+        blocos = []
+        nrows = len(raw_df)
+        r = 0
+        while r < nrows:
+            val = raw_df.iloc[r, start_col]
+            if isinstance(val, str) and 'túnel' in val.lower():
+                titulo = val.strip()
+                header_row = r + 1
+                headers = [clean(raw_df.iloc[header_row, c]) for c in range(start_col + 1, end_col)]
+                dados = []
+                rr = header_row + 1
+                while rr < nrows:
+                    dia = raw_df.iloc[rr, start_col]
+                    if not isinstance(dia, str) or not dia.strip() or 'túnel' in dia.lower():
+                        break
+                    valores = [clean(raw_df.iloc[rr, c]) for c in range(start_col + 1, end_col)]
+                    dados.append({'dia': dia.strip(), 'valores': dict(zip(headers, valores))})
+                    rr += 1
+                blocos.append({'nome': titulo, 'dados': dados})
+                r = rr
+            else:
+                r += 1
+        return blocos
+
+    tuneis = []
+    tuneis += extrai_blocos_tunel(perf_raw, 18, 28)
+    tuneis += extrai_blocos_tunel(perf_raw, 29, 39)
+    # só mantém túneis com pelo menos uma leitura real (evita mostrar quadros 100% vazios)
+    tuneis = [t for t in tuneis if any(
+        any(v is not None for v in d['valores'].values()) for d in t['dados']
+    )]
+    out5['tuneis'] = tuneis
+    print(f"Performance — Túneis com dados: {len(tuneis)} ({[t['nome'] for t in tuneis]})")
+except Exception as e:
+    print("Performance (Túneis): não encontrado/erro ->", e)
+
+out['performance'] = out5
+print("Performance OK")
 
 # ================= MERGE ALL =================
 final = {}
