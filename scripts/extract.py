@@ -15,6 +15,7 @@ Estrutura de pastas esperada (raiz do repositório):
   docs/index.html                 <- saída final servida pelo GitHub Pages
 """
 import pandas as pd, numpy as np, json, datetime, os, base64
+import unicodedata as _ud
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 F = os.environ.get('PLANILHA_PATH', os.path.join(ROOT, 'data', 'planilha.xlsx'))
@@ -34,6 +35,40 @@ def clean(v):
     if isinstance(v, (int, np.integer)): return int(v)
     if isinstance(v, (float, np.floating)): return round(float(v),2)
     return str(v).strip()
+
+def _norm_colname(s):
+    s = str(s).strip()
+    s = ''.join(c for c in _ud.normalize('NFD', s) if _ud.category(c) != 'Mn')
+    return s.lower()
+
+def find_col(df, target, contains_fallback=None, required=True):
+    """Localiza uma coluna tolerando diferenças de acento/maiúsculas/espaços
+    entre exportações do TOM (o nome exato muda de mês para mês). Se não
+    achar por igualdade normalizada, tenta achar por substring única
+    (contains_fallback, ex: 'priorida') antes de desistir. Se ainda assim
+    não achar (ou houver mais de um candidato ambíguo), levanta um erro
+    claro listando as colunas disponíveis — bem mais fácil de diagnosticar
+    do que o KeyError cru do pandas.
+    """
+    if target in df.columns:
+        return target
+    norm_target = _norm_colname(target)
+    for col in df.columns:
+        if _norm_colname(col) == norm_target:
+            return col
+    if contains_fallback:
+        candidatos = [c for c in df.columns if contains_fallback in _norm_colname(c)]
+        if len(candidatos) == 1:
+            print(f"AVISO: coluna '{target}' não encontrada; usando '{candidatos[0]}' (match por aproximação).")
+            return candidatos[0]
+        if len(candidatos) > 1:
+            raise KeyError(
+                f"Coluna '{target}' não encontrada e há múltiplos candidatos por aproximação: {candidatos}. "
+                f"Ajuste manualmente qual usar."
+            )
+    if required:
+        raise KeyError(f"Coluna '{target}' não encontrada na aba. Colunas disponíveis: {list(df.columns)}")
+    return None
 
 out = {}
 
@@ -149,8 +184,22 @@ print(out['orcamento_mensal'])
 # sem precisar recortar linhas/colunas em blocos lado a lado).
 b1 = pd.read_excel(F, sheet_name='Ordem de Serviço Extração TOM', header=0)
 b1 = b1.dropna(subset=['Ordem de Trabalho']).copy()
-b1['status_base'] = b1['Ícone de status'].astype(str).str.split('@').str[0]
-b1['prioridade_base'] = b1['Ícone de prioridade'].astype(str).str.split('@').str[0]
+col_status = find_col(b1, 'Ícone de status', contains_fallback='status')
+# Estas três colunas já sumiram de extrações mensais do TOM antes (o layout do
+# relatório muda). Em vez de abortar a extração inteira por causa de um campo
+# secundário, elas ficam opcionais: se não vierem, o campo correspondente fica
+# vazio (None) no JSON, e o resto do app continua funcionando normalmente.
+col_prioridade = find_col(b1, 'Ícone de prioridade', contains_fallback='priorida', required=False)
+col_data_criacao = find_col(b1, 'Data de criação', contains_fallback='criac', required=False)
+col_horas_parada = find_col(b1, 'Horas restantes', contains_fallback='restante', required=False)
+for nome, col in [('prioridade', col_prioridade), ('data de criação', col_data_criacao), ('horas restantes', col_horas_parada)]:
+    if col is None:
+        print(f"AVISO: coluna de '{nome}' não veio nesta extração do TOM — campo ficará vazio nas OS deste mês.")
+
+b1['status_base'] = b1[col_status].astype(str).str.split('@').str[0]
+b1['prioridade_base'] = b1[col_prioridade].astype(str).str.split('@').str[0] if col_prioridade else None
+b1['data_criacao_val'] = b1[col_data_criacao] if col_data_criacao else None
+b1['horas_parada_val'] = b1[col_horas_parada] if col_horas_parada else None
 b1['data_prog'] = pd.to_datetime(b1['Data de início programada'], errors='coerce')
 b1['ym'] = b1['data_prog'].dt.strftime('%Y-%m')
 
@@ -163,9 +212,9 @@ for _, r in b1_recent.iterrows():
         'equipamento_desc': clean(r['Descrição do equipamento']), 'equipamento_tag': clean(r['Equipamento']),
         'status': clean(r['status_base']), 'prioridade': clean(r['prioridade_base']),
         'tipo': clean(r['Tipo']), 'atribuido_a': clean(r['Atribuido a']),
-        'data_criacao': clean(r['Data de criação']), 'data_prog': clean(r['data_prog']),
+        'data_criacao': clean(r['data_criacao_val']), 'data_prog': clean(r['data_prog']),
         'data_inicio': clean(r['Data de início']), 'data_conclusao': clean(r['Data de conclusão']),
-        'horas_estimadas': clean(r['Horas estimadas']), 'horas_parada': clean(r['Horas restantes']),
+        'horas_estimadas': clean(r['Horas estimadas']), 'horas_parada': clean(r['horas_parada_val']),
     })
 out2 = {}
 out2['os_list'] = os_list
@@ -385,9 +434,10 @@ out3['escala_disponibilidade'] = escala_out
 try:
     ag = pd.read_excel(F, sheet_name='Agenda Calendário')
     ag_rows = ag.dropna(how='all')
+    col_ag_data = find_col(ag, 'Data', contains_fallback='data', required=False)
     agenda_list = []
     for _, r in ag_rows.iterrows():
-        agenda_list.append({'data': clean(r.get('Data')), 'atividade': clean(r.get('Atividade')),
+        agenda_list.append({'data': clean(r.get(col_ag_data)) if col_ag_data else None, 'atividade': clean(r.get('Atividade')),
             'equipamento': clean(r.get('Equipamento')), 'responsavel': clean(r.get('Responsavel')),
             'status': clean(r.get('Status'))})
 except Exception as e:
