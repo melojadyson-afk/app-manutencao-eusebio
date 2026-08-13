@@ -13,6 +13,12 @@ if "%PLANILHA_PATH%"=="" (
 
 echo Planilha encontrada:
 echo %PLANILHA_PATH%
+for /f "delims=" %%D in ('powershell -NoProfile -Command "(Get-Item '%PLANILHA_PATH%').LastWriteTime.ToString('dd/MM/yyyy HH:mm')"') do set "PLANILHA_DATA=%%D"
+echo Ultima modificacao: %PLANILHA_DATA%
+echo.
+echo ATENCAO: confira se essa data bate com a ultima vez que voce salvou a planilha no SharePoint.
+echo Se estiver desatualizada (por exemplo, por causa de internet instavel durante a sincronizacao do OneDrive),
+echo feche este terminal, espere sincronizar e rode de novo.
 echo.
 
 echo Rodando extracao...
