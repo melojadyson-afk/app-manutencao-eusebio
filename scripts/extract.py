@@ -221,9 +221,14 @@ out2['os_list'] = os_list
 print("OS total:", len(os_list))
 
 # monthly trend by tipo (group corretiva vs preventiva vs outros)
+# OBS: o TOM não usa sempre o mesmo rótulo exato — às vezes é "Corretiva",
+# às vezes "Manutenção Corretiva" (mesmo padrão de "Manutenção Preventiva").
+# Comparar só contra 'Corretiva' (como era antes) fazia com que OS corretivas
+# com o rótulo "Manutenção Corretiva" caíssem silenciosamente em "Outros".
 def tipo_group(t):
-    if t == 'Corretiva': return 'Corretiva'
-    if t == 'Manutenção Preventiva': return 'Preventiva'
+    norm = _norm_colname(t) if t is not None and str(t) != 'nan' else ''
+    if 'corretiv' in norm: return 'Corretiva'
+    if 'preventiv' in norm: return 'Preventiva'
     return 'Outros'
 b1['tipo_grp'] = b1['Tipo'].apply(tipo_group)
 trend = b1.groupby(['ym','tipo_grp']).size().unstack(fill_value=0)
@@ -241,7 +246,7 @@ out2['os_period'] = {'min': clean(b1['data_prog'].min()), 'max': clean(b1['data_
 
 # top corrective equipment - last 6 months with data
 last6 = sorted(b1['ym'].dropna().unique())[-6:]
-corr6 = b1[(b1['Tipo']=='Corretiva') & (b1['ym'].isin(last6))]
+corr6 = b1[(b1['tipo_grp']=='Corretiva') & (b1['ym'].isin(last6))]
 top_corr = corr6['Descrição do equipamento'].value_counts().head(15)
 out2['top_corrective_equipment'] = [{'equipamento': k, 'count': int(v)} for k,v in top_corr.items()]
 
@@ -251,7 +256,7 @@ top_geral = geral6['Descrição do equipamento'].value_counts().head(15)
 out2['top_equipment_geral'] = [{'equipamento': k, 'count': int(v)} for k,v in top_geral.items()]
 
 # ALL-TIME corrective count by equipamento TAG (for map heat / occurrence)
-corr_all = b1[b1['Tipo']=='Corretiva']
+corr_all = b1[b1['tipo_grp']=='Corretiva']
 by_tag = corr_all.groupby('Equipamento').size().sort_values(ascending=False)
 out2['corretivas_por_tag'] = {str(k): int(v) for k,v in by_tag.items() if pd.notna(k)}
 
