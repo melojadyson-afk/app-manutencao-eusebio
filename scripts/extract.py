@@ -70,6 +70,27 @@ def find_col(df, target, contains_fallback=None, required=True):
         raise KeyError(f"Coluna '{target}' não encontrada na aba. Colunas disponíveis: {list(df.columns)}")
     return None
 
+def find_sheet(path, target, contains_fallback=None):
+    """Mesma ideia do find_col, mas para nome de ABA — o TOM já mudou
+    'Ordem de Serviço Extração TOM' para 'Ordens de Serviço Extração TOM'
+    (plural) de uma extração para outra. Evita quebrar tudo com
+    'Worksheet not found' por causa de singular/plural ou acento."""
+    names = pd.ExcelFile(path).sheet_names
+    if target in names:
+        return target
+    norm_target = _norm_colname(target)
+    for n in names:
+        if _norm_colname(n) == norm_target:
+            return n
+    if contains_fallback:
+        candidatos = [n for n in names if contains_fallback in _norm_colname(n)]
+        if len(candidatos) == 1:
+            print(f"AVISO: aba '{target}' não encontrada; usando '{candidatos[0]}' (match por aproximação).")
+            return candidatos[0]
+        if len(candidatos) > 1:
+            raise KeyError(f"Aba '{target}' não encontrada e há múltiplos candidatos: {candidatos}. Ajuste manualmente.")
+    raise KeyError(f"Aba '{target}' não encontrada no arquivo. Abas disponíveis: {names}")
+
 out = {}
 
 # ================= ORÇAMENTO =================
@@ -182,7 +203,8 @@ print(out['orcamento_mensal'])
 # ================= ORDENS DE SERVIÇO =================
 # Agora vem em duas abas separadas (mais fácil de colar a extração completa do TOM,
 # sem precisar recortar linhas/colunas em blocos lado a lado).
-b1 = pd.read_excel(F, sheet_name='Ordem de Serviço Extração TOM', header=0)
+sheet_tom = find_sheet(F, 'Ordem de Serviço Extração TOM', contains_fallback='extracao tom')
+b1 = pd.read_excel(F, sheet_name=sheet_tom, header=0)
 b1 = b1.dropna(subset=['Ordem de Trabalho']).copy()
 col_status = find_col(b1, 'Ícone de status', contains_fallback='status')
 # Estas três colunas já sumiram de extrações mensais do TOM antes (o layout do
@@ -191,8 +213,13 @@ col_status = find_col(b1, 'Ícone de status', contains_fallback='status')
 # vazio (None) no JSON, e o resto do app continua funcionando normalmente.
 col_prioridade = find_col(b1, 'Ícone de prioridade', contains_fallback='priorida', required=False)
 col_data_criacao = find_col(b1, 'Data de criação', contains_fallback='criac', required=False)
-col_horas_parada = find_col(b1, 'Horas restantes', contains_fallback='restante', required=False)
-for nome, col in [('prioridade', col_prioridade), ('data de criação', col_data_criacao), ('horas restantes', col_horas_parada)]:
+# "Horas de parada" é a fonte correta pro tempo de máquina parada. Ela só
+# passou a vir nas extrações mais recentes do TOM; em extrações antigas que
+# não tenham essa coluna, cai para "Horas restantes" como aproximação.
+col_horas_parada = find_col(b1, 'Horas de parada', contains_fallback='parada', required=False)
+if col_horas_parada is None:
+    col_horas_parada = find_col(b1, 'Horas restantes', contains_fallback='restante', required=False)
+for nome, col in [('prioridade', col_prioridade), ('data de criação', col_data_criacao), ('horas de parada', col_horas_parada)]:
     if col is None:
         print(f"AVISO: coluna de '{nome}' não veio nesta extração do TOM — campo ficará vazio nas OS deste mês.")
 
@@ -270,7 +297,8 @@ out2['top_tecnicos_os'] = [{'nome': k, 'count': int(v)} for k,v in top_tec.items
 # "indisponível" em vez de arriscar uma aproximação que não bate com a regra real.
 ranking_by_month = []
 try:
-    prevx = pd.read_excel(F, sheet_name='Ordens de Serviço Extração Prev', header=1)
+    sheet_prev = find_sheet(F, 'Ordens de Serviço Extração Prev', contains_fallback='extracao prev')
+    prevx = pd.read_excel(F, sheet_name=sheet_prev, header=1)
     prevx = prevx.dropna(subset=['Ordem de Trabalho']).copy()
     status_calc_col = prevx.columns[-1]  # captura ANTES de adicionar colunas derivadas abaixo
     prevx['data_prog'] = pd.to_datetime(prevx['Data de início programada'], errors='coerce')
