@@ -363,12 +363,12 @@ th.sortable.sort-desc::after{content:'▼'; opacity:1; color:var(--tab-color, va
           <div class="card kpi"><div class="kpi-label">Já reconciliadas (lançadas por nós)</div><div class="kpi-value" id="nfg-k-ok">–</div></div>
         </div>
         <div class="toolbar">
-          <input type="text" id="nfg-search" placeholder="Buscar fornecedor, nota...">
+          <input type="text" id="nfg-search" placeholder="Buscar fornecedor, nota, descrição do serviço/produto...">
           <select id="nfg-mes-filter"><option value="">Todos os meses</option></select>
           <select id="nfg-flag-filter"><option value="">Todas</option><option value="nao">Só não lançadas por Manutenção</option><option value="sim">Só já lançadas por Manutenção</option></select>
         </div>
         <div class="table-wrap tbl-scroll">
-          <table><thead id="nfg-thead"><tr><th data-key="nota" data-type="num">Nota</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="data" data-type="date">Data entrada</th><th data-key="valor" data-type="num">Valor</th><th data-key="situacao" data-type="text">Situação</th><th data-key="lancada_pela_manutencao" data-type="text">Lançada p/ Manutenção?</th></tr></thead><tbody id="nfg-tbody"></tbody></table>
+          <table><thead id="nfg-thead"><tr><th data-key="nota" data-type="num">Nota</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="descricao" data-type="text">Descrição do serviço/produto</th><th data-key="data" data-type="date">Data entrada</th><th data-key="valor" data-type="num">Valor</th><th data-key="situacao" data-type="text">Situação</th><th data-key="lancada_pela_manutencao" data-type="text">Lançada p/ Manutenção?</th></tr></thead><tbody id="nfg-tbody"></tbody></table>
         </div>
         <div class="foot-note">Este bloco vem da nova aba "Notas de entrada Geral" — todas as notas de fato lançadas no centro de custo de Manutenção, mesmo que não tenham passado pelo controle interno da sala de manutenção (aba de NF original). O sinalizador compara pelo número da nota/NF; quando não há correspondência, a nota provavelmente foi lançada por outro setor mas ainda afeta nosso número — vale revisar essas linhas para não perder o registro nem contar em duplicidade.</div>
       </div>
@@ -935,7 +935,7 @@ async function renderOrcamento(){
     const mn = nfgMesSel.value, q = document.getElementById('nfg-search').value.toLowerCase(), fl = document.getElementById('nfg-flag-filter').value;
     return (DATA.nf_geral_list||[]).filter(n=>{
       const matchMes = !mn || (n.data && n.data.slice(0,7)===mn);
-      const hay = (String(n.nota)+(n.fornecedor||'')).toLowerCase();
+      const hay = (String(n.nota)+(n.fornecedor||'')+(n.descricao||'')).toLowerCase();
       const matchFlag = !fl || (fl==='nao' ? !n.lancada_pela_manutencao : n.lancada_pela_manutencao);
       return matchMes && (!q||hay.includes(q)) && matchFlag;
     });
@@ -950,9 +950,10 @@ async function renderOrcamento(){
     const sorted = applySort('nfg', rows);
     document.getElementById('nfg-tbody').innerHTML = sorted.map(n=>`
       <tr><td class="mono">${n.nota}</td><td>${n.fornecedor||'—'}</td>
+      <td>${n.descricao||'—'}</td>
       <td class="mono">${n.data?n.data.split(' ')[0].split('-').reverse().join('/'):'—'}</td>
       <td class="mono">${fmtBRL(n.valor)}</td><td>${n.situacao||'—'}</td>
-      <td><span class="badge ${n.lancada_pela_manutencao?'b-green':'b-red'}">${n.lancada_pela_manutencao?'Sim':'Não'}</span></td></tr>`).join('') || `<tr><td colspan="6" class="empty">Nenhuma nota encontrada</td></tr>`;
+      <td><span class="badge ${n.lancada_pela_manutencao?'b-green':'b-red'}">${n.lancada_pela_manutencao?'Sim':'Não'}</span></td></tr>`).join('') || `<tr><td colspan="7" class="empty">Nenhuma nota encontrada</td></tr>`;
   }
   wireSortHeaders('nfg-thead', 'nfg', drawNFG);
   [nfgMesSel, document.getElementById('nfg-flag-filter')].forEach(el=>el.addEventListener('change', drawNFG));

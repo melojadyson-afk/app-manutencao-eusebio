@@ -117,8 +117,13 @@ out['nf_list'] = nf_list
 
 # --- Notas de entrada Geral (centro de custo Manutenção, nem sempre lançadas pela manutenção) ---
 try:
-    geral_block = orc.iloc[:, 26:32].dropna(subset=['Nota'])
+    # Bloco cresceu de 6 para 7 colunas (26:33) quando a "Descrição do
+    # Serviço/Produto" foi adicionada depois de "Situação". Ela é opcional
+    # (required=False) pra não quebrar se uma extração antiga não tiver essa
+    # coluna ainda.
+    geral_block = orc.iloc[:, 26:33].dropna(subset=['Nota'])
     geral_block['nota_num'] = pd.to_numeric(geral_block['Nota'], errors='coerce')
+    col_desc_servico = find_col(geral_block, 'Descrição do Serviço/ Produto', contains_fallback='servico', required=False)
     nf_nums_manutencao = set()
     for x in nf_list:
         try: nf_nums_manutencao.add(int(float(x['nf'])))
@@ -137,6 +142,7 @@ try:
             'fornecedor': clean(r['Fornecedor.1']), 'valor': clean(r['Valor Rateado (R$)']),
             'data': clean(d2) if d2 is not None and pd.notna(d2) else None,
             'situacao': clean(r['Situação']),
+            'descricao': clean(r[col_desc_servico]) if col_desc_servico else None,
             'lancada_pela_manutencao': bool(lancada_manutencao),
         })
     out['nf_geral_list'] = nf_geral_list
