@@ -202,7 +202,7 @@ except Exception as e:
     print("estoque consolidado: não encontrado/erro ->", e)
     out['estoque_mensal_consolidado'] = []
 
-json.dump(out, open(os.path.join(BUILD_DIR, 'part_orcamento.json'), 'w'), ensure_ascii=False)
+json.dump(out, open(os.path.join(BUILD_DIR, 'part_orcamento.json'), 'w', encoding='utf-8'), ensure_ascii=False)
 print("NF:", len(nf_list), "Estoque:", len(est_list))
 print(out['orcamento_mensal'])
 
@@ -331,7 +331,7 @@ except Exception as e:
 ranking_by_month.sort(key=lambda x: x['mes'])
 out2['ranking_preventiva_mensal'] = ranking_by_month
 
-json.dump(out2, open(os.path.join(BUILD_DIR, 'part_os.json'), 'w'), ensure_ascii=False)
+json.dump(out2, open(os.path.join(BUILD_DIR, 'part_os.json'), 'w', encoding='utf-8'), ensure_ascii=False)
 print("Ranking meses:", [r['mes'] for r in ranking_by_month])
 print(ranking_by_month[-3:])
 
