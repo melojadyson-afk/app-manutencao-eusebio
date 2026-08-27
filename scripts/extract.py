@@ -505,12 +505,25 @@ out3['compras_list'] = compras_list
 # mapa_vapor.json e mapa_ar.json (mesmo formato) quando estiverem prontos.
 mapas_fixos = {}
 for nome_mapa, arquivo in [('eletrico','mapa_eletrico.json'), ('hidraulico','mapa_hidraulico.json'),
-                            ('vapor','mapa_vapor.json'), ('ar','mapa_ar.json')]:
+                            ('vapor','mapa_vapor.json'), ('ar','mapa_ar.json'),
+                            ('bombas','mapa_bombas.json'), ('esteiras','mapa_esteiras.json'),
+                            ('carros','mapa_carros.json')]:
     caminho = os.path.join(ROOT, 'assets', arquivo)
     if os.path.exists(caminho):
         mapas_fixos[nome_mapa] = json.load(open(caminho, encoding='utf-8'))
         print(f"Mapa {nome_mapa}: {len(mapas_fixos[nome_mapa])} pontos carregados")
 out3['mapas_fixos'] = mapas_fixos
+
+# ================= PINOS DO MAPA DE EQUIPAMENTOS (semente inicial) =================
+# Vínculos equipamento -> posição na planta (Térreo/Superior), plotados manualmente.
+# Fica em assets/equipment_pins_seed.json. Serve só de valor inicial: quem já tiver
+# posicionado algo pela própria tela do Mapa (armazenamento do navegador) continua
+# vendo o que já posicionou, sem ser sobrescrito por este arquivo.
+pins_seed_caminho = os.path.join(ROOT, 'assets', 'equipment_pins_seed.json')
+if os.path.exists(pins_seed_caminho):
+    equipment_pins_seed = json.load(open(pins_seed_caminho, encoding='utf-8'))
+    out3['equipment_pins_seed'] = equipment_pins_seed
+    print("Equipment pins seed:", {k: len(v) for k, v in equipment_pins_seed.items()})
 print("Compras:", len(compras_list))
 
 # ================= UTILIDADES (Biomassa, Energia, Água, Resíduos) =================

@@ -631,6 +631,9 @@ th.sortable.sort-desc::after{content:'▼'; opacity:1; color:var(--tab-color, va
           <option value="hidraulico">Mapa Hidráulico</option>
           <option value="vapor">Mapa de Vapor</option>
           <option value="ar">Mapa de Linha de Ar</option>
+          <option value="bombas">Mapa de Bombas</option>
+          <option value="esteiras">Mapa de Esteiras</option>
+          <option value="carros">Mapa de Carros de Transporte</option>
         </select>
       </div>
 
@@ -1181,7 +1184,10 @@ function renderMapa(){
   fillPinOptions();
   document.getElementById('pin-search').addEventListener('input', e=>fillPinOptions(e.target.value));
 
-  async function loadPins(){ return await loadKV('equipment_pins_'+floorSel.value, []); }
+  async function loadPins(){
+    const seed = (DATA.equipment_pins_seed && DATA.equipment_pins_seed[floorSel.value]) || [];
+    return await loadKV('equipment_pins_'+floorSel.value, seed);
+  }
   async function savePins(p){ await saveKV('equipment_pins_'+floorSel.value, p); }
 
   let pendingPin=null;
@@ -1223,6 +1229,9 @@ const MAPA_FIXO_LABELS = {
   hidraulico: {titulo:'Mapa Hidráulico', sub:'Rede hidráulica — pontos de referência marcados na planta'},
   vapor: {titulo:'Mapa de Vapor', sub:'Rede de vapor — pontos de referência marcados na planta'},
   ar: {titulo:'Mapa de Linha de Ar', sub:'Linha de ar comprimido — pontos de referência marcados na planta'},
+  bombas: {titulo:'Mapa de Bombas', sub:'Bombas — pontos de referência marcados na planta'},
+  esteiras: {titulo:'Mapa de Esteiras', sub:'Esteiras transportadoras — pontos de referência marcados na planta'},
+  carros: {titulo:'Mapa de Carros de Transporte', sub:'Carros de transporte — pontos de referência marcados na planta'},
 };
 let fixoAtual = null;
 
