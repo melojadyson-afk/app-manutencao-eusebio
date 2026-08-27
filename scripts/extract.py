@@ -70,6 +70,175 @@ def find_col(df, target, contains_fallback=None, required=True):
         raise KeyError(f"Coluna '{target}' não encontrada na aba. Colunas disponíveis: {list(df.columns)}")
     return None
 
+# ================= CLASSIFICADOR DE CUSTOS (5 categorias gerenciais) =================
+# Classifica cada lançamento do Centro de Custo Manutenção em: Equipamentos,
+# Predial, Limpeza, Meio Ambiente / Resíduos, Pessoas. Ver spec do usuário
+# "Melhoria da Página Orçamento e Custo — Apuração Consolidada do Realizado".
+# Regra de ouro: serviço terceirizado de manutenção é SEMPRE Equipamentos,
+# nunca Pessoas. Pessoas é EXCLUSIVAMENTE folha/benefício de equipe própria.
+import re as _re
+
+def _norm_txt(s):
+    if not s:
+        return ''
+    s = str(s)
+    s = _ud.normalize('NFKD', s).encode('ascii', 'ignore').decode('ascii')
+    return s.lower()
+
+_TERCEIRIZ_RE = _re.compile(
+    r'\bterceiriz|\bterceir|prestacao de servico|prestador|contrato de servico|'
+    r'\bmao de obra terceir|empresa especializada|servico especializado',
+)
+_PESSOAS_RE = _re.compile(
+    r'\bsalari|\bencargo|\bfolha de pagamento|\bferias\b|\b13[ºo°]? ?salario|'
+    r'decimo terceiro|\bfgts\b|\binss\b|\brescisa|\bvale.?transporte|'
+    r'\bvale.?alimenta|\bvale.?refeicao|\bcesta basica|\bticket alimenta|'
+    r'\bplano de saude|\bplano odontologico|\bhora extra|\bhoras extras|'
+    r'\bbeneficio.*(colaborador|funcionario|equipe)|\buniforme.*(colaborador|funcionario|equipe)|'
+    r'\bconvenio medico|\bassistencia medica.*(colaborador|funcionario)|'
+    r'\bdesjejum|\bcafe da manha|\blanche (da tarde|coletivo|dos funcionarios)|'
+    r'\bmarmita|\bgastronomia|\brefeicao (dos funcionarios|da equipe|coletiva)|'
+    r'\bexame (admissional|demissional|periodico|ocupacional)|'
+    r'\bprocesso trabalhista|\bacao trabalhista|\breclamatoria trabalhista|'
+    r'\bacordo trabalhista|\bindenizacao trabalhista'
+)
+_MEIOAMB_RE = _re.compile(
+    r'\bresiduo|\befluente|\bdestinac|\bdescarte|\baterro|\breciclag|'
+    r'\blicenciamento ambiental|\boutorga\b|\bestacao de tratamento|\bete\b|'
+    r'\besgoto|\blodo\b|\bcinza\b|\bcoleta de (residuo|lixo|entulho)|'
+    r'\btratamento de (residuo|efluente|agua|esgoto)|servico(s)? ambient(al|ais)|'
+    r'\btransporte de (residuo|efluente|lodo|cinza)|\bdedetiza|\bdesratiza|'
+    r'\bfossa septica|\bgaseificacao (septico|do septico)|\bseptico\b|'
+    r'\bdesobstrucao de canal|\bdesentupimento|\bcanal de drenagem|\bdrenagem\b|'
+    r'\bemissao atmosferica|\banalise ambiental|\bmonitoramento ambiental|'
+    r'\brecuperacao ambiental|\bpassivo ambiental|\btecnologias? ambient(al|ais)'
+)
+_LIMPEZA_RE = _re.compile(
+    r'\blimpeza\b|\bhigien|\bfaxina\b|\bdesinfec|\bdesinfetante|\bsaneante|'
+    r'material de limpeza|\bdiluidor de limpeza|\bproduto de limpeza|'
+    r'\bsabonete|\balcool gel|\bpapel higienico|\bdetergente|\bdesengraxante|'
+    r'\bdispenser\b|\bsaboneteira|'
+    r'\blixeira|\bcesto (plastico )?(de )?lixo|\bcoletor de lixo|\bsaco de lixo|'
+    r'\bpapel toalha|\bodorizador|\bdesodorizador|\bhidrojateamento|\blimpeza tecnica|'
+    r'\bvassoura|\brodo\b|\bpano de limpeza|\bpano multiuso|\besponja\b|'
+    r'\bagua sanitaria|\balcool (etilico|70|isopropilico)|\blimpador perfumado|'
+    r'\bprato plastico descartavel|\blimpa (inox|vidro|aco|metal)|\bescova (plastica|de limpeza)'
+)
+_PREDIAL_RE = _re.compile(
+    r'\bobra civil|\bobra predial|\breforma (predial|do predio|da fabrica|do galpao|da sala|do escritorio|do refeitorio|do banheiro|do telhado)|'
+    r'\bpintura (predial|do predio|da fachada|de parede|externa|interna|planta)\b|'
+    r'\bmateriais? de pintura\b|\bservico de pintura|\bservico de pnturas|'
+    r'\btelhado\b|\bcalha\b|\balvenaria\b|\bforro\b|\bdrywall\b|\bgesso\b|'
+    r'\bpiso (predial|da fabrica|do galpao)|\bpavimenta|\bcalcada\b|\bmuro\b|'
+    r'\bportao\b|\bcerca\b|\bpaisagismo|\bjardinagem|'
+    r'\binstalacao (eletrica|hidraulica) predial|\brede (eletrica|hidraulica) predial|'
+    r'\bhidraulica predial|\beletrica predial|\bcaixa d.?agua\b|\bconservacao predial|'
+    r'\btorneira\b|\bcaixa acoplada|\bvaso sanitario|\bmetais sanitarios|'
+    r'\bregistro de (gaveta|pressao|esfera predial)|\bsifao\b|\bralo\b|\bchuveiro\b|'
+    r'\bpintura\b|\btinta(s)?\b|\bendurecedor (epoxi|de tinta)|\bepoxi\b|\btrincha\b|'
+    r'\bcatalisador (para tinta|de tinta)|\bfundo preparador|\bmassa corrida|\bselador\b|'
+    r'\bthinner\b|\bverniz\b|\bassento sanitario|\brefletor(es)? led|\blampada(s)? led|\bluminaria(s)?\b|'
+    r'\bbloco luminoso|\bluminaria(s)? high bay|'
+    r'\bconstrucao civil|\breforma (do )?banheiro|\bacessorios? (para )?banheiro|'
+    r'\btelha(s)?\b|\bpredial\b|\brocadeira\b|\bsoprador de folhas|\breservatorio de agua'
+)
+_EQUIP_RE = _re.compile(
+    r'\bpecas?\b|\bcomponente|\brolamento|\bcorreia|\bsensor|\bmotor(es)?\b|'
+    r'\bredutor|\bmancal|\bretentor|\bvedac|\bengrenagem|\bcorrente(s)?\b|\bpolia(s)?\b|'
+    r'\beixo(s)?\b|\bvalvula|\bbomba(s)?\b|\bcompressor|\bventilador|\bexaustor|'
+    r'\bcaldeira|\bsecadora|\besteira|\bfiltro|\bgraxa\b|\blubrific|\boleo\b|\bsolda\b|'
+    r'\beletrodo|\bdisco (de corte|flap|de desbaste)|\bparafuso|\bporca(s)?\b|\barruela|\bchapa(s)?\b|'
+    r'\bmangueira|\bcilindro|\batuador|\binversor de frequ|\bcontator(es)?\b|'
+    r'\bdisjuntor(es)?\b|\bcabo (eletrico|de forca|de aco)\b|\bcabo lenze|\bquadro eletrico|'
+    r'\bmanutencao\b|\bpreventiva(s)?\b|\bcorretiva(s)?\b|\bassistencia tecnica|'
+    r'\bcalibra|\binspecao (tecnica|de equipamento|e laudo)|\blaudo tecnico|\baterramento|'
+    r'\breparo|\brevisao (tecnica|de motor|de bomba|de equipamento)|'
+    r'\bretifica|\businagem|\bserralheria|'
+    r'\brecuperacao|\breforma (de equipamento|de motor|de bomba|de secadora|de caldeira|de esteira|de picador)|'
+    r'\bcontrato de manutencao|\bmanutencao industrial|\bpeca de reposicao|'
+    r'\bconexao (hidraulica|pneumatica|industrial)|\btubo(s)? ((de )?aco|(de )?polietileno|galvanizado|industrial|de condensado)|'
+    r'\btubos? curvas?|\bbujao|\bbujoes|\btampao\b|\bcap ac sch|'
+    r'\bmaquina de (solda|corte)|\bequipamento de (protecao|solda|corte|medicao)|'
+    r'\bacoplamento|\brolo(s)?\b|\bcabecote|\bpistao|\bbucha(s)?\b|\bmola(s)?\b|\bcuremax|'
+    r'\bnobreak|\bbateria industrial|\btransformador(es)?\b|\bgerador(es)?\b|\bmotoredutor|'
+    r'\bcablagem|\bterminal (eletrico|pino|tubular)|\brele(s)?\b|\bcontrolador(es)?\b|\bihm\b|\bclp\b|\bencoder\b|\benconder\b|'
+    r'\bmedicao\b|\banalisador|\btermografia|\bvibrometria|\btermometro|\bmedidor(es)?\b|\bph.?metro|\bhidrometro|'
+    r'\bpurgador(es)?\b|\bniple(s)?\b|\bluva (galvanizada|de reducao|roscavel)|\buniao (galvanizada|galvanizado|em pvc)|'
+    r'\bcotovelo(s)?\b|\bcurva (90|galvanizada|em pvc)|\bflange(s)?\b|\bjoelho(s)?\b|\bregistro (industrial|esfera(?! predial))|'
+    r'\bcantoneira|\bviga perfil|\belemento de pressao|\bmodulo de interface|\bbloco de comando|'
+    r'\besmerilhadeira|\bfuradeira|\bparafusadeira|\bferramenta (industrial|manual|eletrica)|'
+    r'\bpneu(s)?\b|\bvidro (bobcat|de maquina|de equipamento)|'
+    r'\bfrete\b|\btransporte de carga|\bagenciamento\b|\bdesconsolidacao|\bdespacho aduaneiro|'
+    r'\bdesembaraco|\bimportacao de (peca|equipamento|componente)|'
+    r'\blocacao (de|bobcat|mini carregadeira)|\bmini carregadeira\b|\bbobcat\b|\bguindaste\b|'
+    r'\bgas argonio|\bgas (co2|acetileno|oxigenio)\b|'
+    r'\bgestao de energia\b|'
+    r'\bchave (magnetica|eletrica|seccionadora|de faca|auxiliar)|\beletrocalha|'
+    r'\bengenharia eletrica|\beletricista\b|\bmontagem de (maquina|equipamento)|'
+    r'\binstalacao e montagem|\bteste hidrostatico|\bar.?condicionado\b|\bvapor\b|'
+    r'\bcabo\b|\barame\b|\brotor\b|\bconfeccao (de )?rotor|\bpicador\b|'
+    r'\batendimento (emergencial|tecnico)|\bvazamento\b|\bcondensado\b|'
+    r'\bfita adesiva|\btubulaco(es)?\b|\bcola (branca|contact|industrial|de contato)|'
+    r'\bcaracol dosador|\bdosador de polimero|\bmecanica (industrial|automotiva)|\bradiador\b|'
+    r'\bgrampo\b|\btranspaleteira\b|\bbloco de contato|\bcadeado\b|'
+    r'\bcarro (armazem|de transporte|plataforma|industrial)|'
+    r'\bferrolho\b|\bteflon\b|\bchumbador\b|\bmacarico\b|'
+    r'\banotacao de responsabilidade tecnica|\bemissao de art\b|'
+    r'\bfluido refrigerante|\bgas refrigerante|\br22\b|'
+    r'\bmosquetao\b|\bcaixa (de|para) ferramenta(s)?|'
+    r'\bmodulo (de )?entrada anal|\bsilenciador pneumatico|'
+    r'\bdetector (digital|de gas|multigas)|\badaptador soldavel|'
+    r'\bcaixa de juncao|\btorquimetro\b|\blanterna (led|recarregavel)|'
+    r'\bconcreto refratario|\bbico (de )?corte|'
+    r'\bflonex\b|\bpvfloc\b|\bpvdefo\b|'
+    r'\bviga\b|\bmanometro\b|\brotula\b|\bferramentas? manua|'
+    r'\btransporte de produtos|\btransporte produtos|'
+    r'\bbacia de contencao|\bpallets? kanban|'
+    r'\batendimento remoto|\bmanta de borracha|'
+    r'\bte 90\b|\bte soldavel\b|\bjuncao te\b|\binstalacao pneumatica|'
+    r'\bfonte de alimentac|\bnr.?13\b|\binspecao (anual )?de seguranca|'
+    r'\bmotocompressor\b|\bargonio\b|\bbujao\b|\broldana(s)?\b|'
+    r'\bcaixa (sanfonada|de ferramentas|para ferramentas)|'
+    r'\balicate\b|\bpalete (plastico|kanban)|\bcarregador de bateria|'
+    r'\bdespesas acessoriais|\bassessoria aduaneira|\bservico tecnico internacional|'
+    r'\blona plastica|\bpapelao hidraulico|\bmangote\b|\bbloco iluminacao|'
+    r'\bescova (de aco|tubular|rotativa)|\btampa condulete|\bcontra faca|'
+    r'\bmorsa\b|\btorno (de )?bancada|\bplaca de sinalizacao|'
+    r'\binstalacao eletrica\b|\bpressostato\b|\bselo mecanico|\bkit junta|'
+    r'\btermostato\b|\brefletor(es)?\b|\bfita zebrada'
+)
+# Fornecedor de energia/utilidade sem descrição própria — cai em Equipamentos
+# como custo operacional (não há centro de custo de Utilidades separado).
+_FORNEC_UTIL_RE = _re.compile(
+    r'\benel\b|\benergisa\b|\bcoelce\b|\bcemig\b|\bequatorial\b|\bneoenergia\b|'
+    r'\bcagece\b|\bvora energia\b|\bamerica energia\b|\bcamera energia\b'
+)
+
+CATEGORIAS_ORCAMENTO = ['Equipamentos', 'Predial', 'Limpeza', 'Meio Ambiente / Resíduos', 'Pessoas']
+
+def classificar_categoria(descricao, fornecedor=None, tipo=None):
+    """Classifica um lançamento do centro de custo Manutenção em uma das 5
+    categorias gerenciais (ou 'Outros' quando não há termo classificatório
+    identificável — não força classificação errada)."""
+    texto = _norm_txt(descricao)
+    forn = _norm_txt(fornecedor)
+    hay = texto + ' ' + forn
+    is_terceiriz = bool(_TERCEIRIZ_RE.search(hay))
+    if _PESSOAS_RE.search(hay) and not is_terceiriz:
+        return 'Pessoas'
+    if _MEIOAMB_RE.search(hay):
+        return 'Meio Ambiente / Resíduos'
+    if _LIMPEZA_RE.search(hay):
+        return 'Limpeza'
+    if _PREDIAL_RE.search(hay):
+        return 'Predial'
+    if _EQUIP_RE.search(hay) or is_terceiriz:
+        return 'Equipamentos'
+    if _FORNEC_UTIL_RE.search(forn):
+        return 'Equipamentos'
+    return 'Outros'
+
+
 def find_sheet(path, target, contains_fallback=None):
     """Mesma ideia do find_col, mas para nome de ABA — o TOM já mudou
     'Ordem de Serviço Extração TOM' para 'Ordens de Serviço Extração TOM'
@@ -106,12 +275,15 @@ for _, r in nf.iterrows():
     mes_num = MESES_PT.get(mes_txt)
     data_em = r['DATA DE EMISSÃO']
     data_str = clean(data_em) if (pd.notna(data_em) and str(data_em).strip() not in ('-','')) else None
+    descricao_nf = clean(r['Descrição '])
+    fornecedor_nf = clean(r['Fornecedor'])
     nf_list.append({
         'data': data_str, 'mes': mes_txt, 'mes_num': mes_num,
         'nf': clean(r['N° NF ']), 'oc': clean(r['N° O.C']),
-        'fornecedor': clean(r['Fornecedor']), 'tipo': clean(r['Tipo ']),
+        'fornecedor': fornecedor_nf, 'tipo': clean(r['Tipo ']),
         'valor': clean(r['Valor ']), 'centro_custo': clean(r['Centro de custo ']),
-        'descricao': clean(r['Descrição ']),
+        'descricao': descricao_nf,
+        'categoria': classificar_categoria(descricao_nf, fornecedor_nf),
     })
 out['nf_list'] = nf_list
 
@@ -137,21 +309,70 @@ try:
         except Exception:
             d2 = None
         lancada_manutencao = (not pd.isna(nota_n)) and (int(nota_n) in nf_nums_manutencao)
+        descricao_geral = clean(r[col_desc_servico]) if col_desc_servico else None
+        fornecedor_geral = clean(r['Fornecedor.1'])
         nf_geral_list.append({
             'nota': clean(r['Nota']), 'fornecedor_cod': clean(r['Cód. Fornecedor']),
-            'fornecedor': clean(r['Fornecedor.1']), 'valor': clean(r['Valor Rateado (R$)']),
+            'fornecedor': fornecedor_geral, 'valor': clean(r['Valor Rateado (R$)']),
             'data': clean(d2) if d2 is not None and pd.notna(d2) else None,
             'situacao': clean(r['Situação']),
-            'descricao': clean(r[col_desc_servico]) if col_desc_servico else None,
+            'descricao': descricao_geral,
             'lancada_pela_manutencao': bool(lancada_manutencao),
+            'categoria': classificar_categoria(descricao_geral, fornecedor_geral),
         })
     out['nf_geral_list'] = nf_geral_list
     nao_lancadas = [n for n in nf_geral_list if not n['lancada_pela_manutencao']]
     print("Notas gerais:", len(nf_geral_list), "| não lançadas pela manutenção:", len(nao_lancadas),
           "| valor não lançado:", sum(n['valor'] or 0 for n in nao_lancadas))
+
+    # --- Cruzamento reverso: Sala da Manutenção (nf_list) x Base Geral ---
+    # Para cada lançamento da Sala da Manutenção, verifica se a nota já existe
+    # na Base Geral do Centro de Custo (por número da nota/NF). Se existir:
+    # já está "Lançado" (contábil) — não soma de novo. Se não existir: ainda
+    # está "Aguardando Lançamento", mas já compõe o custo gerencial estimado.
+    # Também identifica duplicidade DENTRO da própria Sala da Manutenção
+    # (mesma NF/fornecedor/valor lançados 2x — ex.: uma linha "PROVISIONADO"
+    # e depois a linha real do serviço/produto já faturado).
+    notas_geral_set = set()
+    for x in nf_geral_list:
+        try: notas_geral_set.add(int(float(x['nota'])))
+        except (TypeError, ValueError): pass
+
+    vistos_dedupe = {}
+    for n in nf_list:
+        try:
+            nf_num = int(float(n['nf']))
+        except (TypeError, ValueError):
+            nf_num = None
+        n['status_lancamento'] = ('Lançado' if (nf_num is not None and nf_num in notas_geral_set)
+                                   else 'Aguardando Lançamento')
+        n['duplicado'] = False
+        chave = (nf_num, (n['fornecedor'] or '').strip().upper(), round(n['valor'] or 0, 2))
+        if nf_num is not None:
+            if chave in vistos_dedupe:
+                # já existe outro lançamento igual (mesma NF+fornecedor+valor) —
+                # marca como duplicado o que for "PROVISIONADO" (estimativa),
+                # preservando o lançamento real; se nenhum for PROVISIONADO,
+                # marca o segundo encontrado para não contar 2x.
+                outro = vistos_dedupe[chave]
+                alvo = n if (n.get('tipo') or '').upper() == 'PROVISIONADO' else outro
+                alvo['duplicado'] = True
+                alvo['status_lancamento'] = 'Duplicado/Desconsiderado'
+                if alvo is outro:
+                    vistos_dedupe[chave] = n
+            else:
+                vistos_dedupe[chave] = n
+
+    aguardando = [n for n in nf_list if n['status_lancamento'] == 'Aguardando Lançamento']
+    print("Sala da Manutenção:", len(nf_list), "| aguardando lançamento:", len(aguardando),
+          "| valor aguardando:", sum(n['valor'] or 0 for n in aguardando))
 except Exception as e:
     print("nf_geral error:", e)
     out['nf_geral_list'] = []
+    notas_geral_set = set()
+    for n in nf_list:
+        n.setdefault('status_lancamento', None)
+        n.setdefault('duplicado', False)
 
 nf_df = pd.DataFrame(nf_list)
 nf_df['valor'] = pd.to_numeric(nf_df['valor'], errors='coerce').fillna(0)
@@ -201,6 +422,93 @@ try:
 except Exception as e:
     print("estoque consolidado: não encontrado/erro ->", e)
     out['estoque_mensal_consolidado'] = []
+
+# --- Realizado Gerencial Consolidado (por categoria, por mês) ---
+# Fórmula: Base Geral do Centro de Custo (contábil) + Registros da Sala da
+# Manutenção ainda não lançados (Aguardando Lançamento) + Retiradas de
+# estoque destinadas à manutenção de equipamentos − Duplicidades.
+# Budget de referência (fixo, definido pelo usuário):
+BUDGET_GERAL = 582000
+BUDGET_EQUIPAMENTOS = 338000
+BUDGET_DEMAIS = 244000
+
+def _mes_num_from_data(d):
+    if not d:
+        return None
+    try:
+        return int(str(d)[5:7])
+    except (ValueError, IndexError):
+        return None
+
+meses_presentes = sorted(set(
+    [x['mes_num'] for x in out.get('orcamento_mensal', []) if x.get('mes_num')]
+    + [_mes_num_from_data(x.get('data')) for x in out.get('nf_geral_list', [])]
+    + [x.get('mes_num') for x in nf_list]
+))
+MESES_NOME = {v: k.title() for k, v in MESES_PT.items()}
+
+consolidado_mensal = []
+for mn in meses_presentes:
+    por_categoria = {cat: {'contabil': 0.0, 'aguardando': 0.0, 'estoque': 0.0} for cat in CATEGORIAS_ORCAMENTO}
+    por_categoria.setdefault('Outros', {'contabil': 0.0, 'aguardando': 0.0, 'estoque': 0.0})
+
+    for g in out.get('nf_geral_list', []):
+        if _mes_num_from_data(g.get('data')) != mn:
+            continue
+        cat = g.get('categoria') or 'Outros'
+        por_categoria.setdefault(cat, {'contabil': 0.0, 'aguardando': 0.0, 'estoque': 0.0})
+        por_categoria[cat]['contabil'] += (g.get('valor') or 0)
+
+    for n in nf_list:
+        if n.get('mes_num') != mn or n.get('status_lancamento') != 'Aguardando Lançamento':
+            continue
+        cat = n.get('categoria') or 'Outros'
+        por_categoria.setdefault(cat, {'contabil': 0.0, 'aguardando': 0.0, 'estoque': 0.0})
+        por_categoria[cat]['aguardando'] += (n.get('valor') or 0)
+
+    # retiradas de estoque destinadas à manutenção de equipamentos — 100% Equipamentos.
+    # Usa o detalhe (est_list) quando disponível para o mês; senão, usa o total
+    # consolidado preservado (estoque_mensal_consolidado), igual ao fallback já
+    # usado hoje no front-end para meses sem detalhe item-a-item.
+    estoque_mes_detalhe = [e for e in est_list if _mes_num_from_data(e.get('data')) == mn]
+    if estoque_mes_detalhe:
+        valor_estoque_mn = sum(e.get('valor_mov') or 0 for e in estoque_mes_detalhe)
+    else:
+        cons = next((c for c in out.get('estoque_mensal_consolidado', []) if c.get('mes_num') == mn), None)
+        valor_estoque_mn = cons['valor'] if (cons and cons.get('valor')) else 0
+    por_categoria['Equipamentos']['estoque'] += valor_estoque_mn
+
+    for cat in por_categoria:
+        d = por_categoria[cat]
+        d['total'] = round(d['contabil'] + d['aguardando'] + d['estoque'], 2)
+        d['contabil'] = round(d['contabil'], 2); d['aguardando'] = round(d['aguardando'], 2); d['estoque'] = round(d['estoque'], 2)
+
+    total_equipamentos = por_categoria.get('Equipamentos', {}).get('total', 0)
+    total_geral = round(sum(d['total'] for cat, d in por_categoria.items() if cat != 'Outros'), 2)
+    total_demais = round(total_geral - total_equipamentos, 2)
+    total_outros = por_categoria.get('Outros', {}).get('total', 0)
+
+    consolidado_mensal.append({
+        'mes_num': mn, 'mes': MESES_NOME.get(mn, str(mn)),
+        'por_categoria': por_categoria,
+        'total_equipamentos': total_equipamentos,
+        'total_demais_categorias': total_demais,
+        'total_geral': total_geral,
+        'total_outros_nao_classificado': total_outros,
+    })
+
+out['orcamento_consolidado'] = {
+    'budget_geral': BUDGET_GERAL,
+    'budget_equipamentos': BUDGET_EQUIPAMENTOS,
+    'budget_demais_categorias': BUDGET_DEMAIS,
+    'categorias': CATEGORIAS_ORCAMENTO,
+    'mensal': consolidado_mensal,
+}
+print("Orçamento consolidado — meses:", [m['mes'] for m in consolidado_mensal])
+if consolidado_mensal:
+    ultimo = consolidado_mensal[-1]
+    print("  Último mês (%s): Equipamentos R$ %.2f / %d | Geral R$ %.2f / %d" % (
+        ultimo['mes'], ultimo['total_equipamentos'], BUDGET_EQUIPAMENTOS, ultimo['total_geral'], BUDGET_GERAL))
 
 json.dump(out, open(os.path.join(BUILD_DIR, 'part_orcamento.json'), 'w', encoding='utf-8'), ensure_ascii=False)
 print("NF:", len(nf_list), "Estoque:", len(est_list))

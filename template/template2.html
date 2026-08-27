@@ -351,8 +351,8 @@ th.sortable.sort-desc::after{content:'▼'; opacity:1; color:var(--tab-color, va
       </div>
 
       <div class="grid g3" style="margin-bottom:14px;">
-        <div class="card"><div class="card-head"><div class="card-title">Histórico mensal — Custo vs. Budget<span class="sub">Jan a Jun/2026 — cada barra é um mês</span></div></div><div class="chart-box tall"><canvas id="chart-orc-hist"></canvas></div></div>
-        <div class="card"><div class="card-head"><div class="card-title">Composição do gasto (mês selecionado)<span class="sub">Por tipo de lançamento</span></div></div><div class="chart-box tall"><canvas id="chart-orc-comp"></canvas></div></div>
+        <div class="card"><div class="card-head"><div class="card-title">Histórico mensal — Custo vs. Budget<span class="sub">Realizado consolidado (Equipamentos + Demais) — cada mês, uma barra</span></div></div><div class="chart-box tall"><canvas id="chart-orc-hist"></canvas></div></div>
+        <div class="card"><div class="card-head"><div class="card-title">Composição do gasto (mês selecionado)<span class="sub">Por categoria gerencial</span></div></div><div class="chart-box tall"><canvas id="chart-orc-comp"></canvas></div></div>
         <div class="card"><div class="card-head"><div class="card-title">Maiores fornecedores<span class="sub">Acumulado no período</span></div></div><div class="chart-box tall"><canvas id="chart-fornecedores"></canvas></div></div>
       </div>
       <div class="card" style="margin-bottom:14px;">
@@ -366,9 +366,10 @@ th.sortable.sort-desc::after{content:'▼'; opacity:1; color:var(--tab-color, va
           <input type="text" id="nfg-search" placeholder="Buscar fornecedor, nota, descrição do serviço/produto...">
           <select id="nfg-mes-filter"><option value="">Todos os meses</option></select>
           <select id="nfg-flag-filter"><option value="">Todas</option><option value="nao">Só não lançadas por Manutenção</option><option value="sim">Só já lançadas por Manutenção</option></select>
+          <select id="nfg-cat-filter"><option value="">Todas as categorias</option></select>
         </div>
         <div class="table-wrap tbl-scroll">
-          <table><thead id="nfg-thead"><tr><th data-key="nota" data-type="num">Nota</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="descricao" data-type="text">Descrição do serviço/produto</th><th data-key="data" data-type="date">Data entrada</th><th data-key="valor" data-type="num">Valor</th><th data-key="situacao" data-type="text">Situação</th><th data-key="lancada_pela_manutencao" data-type="text">Lançada p/ Manutenção?</th></tr></thead><tbody id="nfg-tbody"></tbody></table>
+          <table><thead id="nfg-thead"><tr><th data-key="nota" data-type="num">Nota</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="descricao" data-type="text">Descrição do serviço/produto</th><th data-key="categoria" data-type="text">Categoria</th><th data-key="data" data-type="date">Data entrada</th><th data-key="valor" data-type="num">Valor</th><th data-key="situacao" data-type="text">Situação</th><th data-key="lancada_pela_manutencao" data-type="text">Lançada p/ Manutenção?</th></tr></thead><tbody id="nfg-tbody"></tbody></table>
         </div>
         <div class="foot-note">Este bloco vem da nova aba "Notas de entrada Geral" — todas as notas de fato lançadas no centro de custo de Manutenção, mesmo que não tenham passado pelo controle interno da sala de manutenção (aba de NF original). O sinalizador compara pelo número da nota/NF; quando não há correspondência, a nota provavelmente foi lançada por outro setor mas ainda afeta nosso número — vale revisar essas linhas para não perder o registro nem contar em duplicidade.</div>
       </div>
@@ -378,9 +379,11 @@ th.sortable.sort-desc::after{content:'▼'; opacity:1; color:var(--tab-color, va
           <input type="text" id="nf-search" placeholder="Buscar fornecedor, descrição, NF...">
           <select id="nf-mes-filter"><option value="">Todos os meses</option></select>
           <select id="nf-tipo-filter"><option value="">Todos os tipos</option></select>
+          <select id="nf-cat-filter"><option value="">Todas as categorias</option></select>
+          <select id="nf-status-filter"><option value="">Todas as situações</option><option value="Lançado">Lançado</option><option value="Aguardando Lançamento">Aguardando Lançamento</option><option value="Duplicado/Desconsiderado">Duplicado/Desconsiderado</option></select>
         </div>
         <div class="table-wrap tbl-scroll">
-          <table><thead id="nf-thead"><tr><th data-key="mes" data-type="text">Mês</th><th data-key="nf" data-type="num">NF</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="tipo" data-type="text">Tipo</th><th data-key="valor" data-type="num">Valor (R$)</th><th data-key="centro_custo" data-type="text">Centro custo</th><th data-key="descricao" data-type="text">Descrição</th></tr></thead><tbody id="nf-tbody"></tbody></table>
+          <table><thead id="nf-thead"><tr><th data-key="mes" data-type="text">Mês</th><th data-key="nf" data-type="num">NF</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="tipo" data-type="text">Tipo</th><th data-key="categoria" data-type="text">Categoria</th><th data-key="valor" data-type="num">Valor (R$)</th><th data-key="centro_custo" data-type="text">Centro custo</th><th data-key="descricao" data-type="text">Descrição</th><th data-key="status_lancamento" data-type="text">Situação do lançamento</th></tr></thead><tbody id="nf-tbody"></tbody></table>
         </div>
       </div>
       <div class="card">
@@ -842,56 +845,68 @@ async function renderOrcamento(){
   DATA.orcamento_mensal.forEach(m=>{ const o=document.createElement('option'); o.value=m.mes_num; o.textContent=m.mes+'/2026'; mesSel.appendChild(o); });
   mesSel.value = DATA.orcamento_mensal.slice(-1)[0].mes_num;
 
-  const BUDGET_FIXO = 338000;
+  // Consolidado gerencial pré-calculado no build (extract.py): por mês e por
+  // categoria, já soma Realizado Contábil (Base Geral) + Aguardando
+  // Lançamento (Sala da Manutenção ainda não lançada) + Retiradas de Estoque,
+  // eliminando duplicidades. Ver DATA.orcamento_consolidado.
+  const CONS = DATA.orcamento_consolidado || {budget_geral:582000, budget_equipamentos:338000, budget_demais_categorias:244000, categorias:['Equipamentos','Predial','Limpeza','Meio Ambiente / Resíduos','Pessoas'], mensal:[]};
+  const BUDGET_FIXO = CONS.budget_equipamentos;
+  const BUDGET_GERAL = CONS.budget_geral;
+  const BUDGET_DEMAIS = CONS.budget_demais_categorias;
+  const CAT_CORES = {'Equipamentos':PAL.orc,'Predial':PAL.compras,'Limpeza':PAL.mapa,'Meio Ambiente / Resíduos':PAL.green,'Pessoas':PAL.pessoas,'Outros':PAL.gray};
 
-  function nfManutencaoMes(mn){
-    return DATA.nf_list.filter(n=> n.mes_num===mn && (n.centro_custo||'').toUpperCase().includes('MANUTEN')).reduce((a,n)=>a+(n.valor||0),0);
-  }
-  function estoqueMes(mn){
-    const detalhe = DATA.estoque_list.filter(e=>{ if(!e.data) return false; return parseInt(e.data.slice(5,7))===mn; });
-    if(detalhe.length) return detalhe.reduce((a,e)=>a+(e.valor_mov||0),0);
-    // sem detalhe para esse mês (período anterior) — usa o total consolidado preservado
-    const cons = (DATA.estoque_mensal_consolidado||[]).find(c=>c.mes_num===mn);
-    return cons ? cons.valor : 0;
-  }
+  function consMes(mn){ return CONS.mensal.find(m=>m.mes_num===mn); }
 
   function drawCards(){
     const mn = parseInt(mesSel.value);
-    const nfManut = nfManutencaoMes(mn);
-    const estq = estoqueMes(mn);
-    const realizado = nfManut + estq;
-    document.getElementById('orc-realizado').textContent = fmtBRL(realizado);
+    const cm = consMes(mn);
+    const realizadoEquip = cm ? cm.total_equipamentos : 0;
+    const realizadoGeral = cm ? cm.total_geral : 0;
+    document.getElementById('orc-realizado').textContent = fmtBRL(realizadoEquip);
     const realizadoCard = document.getElementById('orc-realizado').parentElement;
     let note = realizadoCard.querySelector('.foot-note');
     if(!note){ note = document.createElement('div'); note.className='foot-note'; realizadoCard.appendChild(note); }
-    note.innerHTML = `NF Manutenção ${fmtBRL(nfManut)} + Estoque ${fmtBRL(estq)}`;
-    const saldo = BUDGET_FIXO - realizado;
+    if(cm){
+      const pe = cm.por_categoria['Equipamentos']||{contabil:0,aguardando:0,estoque:0};
+      note.innerHTML = `Contábil ${fmtBRL(pe.contabil)} + Aguardando ${fmtBRL(pe.aguardando)} + Estoque ${fmtBRL(pe.estoque)}`;
+    } else { note.innerHTML = ''; }
+
+    const saldo = BUDGET_FIXO - realizadoEquip;
     const saldoEl = document.getElementById('orc-saldo');
     saldoEl.textContent = fmtBRL(saldo);
     saldoEl.style.color = saldo>=0 ? 'var(--green)' : 'var(--red)';
+    const saldoCard = saldoEl.parentElement;
+    let saldoNote = saldoCard.querySelector('.foot-note');
+    if(!saldoNote){ saldoNote = document.createElement('div'); saldoNote.className='foot-note'; saldoCard.appendChild(saldoNote); }
+    const saldoGeral = BUDGET_GERAL - realizadoGeral;
+    saldoNote.innerHTML = `Geral (5 categorias): ${fmtBRL(realizadoGeral)} / ${fmtBRL(BUDGET_GERAL)} · saldo <span style="color:${saldoGeral>=0?'var(--green)':'var(--red)'}">${fmtBRL(saldoGeral)}</span>`;
+
+    const budgetCard = document.getElementById('orc-budget-fixed').parentElement;
+    let budgetNote = budgetCard.querySelector('.foot-note');
+    if(budgetNote) budgetNote.innerHTML = `Budget Equipamentos — dentro do Budget Geral da Manutenção (${fmtBRL(BUDGET_GERAL)}). Demais categorias: ${fmtBRL(BUDGET_DEMAIS)}.`;
   }
   mesSel.addEventListener('change', ()=>{ drawCards(); drawComp(); drawNF(); });
 
   function drawHistChart(){
-    const hist = DATA.orcamento_mensal;
-    const realizadoPorMes = hist.map(h => nfManutencaoMes(h.mes_num) + estoqueMes(h.mes_num));
+    const hist = CONS.mensal.length ? CONS.mensal : DATA.orcamento_mensal.map(h=>({mes_num:h.mes_num, mes:h.mes, total_equipamentos:0, total_geral:0}));
     if(window.__orcHistChart) window.__orcHistChart.destroy();
     window.__orcHistChart = new Chart(document.getElementById('chart-orc-hist'), {
       data:{labels:hist.map(h=>h.mes), datasets:[
-        {type:'bar', label:'Realizado (Manutenção + Estoque)', data:realizadoPorMes, backgroundColor:PAL.orc+'cc', borderRadius:5, maxBarThickness:34},
-        {type:'line', label:'Budget fixo (338k)', data:hist.map(()=>BUDGET_FIXO), borderColor:PAL.gray, borderWidth:2, borderDash:[5,4], pointRadius:3},
-      ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top', align:'end', labels:{boxWidth:8,boxHeight:8,usePointStyle:true}}}, scales:{x:{grid:{display:false}}, y:{grid:{color:'#26282a'}, ticks:{callback:v=>fmtBRL(v)}}}}
+        {type:'bar', label:'Equipamentos — Realizado Consolidado', data:hist.map(h=>h.total_equipamentos), backgroundColor:PAL.orc+'cc', borderRadius:5, maxBarThickness:26},
+        {type:'bar', label:'Demais categorias — Realizado', data:hist.map(h=>h.total_demais_categorias), backgroundColor:PAL.gray+'99', borderRadius:5, maxBarThickness:26},
+        {type:'line', label:`Budget Equipamentos (${fmtBRL(BUDGET_FIXO)})`, data:hist.map(()=>BUDGET_FIXO), borderColor:PAL.orc, borderWidth:2, borderDash:[5,4], pointRadius:2},
+        {type:'line', label:`Budget Geral (${fmtBRL(BUDGET_GERAL)})`, data:hist.map(()=>BUDGET_GERAL), borderColor:PAL.text||'#aaa', borderWidth:2, borderDash:[2,3], pointRadius:2},
+      ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top', align:'end', labels:{boxWidth:8,boxHeight:8,usePointStyle:true, font:{size:10}}}}, scales:{x:{grid:{display:false}, stacked:true}, y:{grid:{color:'#26282a'}, stacked:true, ticks:{callback:v=>fmtBRL(v)}}}}
     });
   }
 
   function drawComp(){
     const mn = parseInt(mesSel.value);
-    const comp = DATA.nf_composicao_por_mes;
-    const idx = comp.meses.indexOf(mn);
-    const labels = Object.keys(comp.tipos);
-    const vals = labels.map(t=> idx>=0 ? comp.tipos[t][idx] : 0);
+    const cm = consMes(mn);
+    const labels = CONS.categorias || [];
+    const vals = labels.map(cat => cm && cm.por_categoria[cat] ? cm.por_categoria[cat].total : 0);
     if(window.__orcCompChart) window.__orcCompChart.destroy();
-    window.__orcCompChart = new Chart(document.getElementById('chart-orc-comp'), {type:'doughnut', data:{labels, datasets:[{data:vals, backgroundColor:[PAL.orc,PAL.os,PAL.compras,PAL.pessoas,PAL.gray], borderColor:'#171819', borderWidth:3}]}, options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12,font:{size:10}}}, tooltip:{callbacks:{label:c=>c.label+': '+fmtBRL(c.parsed)}}}}});
+    window.__orcCompChart = new Chart(document.getElementById('chart-orc-comp'), {type:'doughnut', data:{labels, datasets:[{data:vals, backgroundColor:labels.map(l=>CAT_CORES[l]||PAL.gray), borderColor:'#171819', borderWidth:3}]}, options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12,font:{size:10}}}, tooltip:{callbacks:{label:c=>c.label+': '+fmtBRL(c.parsed)}}}}});
   }
 
   const tf = DATA.top_fornecedores.slice(0,6);
@@ -901,23 +916,30 @@ async function renderOrcamento(){
   [...new Set(DATA.nf_list.map(n=>n.mes))].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; nfMesSel.appendChild(o); });
   const nfTipoSel = document.getElementById('nf-tipo-filter');
   [...new Set(DATA.nf_list.map(n=>n.tipo))].forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; nfTipoSel.appendChild(o); });
-  document.getElementById('nf-count-sub').textContent = ` · ${DATA.nf_list.length} lançamentos (jan-jun/2026)`;
+  const nfCatSel = document.getElementById('nf-cat-filter');
+  [...new Set(DATA.nf_list.map(n=>n.categoria).filter(Boolean))].sort().forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; nfCatSel.appendChild(o); });
+  const nfStatusSel = document.getElementById('nf-status-filter');
 
   function drawNF(){
     const q = document.getElementById('nf-search').value.toLowerCase();
-    const mf = nfMesSel.value, tf2 = nfTipoSel.value;
+    const mf = nfMesSel.value, tf2 = nfTipoSel.value, cf = nfCatSel.value, sf = nfStatusSel.value;
     const rows = DATA.nf_list.filter(n=>{
       const matchQ = !q || ((n.fornecedor||'')+(n.descricao||'')+String(n.nf)).toLowerCase().includes(q);
-      return matchQ && (!mf||n.mes===mf) && (!tf2||n.tipo===tf2);
+      return matchQ && (!mf||n.mes===mf) && (!tf2||n.tipo===tf2) && (!cf||n.categoria===cf) && (!sf||n.status_lancamento===sf);
     });
+    const aguardando = rows.filter(n=>n.status_lancamento==='Aguardando Lançamento');
+    document.getElementById('nf-count-sub').textContent = ` · ${DATA.nf_list.length} lançamentos · ${aguardando.length} aguardando lançamento (${fmtBRL(aguardando.reduce((a,n)=>a+(n.valor||0),0))})`;
+    const statusBadge = s => s==='Lançado' ? 'b-green' : (s==='Aguardando Lançamento' ? 'b-amber' : 'b-gray');
     document.getElementById('nf-tbody').innerHTML = applySort('nf', rows).map(n=>`
       <tr><td class="mono">${(n.mes||'').slice(0,3)}</td><td class="mono">${n.nf}</td><td>${(n.fornecedor||'').trim()}</td>
       <td><span class="badge ${n.tipo==='SERVIÇO'?'b-blue':n.tipo==='CONTRATO'?'b-amber':'b-gray'}">${n.tipo}</span></td>
-      <td class="mono">${fmtBRL(n.valor)}</td><td>${n.centro_custo||'—'}</td><td>${n.descricao||'—'}</td></tr>`).join('') || `<tr><td colspan="7" class="empty">Nenhum lançamento encontrado</td></tr>`;
+      <td>${n.categoria||'—'}</td>
+      <td class="mono">${fmtBRL(n.valor)}</td><td>${n.centro_custo||'—'}</td><td>${n.descricao||'—'}</td>
+      <td><span class="badge ${statusBadge(n.status_lancamento)}">${n.status_lancamento||'—'}</span></td></tr>`).join('') || `<tr><td colspan="9" class="empty">Nenhum lançamento encontrado</td></tr>`;
   }
   wireSortHeaders('nf-thead', 'nf', drawNF);
   document.getElementById('nf-search').addEventListener('input', drawNF);
-  nfMesSel.addEventListener('change', drawNF); nfTipoSel.addEventListener('change', drawNF);
+  [nfMesSel, nfTipoSel, nfCatSel, nfStatusSel].forEach(el=>el.addEventListener('change', drawNF));
 
   document.getElementById('est-count-sub').textContent = ` · ${DATA.estoque_list.length} retiradas`;
   function drawEst(){
@@ -932,15 +954,17 @@ async function renderOrcamento(){
 
   const nfgMesSel = document.getElementById('nfg-mes-filter');
   [...new Set((DATA.nf_geral_list||[]).map(n=> n.data ? n.data.slice(0,7) : null).filter(Boolean))].sort().forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); nfgMesSel.appendChild(o); });
+  const nfgCatSel = document.getElementById('nfg-cat-filter');
+  [...new Set((DATA.nf_geral_list||[]).map(n=>n.categoria).filter(Boolean))].sort().forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; nfgCatSel.appendChild(o); });
   document.getElementById('nfg-count-sub').textContent = ` · ${(DATA.nf_geral_list||[]).length} lançamentos no centro de custo`;
 
   function nfgFiltered(){
-    const mn = nfgMesSel.value, q = document.getElementById('nfg-search').value.toLowerCase(), fl = document.getElementById('nfg-flag-filter').value;
+    const mn = nfgMesSel.value, q = document.getElementById('nfg-search').value.toLowerCase(), fl = document.getElementById('nfg-flag-filter').value, cf = nfgCatSel.value;
     return (DATA.nf_geral_list||[]).filter(n=>{
       const matchMes = !mn || (n.data && n.data.slice(0,7)===mn);
       const hay = (String(n.nota)+(n.fornecedor||'')+(n.descricao||'')).toLowerCase();
       const matchFlag = !fl || (fl==='nao' ? !n.lancada_pela_manutencao : n.lancada_pela_manutencao);
-      return matchMes && (!q||hay.includes(q)) && matchFlag;
+      return matchMes && (!q||hay.includes(q)) && matchFlag && (!cf||n.categoria===cf);
     });
   }
   function drawNFG(){
@@ -954,12 +978,13 @@ async function renderOrcamento(){
     document.getElementById('nfg-tbody').innerHTML = sorted.map(n=>`
       <tr><td class="mono">${n.nota}</td><td>${n.fornecedor||'—'}</td>
       <td>${n.descricao||'—'}</td>
+      <td>${n.categoria||'—'}</td>
       <td class="mono">${n.data?n.data.split(' ')[0].split('-').reverse().join('/'):'—'}</td>
       <td class="mono">${fmtBRL(n.valor)}</td><td>${n.situacao||'—'}</td>
-      <td><span class="badge ${n.lancada_pela_manutencao?'b-green':'b-red'}">${n.lancada_pela_manutencao?'Sim':'Não'}</span></td></tr>`).join('') || `<tr><td colspan="7" class="empty">Nenhuma nota encontrada</td></tr>`;
+      <td><span class="badge ${n.lancada_pela_manutencao?'b-green':'b-red'}">${n.lancada_pela_manutencao?'Sim':'Não'}</span></td></tr>`).join('') || `<tr><td colspan="8" class="empty">Nenhuma nota encontrada</td></tr>`;
   }
   wireSortHeaders('nfg-thead', 'nfg', drawNFG);
-  [nfgMesSel, document.getElementById('nfg-flag-filter')].forEach(el=>el.addEventListener('change', drawNFG));
+  [nfgMesSel, document.getElementById('nfg-flag-filter'), nfgCatSel].forEach(el=>el.addEventListener('change', drawNFG));
   document.getElementById('nfg-search').addEventListener('input', drawNFG);
 
   drawCards(); drawHistChart(); drawComp(); drawNF(); drawEst(); drawNFG();
