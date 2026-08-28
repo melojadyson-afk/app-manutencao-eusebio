@@ -787,16 +787,19 @@ function renderGeral(){
   document.getElementById('g-kpi-aa').textContent = critAA;
   document.getElementById('g-kpi-total').textContent = DATA.equipment.length;
 
-  // Saldo do dia — sempre referente ao mês corrente real (não ao seletor), budget fixo 338k
-  const BUDGET_FIXO_GERAL = 338000;
+  // Saldo do dia — sempre referente ao mês corrente real (não ao seletor). Usa o
+  // mesmo Realizado Gerencial Consolidado (Equipamentos) da página de Orçamento
+  // & Custos, pra este card nunca divergir do "Saldo do mês" de lá.
+  const CONS_GERAL = DATA.orcamento_consolidado || {budget_equipamentos:338000, mensal:[]};
+  const BUDGET_FIXO_GERAL = CONS_GERAL.budget_equipamentos;
   const hojeYm = new Date().toISOString().slice(0,7);
   const mnHoje = parseInt(hojeYm.slice(5,7));
-  const nfManutHoje = DATA.nf_list.filter(n=> n.mes_num===mnHoje && (n.centro_custo||'').toUpperCase().includes('MANUTEN')).reduce((a,n)=>a+(n.valor||0),0);
-  const estqHoje = DATA.estoque_list.filter(e=>{ if(!e.data) return false; return parseInt(e.data.slice(5,7))===mnHoje; }).reduce((a,e)=>a+(e.valor_mov||0),0);
-  const saldoHoje = BUDGET_FIXO_GERAL - (nfManutHoje+estqHoje);
+  const cmHoje = CONS_GERAL.mensal.find(m=>m.mes_num===mnHoje);
+  const realizadoHoje = cmHoje ? cmHoje.total_equipamentos : 0;
+  const saldoHoje = BUDGET_FIXO_GERAL - realizadoHoje;
   document.getElementById('g-kpi-saldo').textContent = fmtBRL(saldoHoje);
   document.getElementById('g-kpi-saldo').style.color = saldoHoje>=0 ? 'var(--green)' : 'var(--red)';
-  document.getElementById('g-kpi-saldo-sub').innerHTML = `<span class="mono" style="color:var(--text-dimmer)">budget 338k − realizado até hoje</span>`;
+  document.getElementById('g-kpi-saldo-sub').innerHTML = `<span class="mono" style="color:var(--text-dimmer)">budget Equipamentos ${fmtBRL(BUDGET_FIXO_GERAL)} − realizado consolidado</span>`;
 
   new Chart(document.getElementById('chart-os-trend'), {type:'line', data:{labels:t.months.map(monthLabel), datasets:[
     {label:'Preventiva', data:t.preventiva, borderColor:PAL.mapa, backgroundColor:PAL.mapa+'22', tension:.35, fill:true, pointRadius:0, borderWidth:2},
