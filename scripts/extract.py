@@ -792,18 +792,31 @@ except Exception as e:
 out3['agenda_sheet'] = agenda_list
 
 try:
-    compras = pd.read_excel(F, sheet_name='Gestão de Compras')
-    compras_rows = compras.dropna(subset=['Ordem de Compra'])
+    sheet_compras = find_sheet(F, 'Gestão de Compras', contains_fallback='compras')
+    compras = pd.read_excel(F, sheet_name=sheet_compras)
+    col_oc = find_col(compras, 'Ordem de Compra', contains_fallback='ordem de compra')
+    col_forn_id = find_col(compras, 'n° Fornecedor', contains_fallback='fornecedor', required=False)
+    col_forn = find_col(compras, 'Fornecedor', contains_fallback='fornecedor')
+    col_valor = find_col(compras, 'Valor Rateado', contains_fallback='valor')
+    col_data_emissao = find_col(compras, 'Data Emissão', contains_fallback='emiss', required=False)
+    col_tns_produto = find_col(compras, 'Tns.Produto', contains_fallback='produto', required=False)
+    col_tns_servico = find_col(compras, 'Tns.Serviço', contains_fallback='servico', required=False)
+    col_status = find_col(compras, 'Status', contains_fallback='status', required=False)
+    compras_rows = compras.dropna(subset=[col_oc])
     compras_list = []
     for _, r in compras_rows.iterrows():
         compras_list.append({
-            'oc': clean(r['Ordem de Compra']), 'fornecedor_id': clean(r['n° Fornecedor']),
-            'fornecedor': clean(r['Fornecedor']), 'valor': clean(r['Valor Rateado']),
-            'data_emissao': clean(r['Data Emissão']), 'tns_produto': clean(r['Tns.Produto']),
-            'tns_servico': clean(r['Tns.Serviço']), 'status': clean(r['Status']),
+            'oc': clean(r[col_oc]), 'fornecedor_id': clean(r[col_forn_id]) if col_forn_id else None,
+            'fornecedor': clean(r[col_forn]), 'valor': clean(r[col_valor]),
+            'data_emissao': clean(r[col_data_emissao]) if col_data_emissao else None,
+            'tns_produto': clean(r[col_tns_produto]) if col_tns_produto else None,
+            'tns_servico': clean(r[col_tns_servico]) if col_tns_servico else None,
+            'status': clean(r[col_status]) if col_status else None,
         })
+    print("Compras: aba '%s' | %d linhas com Ordem de Compra preenchida (de %d linhas na aba)" % (
+        sheet_compras, len(compras_list), len(compras)))
 except Exception as e:
-    print("compras error", e)
+    print("ATENÇÃO — Gestão de Compras não pôde ser lida (compras_list ficará vazio):", repr(e))
     compras_list = []
 out3['compras_list'] = compras_list
 
