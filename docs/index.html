@@ -1000,7 +1000,7 @@ function renderOS(){
   const mesSel = document.getElementById('os-mes-select');
   const mesesRanking = DATA.ranking_preventiva_mensal.filter(r=>r.total>0);
   mesesRanking.forEach(r=>{ const o=document.createElement('option'); o.value=r.mes; o.textContent=monthLabel(r.mes); mesSel.appendChild(o); });
-  mesSel.value = mesesRanking.slice(-1)[0].mes;
+  if(mesesRanking.length) mesSel.value = mesesRanking.slice(-1)[0].mes;
 
   function drawPrevCards(){
     const r = DATA.ranking_preventiva_mensal.find(x=>x.mes===mesSel.value);
@@ -1647,16 +1647,23 @@ function renderUtilidades(){
 }
 
 /* ===================== INIT ===================== */
-renderGeral();
-renderOrcamento();
-renderOS();
-renderEquip();
-renderPessoas();
-renderPerformance();
-renderUtilidades();
-renderMapa();
-renderCompras();
-renderCalendario();
+// Cada módulo é iniciado isoladamente: se um deles quebrar (ex.: uma aba da
+// planilha mudou de formato num mês), só aquele módulo fica indisponível —
+// os outros continuam renderizando normalmente, em vez de todo o app depois
+// dele sumir em silêncio (foi o que aconteceu em 09/09/2026: um erro dentro
+// de renderOS() interrompeu a execução e derrubou junto Equipamentos,
+// Pessoas, Performance, Utilidades, Mapa, Compras e Calendário).
+function safeInit(fn, label){ try{ fn(); }catch(e){ console.error('[init] '+label+' falhou:', e); } }
+safeInit(renderGeral, 'renderGeral');
+safeInit(renderOrcamento, 'renderOrcamento');
+safeInit(renderOS, 'renderOS');
+safeInit(renderEquip, 'renderEquip');
+safeInit(renderPessoas, 'renderPessoas');
+safeInit(renderPerformance, 'renderPerformance');
+safeInit(renderUtilidades, 'renderUtilidades');
+safeInit(renderMapa, 'renderMapa');
+safeInit(renderCompras, 'renderCompras');
+safeInit(renderCalendario, 'renderCalendario');
 </script>
 </body>
 </html>

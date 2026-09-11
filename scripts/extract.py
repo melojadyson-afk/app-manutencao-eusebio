@@ -612,7 +612,24 @@ out2['top_tecnicos_os'] = [{'nome': k, 'count': int(v)} for k,v in top_tec.items
 ranking_by_month = []
 try:
     sheet_prev = find_sheet(F, 'Ordens de Serviço Extração Prev', contains_fallback='extracao prev')
-    prevx = pd.read_excel(F, sheet_name=sheet_prev, header=1)
+    # A linha do cabeçalho real desta aba já mudou de posição entre exportações
+    # (às vezes há uma linha extra acima, às vezes não — foi isso que quebrou
+    # em 09/09/2026: o cabeçalho passou a estar na linha 0, mas o código
+    # assumia header=1 fixo, então lia a 1ª linha de dados como se fosse
+    # cabeçalho e a coluna 'Ordem de Trabalho' "sumia"). Em vez de fixar a
+    # posição, detecta automaticamente qual das primeiras linhas contém
+    # 'Ordem de Trabalho' e usa essa como cabeçalho.
+    _raw_prev = pd.read_excel(F, sheet_name=sheet_prev, header=None, nrows=5)
+    _header_row = None
+    for _i in range(len(_raw_prev)):
+        if _raw_prev.iloc[_i].astype(str).str.strip().eq('Ordem de Trabalho').any():
+            _header_row = _i
+            break
+    if _header_row is None:
+        raise KeyError(
+            "Não encontrei a linha de cabeçalho (com 'Ordem de Trabalho') nas "
+            "primeiras 5 linhas da aba 'Ordens de Serviço Extração Prev'.")
+    prevx = pd.read_excel(F, sheet_name=sheet_prev, header=_header_row)
     prevx = prevx.dropna(subset=['Ordem de Trabalho']).copy()
     status_calc_col = prevx.columns[-1]  # captura ANTES de adicionar colunas derivadas abaixo
     prevx['data_prog'] = pd.to_datetime(prevx['Data de início programada'], errors='coerce')
