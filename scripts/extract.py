@@ -572,8 +572,16 @@ def tipo_group(t):
     if 'preventiv' in norm: return 'Preventiva'
     return 'Outros'
 b1['tipo_grp'] = b1['Tipo'].apply(tipo_group)
+# A base do TOM já traz OS preventivas programadas para meses futuros (ex.:
+# extração de setembro já lista uma OS programada pra outubro). Isso fazia
+# a "Visão Geral" (gráfico de evolução mensal, seletor de mês e "Equipamentos
+# com mais atuações") mostrar um mês futuro/incompleto no fim, distorcendo a
+# leitura. A Visão Geral agora vai só até o mês vigente (mês da extração);
+# meses futuros continuam disponíveis normalmente em outras abas que
+# dependam deles (ex.: Ranking de preventivas).
+_mes_vigente_ym = datetime.datetime.now().strftime('%Y-%m')
 trend = b1.groupby(['ym','tipo_grp']).size().unstack(fill_value=0)
-trend = trend[trend.index >= '2024-01']
+trend = trend[(trend.index >= '2024-01') & (trend.index <= _mes_vigente_ym)]
 trend = trend.reindex(sorted(trend.index))
 out2['os_trend_monthly'] = {
     'months': list(trend.index),
@@ -585,8 +593,8 @@ out2['os_status_dist'] = b1['status_base'].value_counts().to_dict()
 out2['os_tipo_dist'] = b1['Tipo'].value_counts().to_dict()
 out2['os_period'] = {'min': clean(b1['data_prog'].min()), 'max': clean(b1['data_prog'].max())}
 
-# top corrective equipment - last 6 months with data
-last6 = sorted(b1['ym'].dropna().unique())[-6:]
+# top corrective equipment - last 6 months with data (até o mês vigente, ver nota acima)
+last6 = sorted([m for m in b1['ym'].dropna().unique() if m <= _mes_vigente_ym])[-6:]
 corr6 = b1[(b1['tipo_grp']=='Corretiva') & (b1['ym'].isin(last6))]
 top_corr = corr6['Descrição do equipamento'].value_counts().head(15)
 out2['top_corrective_equipment'] = [{'equipamento': k, 'count': int(v)} for k,v in top_corr.items()]
@@ -602,40 +610,85 @@ out2['top_corrective_equipment'] = [{'equipamento': k, 'count': int(v)} for k,v 
 # A lista de palavras-chave é um ponto de partida razoável para manutenção
 # industrial (lavanderia); ajuste/complete conforme o vocabulário real das
 # OS for aparecendo nos diagnósticos.
+# Lista revisada em set/2026 a partir de inspeção real das ~1.180 OS que
+# caíam em "Não classificado" (52,9% das corretivas do ano) — ampliada com
+# aproximações, sinônimos, termos de equipamentos da lavanderia e variações
+# comuns de digitação (ex.: "corrreia", "fallha", "lipeza") encontradas nas
+# descrições reais do TOM. Isso reduziu "Não classificado" para ~11% das
+# corretivas do ano, restando principalmente OS realmente genéricas/sem
+# causa identificável na descrição (ex.: "Revisão geral", "Organização da
+# oficina", "producao" sozinho) — que continuam sem causa mesmo por
+# aproximação, para não inventar uma causa que a descrição não sustenta.
 CAUSA_KEYWORDS = [
-    ('Elétrico', ['eletric', 'curto circuito', 'curto-circuito', 'disjuntor', 'contator',
-                  'fusivel', 'fiacao', 'cabo eletrico', 'tensao', 'queimou', 'queimad',
-                  'painel eletrico', 'energia', 'placa eletronica', 'inversor',
-                  'lampada', 'refletor', 'iluminacao']),
+    ('Automação / Software (erro/alarme de sistema)',
+     ['erro', 'alarme', 'codigo', 'clp', 'plc', 'ihm', 'software', 'programa', 'parametro',
+      'comunicacao', 'emergencia', 'aciona']),
+    ('Elétrico',
+     ['eletric', 'curto circuito', 'curto-circuito', 'curto', 'disjuntor', 'contator',
+      'fusivel', 'fiacao', 'cabo eletrico', 'tensao', 'queimou', 'queimad',
+      'painel eletrico', 'energia', 'placa eletronica', 'inversor',
+      'lampada', 'refletor', 'refeltor', 'iluminacao', 'gerador', 'geradores', 'tomada',
+      'conector', 'bobina', 'cabo', 'cabos', 'eletrocalha', 'seccionadora', 'transformador',
+      'botoeira', 'botao', 'aterrament', 'luminaria', 'luminarias']),
     ('Motor', ['motor']),
-    ('Transmissão (correia/cinta/esteira)', ['correia', 'polia', 'corrente', 'tensor', 'cinta', 'esteira']),
-    ('Mecânico / Desgaste', ['rolamento', 'engrenagem', 'desalinh', 'folga', 'trinca',
-                             'desgast', 'quebrad', 'quebrou', 'eixo', 'redutor', 'rolete',
-                             'vibra', 'porta', 'trava', 'rasg']),
-    ('Hidráulico / Vazamento', ['vazamento', 'vazando', 'hidraulic', 'mangueira', 'valvula',
-                                'bomba']),
-    ('Pneumático', ['pneumatic', 'ar comprimido', 'cilindro', 'solenoide']),
-    ('Aquecimento / Térmico', ['resistencia', 'aquecimento', 'temperatura', 'termostato',
-                               'caldeira', 'vapor', 'queimador', 'trocador de calor']),
-    ('Sensor / Instrumentação', ['sensor', 'encoder', 'fim de curso', 'fotocelula', 'calibra']),
-    ('Automação / Software', ['software', 'programa', 'clp', 'parametro', 'ihm']),
-    ('Vedação / Filtro', ['retentor', 'vedacao', 'filtro']),
+    ('Transmissão (correia/cinta/esteira)',
+     ['correia', 'polia', 'corrente', 'tensor', 'cinta', 'esteira', 'estereira', 'esterira']),
+    ('Acabamento / Dobra e Prensa (calandra, dobradeira, prensa)',
+     ['dobra', 'dobrador', 'calandra', 'prensa', 'prenca', 'giulia', 'giulietta', 'guilia',
+      'foltex', 'boca', 'bocas']),
+    ('Mecânico / Desgaste',
+     ['rolamento', 'engrenagem', 'desalinh', 'folga', 'trinca',
+      'desgast', 'quebrad', 'quebrou', 'quebra', 'eixo', 'redutor', 'rolete',
+      'vibra', 'porta', 'trava', 'rasg', 'mancal', 'rolo', 'faca', 'facas',
+      'facao', 'enrosco', 'enroscos', 'gaveta', 'pinca', 'engate', 'angulo',
+      'elevador', 'chapa', 'trilho', 'tombad', 'danificad', 'fixacao', 'estrutura',
+      'freio', 'grampo', 'amortecedor', 'amotecedor', 'borracha', 'burracha',
+      'rodizio', 'pino']),
+    ('Hidráulico / Vazamento',
+     ['vazamento', 'vazando', 'vazamanto', 'hidraulic', 'mangueira', 'mangueria', 'valvula',
+      'valviula', 'bomba', 'oleo', 'dreno', 'tubulacao', 'radiador', 'tanque', 'hidrometro',
+      'reservatorio']),
+    ('Pneumático', ['pneumatic', 'ar comprimido', 'cilindro', 'solenoide', 'compressor']),
+    ('Aquecimento / Térmico',
+     ['resistencia', 'aquecimento', 'temperatura', 'termostato',
+      'caldeira', 'vapor', 'queimador', 'trocador', 'climatizador', 'ventilador',
+      'exaustor', 'exaustao']),
+    ('Sensor / Instrumentação',
+     ['sensor', 'encoder', 'fim de curso', 'fotocelula', 'calibra',
+      'peso', 'nivel', 'manometro', 'pressostato', 'barreira optica', 'barrera optica']),
+    ('Vedação / Filtro (telas, retentores)',
+     ['retentor', 'vedacao', 'filtro', 'tela', 'telas', 'selagem', 'selando', 'selador',
+      'junta', 'revestimento']),
+    ('Segurança / Proteção (redes, guarda-corpo)',
+     ['redes de protecao', 'guarda corpo', 'guarda-corpo', 'rede de seguranca',
+      'protecao coletiva', 'banderola', 'baderola']),
+    ('Limpeza / Resíduos (bags, tecido, sujeira)',
+     ['limpeza', 'lipeza', 'limpar', 'limpa', 'bags', 'bag', 'beg', 'lencol', 'lenco',
+      'sujeira', 'residuo', 'entupi', 'obstru']),
     ('Parada / Falha geral (sem causa específica na descrição)',
-     ['inoperante', 'parado', 'nao liga', 'nao funciona', 'sem funcionamento', 'pane']),
+     ['inoperante', 'nao operante', 'parado', 'parada', 'nao liga', 'ligando', 'nao funciona',
+      'sem funcionamento', 'pane', 'fallha', 'falha', 'falhas', 'problema', 'poblema',
+      'nao esta', 'nao atua', 'nao abre', 'nao fecha', 'nao reconhec', 'nao registra',
+      'nao da partida', 'nao inicia']),
 ]
 COMPONENTE_KEYWORDS = [
     ('Rolamento', ['rolamento']), ('Motor', ['motor']), ('Correia', ['correia']),
-    ('Cinta', ['cinta']), ('Esteira', ['esteira']),
-    ('Polia', ['polia']), ('Corrente', ['corrente']), ('Válvula', ['valvula']),
-    ('Mangueira', ['mangueira']), ('Bomba', ['bomba']), ('Redutor', ['redutor']),
-    ('Engrenagem', ['engrenagem']), ('Eixo', ['eixo']), ('Sensor', ['sensor', 'encoder', 'fotocelula']),
+    ('Cinta', ['cinta']), ('Esteira', ['esteira', 'estereira', 'esterira']),
+    ('Polia', ['polia']), ('Corrente', ['corrente']), ('Válvula', ['valvula', 'valviula']),
+    ('Mangueira', ['mangueira', 'mangueria']), ('Bomba', ['bomba']), ('Redutor', ['redutor']),
+    ('Engrenagem', ['engrenagem']), ('Eixo', ['eixo']),
+    ('Sensor', ['sensor', 'encoder', 'fotocelula', 'manometro', 'pressostato']),
     ('Resistência', ['resistencia']), ('Contator / Disjuntor', ['contator', 'disjuntor']),
     ('Placa eletrônica / Inversor', ['placa eletronica', 'inversor']),
     ('Cilindro pneumático', ['cilindro']), ('Termostato', ['termostato']),
-    ('Trocador de calor', ['trocador de calor']),
-    ('Filtro', ['filtro']), ('Retentor / Vedação', ['retentor', 'vedacao']),
+    ('Trocador de calor', ['trocador']),
+    ('Filtro', ['filtro']), ('Retentor / Vedação', ['retentor', 'vedacao', 'selagem', 'junta']),
     ('Porta / Trava', ['porta', 'trava']),
-    ('Painel / Cabo elétrico', ['painel eletrico', 'cabo eletrico', 'fiacao']),
+    ('Painel / Cabo elétrico', ['painel eletrico', 'cabo eletrico', 'fiacao', 'eletrocalha']),
+    ('Mancal', ['mancal']), ('Faca / Lâmina', ['faca', 'facas', 'facao']),
+    ('Rolo', ['rolo']), ('Tela / Filtro de linha', ['tela', 'telas']),
+    ('Amortecedor', ['amortecedor', 'amotecedor']), ('Rodízio', ['rodizio']),
+    ('Freio', ['freio']), ('Compressor', ['compressor']),
 ]
 def _classify(desc_norm, keyword_table):
     for label, kws in keyword_table:
@@ -651,14 +704,22 @@ corr6 = b1[(b1['tipo_grp']=='Corretiva') & (b1['ym'].str.startswith(_ano_atual, 
 corr6['_desc_norm'] = corr6['Descrição'].apply(lambda d: _norm_colname(d) if pd.notna(d) else '')
 
 # "Acompanhamento de produção" (técnico acompanhando o desenvolvimento do
-# turno a pedido da produção) e "troca de turno" (período de passagem de
-# informações entre técnicos) não são eventos de falha/reparo de
+# turno a pedido da produção), "troca de turno" / "passagem de turno"
+# (período de passagem de informações entre técnicos) e "5S" (organização/
+# limpeza do posto de trabalho) não são eventos de falha/reparo de
 # equipamento — são tempo administrativo/operacional. Excluímos essas OS
 # do diagnóstico de causa raiz para não distorcer causas, componentes,
 # equipamentos e MTTR (antes caíam todas em "Não classificado").
+# Cobrimos variações reais encontradas na descrição: "acompanhamento" /
+# "acompanhar" / "acompanha" (radical "acompanh"), o erro de digitação
+# "a companhamento" (sem o "ac" junto), "troca de turno" / "passagem de
+# turno" e "5s".
 total_corr6_bruto = len(corr6)
-_excl_mask = (corr6['_desc_norm'].str.contains('acompanhamento', na=False) |
-              corr6['_desc_norm'].str.contains('troca de turno', na=False))
+_excl_mask = (corr6['_desc_norm'].str.contains('acompanh', na=False) |
+              corr6['_desc_norm'].str.contains('companhamento', na=False) |
+              corr6['_desc_norm'].str.contains('troca de turno', na=False) |
+              corr6['_desc_norm'].str.contains('passagem de turno', na=False) |
+              corr6['_desc_norm'].str.contains('5s', na=False))
 excluidas_acompanhamento = int(_excl_mask.sum())
 corr6 = corr6[~_excl_mask].copy()
 
@@ -716,7 +777,7 @@ out2['os_diagnostico'] = {
     'componentes': comp_rows,
     'equipamentos': equip_rows,
 }
-print(f"Diagnóstico OS — corretivas (ano {_ano_atual}): {total_corr6} (excluídas {excluidas_acompanhamento} de acompanhamento/troca de turno, de {total_corr6_bruto} totais) | "
+print(f"Diagnóstico OS — corretivas (ano {_ano_atual}): {total_corr6} (excluídas {excluidas_acompanhamento} de acompanhamento/troca de turno/5S, de {total_corr6_bruto} totais) | "
       f"causas: {[c['causa'] for c in causas_rows[:5]]} | "
       f"MTTR geral: {out2['os_diagnostico']['mttr_geral_h']}h (cobertura {mttr_cobertura}/{total_corr6})")
 

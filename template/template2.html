@@ -1054,7 +1054,7 @@ function renderOS(){
     const excl = diag.excluidas_acompanhamento || 0;
     const anoTxt = diag.ano_referencia ? ` em ${diag.ano_referencia}` : '';
     document.getElementById('os-diag-sub').textContent = excl > 0
-      ? ` · ${fmtNum(diag.total_corretivas)} OS corretivas analisadas${anoTxt} (${fmtNum(excl)} de acompanhamento de produção/troca de turno excluídas, não são falhas de equipamento)`
+      ? ` · ${fmtNum(diag.total_corretivas)} OS corretivas analisadas${anoTxt} (${fmtNum(excl)} de acompanhamento de produção/troca de turno/5S excluídas, não são falhas de equipamento)`
       : ` · ${fmtNum(diag.total_corretivas)} OS corretivas analisadas${anoTxt}`;
     document.getElementById('os-diag-mttr').innerHTML = diag.mttr_geral_h!=null ? fmtNum(diag.mttr_geral_h,2)+'<span class="unit">h</span>' : '—';
     document.getElementById('os-diag-mttr-cob').textContent = fmtPct(diag.mttr_cobertura_pct)+` (${fmtNum(diag.mttr_cobertura)})`;
