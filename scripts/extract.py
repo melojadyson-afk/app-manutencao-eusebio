@@ -591,7 +591,7 @@ corr6 = b1[(b1['tipo_grp']=='Corretiva') & (b1['ym'].isin(last6))]
 top_corr = corr6['Descrição do equipamento'].value_counts().head(15)
 out2['top_corrective_equipment'] = [{'equipamento': k, 'count': int(v)} for k,v in top_corr.items()]
 
-# ================= DIAGNÓSTICO DE CAUSA RAIZ (OS de Corretiva, últimos 6 meses) =================
+# ================= DIAGNÓSTICO DE CAUSA RAIZ (OS de Corretiva, ano corrente: jan até hoje) =================
 # Classifica cada OS corretiva por palavras-chave na "Descrição" em 1) uma
 # causa raiz (categoria de falha, ao estilo Ishikawa simplificado) e
 # 2) um componente físico específico (quando a descrição menciona um).
@@ -643,7 +643,11 @@ def _classify(desc_norm, keyword_table):
             return label
     return None
 
-corr6 = corr6.copy()
+# Diagnóstico usa o ano corrente (janeiro até o mês mais recente disponível
+# na base), diferente do "corr6" acima (últimos 6 meses), que segue
+# alimentando o card "Corretivas mais frequentes" já existente.
+_ano_atual = str(datetime.datetime.now().year)
+corr6 = b1[(b1['tipo_grp']=='Corretiva') & (b1['ym'].str.startswith(_ano_atual, na=False))].copy()
 corr6['_desc_norm'] = corr6['Descrição'].apply(lambda d: _norm_colname(d) if pd.notna(d) else '')
 
 # "Acompanhamento de produção" (técnico acompanhando o desenvolvimento do
@@ -699,6 +703,7 @@ equip_rows.sort(key=lambda x: -x['count'])
 equip_rows = equip_rows[:12]
 
 out2['os_diagnostico'] = {
+    'ano_referencia': _ano_atual,
     'total_corretivas': total_corr6,
     'total_corretivas_bruto': total_corr6_bruto,
     'excluidas_acompanhamento': excluidas_acompanhamento,
@@ -711,7 +716,7 @@ out2['os_diagnostico'] = {
     'componentes': comp_rows,
     'equipamentos': equip_rows,
 }
-print(f"Diagnóstico OS — corretivas (6m): {total_corr6} (excluídas {excluidas_acompanhamento} de acompanhamento/troca de turno, de {total_corr6_bruto} totais) | "
+print(f"Diagnóstico OS — corretivas (ano {_ano_atual}): {total_corr6} (excluídas {excluidas_acompanhamento} de acompanhamento/troca de turno, de {total_corr6_bruto} totais) | "
       f"causas: {[c['causa'] for c in causas_rows[:5]]} | "
       f"MTTR geral: {out2['os_diagnostico']['mttr_geral_h']}h (cobertura {mttr_cobertura}/{total_corr6})")
 
