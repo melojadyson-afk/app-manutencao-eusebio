@@ -410,6 +410,27 @@ th.sortable.sort-desc::after{content:'▼'; opacity:1; color:var(--tab-color, va
         <div class="card kpi"><div class="kpi-label">% Conclusão em dia <span style="color:var(--amber)">(ranking)</span></div><div class="kpi-value" id="os-prev-pct">–</div></div>
       </div>
       <div class="card" style="margin-bottom:14px;">
+        <div class="card-head"><div class="card-title">Diagnóstico de Causa Raiz<span class="sub" id="os-diag-sub"></span></div></div>
+        <div class="grid g4" style="margin-bottom:14px;">
+          <div class="card kpi"><div class="kpi-label">MTTR médio</div><div class="kpi-value" id="os-diag-mttr">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Cobertura do MTTR <span style="color:var(--text-dimmer)">(OS com dado)</span></div><div class="kpi-value" id="os-diag-mttr-cob">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Corretivas analisadas <span style="color:var(--text-dimmer)">(6 meses)</span></div><div class="kpi-value" id="os-diag-total">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Com componente identificado</div><div class="kpi-value" id="os-diag-comp-pct">–</div></div>
+        </div>
+        <div class="grid g2">
+          <div class="chart-box tall"><canvas id="chart-os-diag-causas"></canvas></div>
+          <div class="chart-box tall"><canvas id="chart-os-diag-equip"></canvas></div>
+        </div>
+        <div class="grid" style="grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
+          <div class="chart-box tall"><canvas id="chart-os-diag-componentes"></canvas></div>
+          <div class="table-wrap" style="max-height:300px; overflow-y:auto;">
+            <table><thead><tr><th>Causa raiz</th><th>Ocorrências</th><th>% do total</th><th>MTTR médio</th></tr></thead><tbody id="os-diag-causas-tbody"></tbody></table>
+          </div>
+        </div>
+        <div class="foot-note">Classificação automática por palavras-chave na descrição da OS (apenas Corretivas, últimos 6 meses) — "Não classificado" é quando a descrição não contém nenhum termo reconhecido pelo classificador, o que aponta oportunidade de padronizar o preenchimento no TOM. MTTR = média de "Horas de parada" registrada em cada OS.</div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
         <div class="card-head"><div class="card-title">Quantidade de ordens por tipo e status<span class="sub">Geral — últimos 6 meses</span></div></div>
         <div class="grid g2">
           <div class="chart-box"><canvas id="chart-os-tipo-mes"></canvas></div>
@@ -1023,6 +1044,40 @@ function renderOS(){
   }
   mesSel.addEventListener('change', drawPrevCards);
 
+  /* --- Diagnóstico de causa raiz (classificação por palavras-chave, calculado no build) --- */
+  function drawDiagnostico(){
+    const diag = DATA.os_diagnostico;
+    if(!diag || !diag.total_corretivas){
+      document.getElementById('os-diag-sub').textContent = ' · sem corretivas no período';
+      return;
+    }
+    const excl = diag.excluidas_acompanhamento || 0;
+    document.getElementById('os-diag-sub').textContent = excl > 0
+      ? ` · ${fmtNum(diag.total_corretivas)} OS corretivas analisadas (${fmtNum(excl)} de acompanhamento de produção/troca de turno excluídas, não são falhas de equipamento)`
+      : ` · ${fmtNum(diag.total_corretivas)} OS corretivas analisadas`;
+    document.getElementById('os-diag-mttr').innerHTML = diag.mttr_geral_h!=null ? fmtNum(diag.mttr_geral_h,2)+'<span class="unit">h</span>' : '—';
+    document.getElementById('os-diag-mttr-cob').textContent = fmtPct(diag.mttr_cobertura_pct)+` (${fmtNum(diag.mttr_cobertura)})`;
+    document.getElementById('os-diag-total').textContent = fmtNum(diag.total_corretivas);
+    document.getElementById('os-diag-comp-pct').textContent = fmtPct(diag.componentes_identificados/diag.total_corretivas);
+
+    const diagPal = [PAL.os,PAL.amber,PAL.equip,PAL.compras,PAL.performance,PAL.utilidades,PAL.pessoas,PAL.agenda,PAL.mapa,PAL.red,PAL.green,PAL.gray];
+
+    const causas = diag.causas;
+    if(window.__osDiagCausasChart) window.__osDiagCausasChart.destroy();
+    window.__osDiagCausasChart = new Chart(document.getElementById('chart-os-diag-causas'), {type:'bar', data:{labels:causas.map(c=>c.causa), datasets:[{data:causas.map(c=>c.count), backgroundColor:causas.map((c,i)=>diagPal[i%diagPal.length]), borderRadius:4, maxBarThickness:18}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Causa raiz (por palavras-chave na descrição)', color:'#9a9c9e', font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS (${fmtPct(causas[c.dataIndex].pct)}) · MTTR ${causas[c.dataIndex].mttr_h!=null?fmtNum(causas[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
+
+    const equipD = diag.equipamentos.slice(0,10);
+    if(window.__osDiagEquipChart) window.__osDiagEquipChart.destroy();
+    window.__osDiagEquipChart = new Chart(document.getElementById('chart-os-diag-equip'), {type:'bar', data:{labels:equipD.map(e=>(e.equipamento||'').trim()), datasets:[{data:equipD.map(e=>e.count), backgroundColor:PAL.compras, borderRadius:4, maxBarThickness:18}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Equipamentos mais afetados (corretivas)', color:'#9a9c9e', font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS · MTTR ${equipD[c.dataIndex].mttr_h!=null?fmtNum(equipD[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
+
+    const comps = diag.componentes.slice(0,12);
+    if(window.__osDiagCompChart) window.__osDiagCompChart.destroy();
+    window.__osDiagCompChart = new Chart(document.getElementById('chart-os-diag-componentes'), {type:'bar', data:{labels:comps.map(c=>c.componente), datasets:[{data:comps.map(c=>c.count), backgroundColor:PAL.equip, borderRadius:4, maxBarThickness:16}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Componentes mais citados na descrição', color:'#9a9c9e', font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS · MTTR ${comps[c.dataIndex].mttr_h!=null?fmtNum(comps[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
+
+    document.getElementById('os-diag-causas-tbody').innerHTML = causas.map(c=>`
+      <tr><td>${c.causa}</td><td class="mono">${fmtNum(c.count)}</td><td class="mono">${fmtPct(c.pct)}</td><td class="mono">${c.mttr_h!=null?fmtNum(c.mttr_h,2)+'h':'—'}</td></tr>`).join('');
+  }
+
 
   const list = DATA.os_list;
   document.getElementById('os-detail-sub').textContent = ` · ${list.length} OS (últimos 6 meses)`;
@@ -1056,7 +1111,7 @@ function renderOS(){
   document.getElementById('os-search').addEventListener('input', ()=>{osPage=1; drawTable();});
   [statusSel,tipoSel,prioSel].forEach(el=>el.addEventListener('change', ()=>{osPage=1; drawTable();}));
 
-  drawPrevCards(); drawGeralCharts(); drawTable();
+  drawPrevCards(); drawGeralCharts(); drawTable(); drawDiagnostico();
 }
 
 /* ===================== EQUIPAMENTOS ===================== */

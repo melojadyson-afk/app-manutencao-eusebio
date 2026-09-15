@@ -591,6 +591,130 @@ corr6 = b1[(b1['tipo_grp']=='Corretiva') & (b1['ym'].isin(last6))]
 top_corr = corr6['Descrição do equipamento'].value_counts().head(15)
 out2['top_corrective_equipment'] = [{'equipamento': k, 'count': int(v)} for k,v in top_corr.items()]
 
+# ================= DIAGNÓSTICO DE CAUSA RAIZ (OS de Corretiva, últimos 6 meses) =================
+# Classifica cada OS corretiva por palavras-chave na "Descrição" em 1) uma
+# causa raiz (categoria de falha, ao estilo Ishikawa simplificado) e
+# 2) um componente físico específico (quando a descrição menciona um).
+# Cada OS cai em UMA causa (a primeira que bater, por ordem de prioridade —
+# assim as causas somam 100% das corretivas) e em NO MÁXIMO um componente
+# (fica de fora da contagem de componentes se a descrição não citar nenhum
+# termo conhecido — nem toda OS descreve a peça específica).
+# A lista de palavras-chave é um ponto de partida razoável para manutenção
+# industrial (lavanderia); ajuste/complete conforme o vocabulário real das
+# OS for aparecendo nos diagnósticos.
+CAUSA_KEYWORDS = [
+    ('Elétrico', ['eletric', 'curto circuito', 'curto-circuito', 'disjuntor', 'contator',
+                  'fusivel', 'fiacao', 'cabo eletrico', 'tensao', 'queimou', 'queimad',
+                  'painel eletrico', 'energia', 'placa eletronica', 'inversor',
+                  'lampada', 'refletor', 'iluminacao']),
+    ('Motor', ['motor']),
+    ('Transmissão (correia/cinta/esteira)', ['correia', 'polia', 'corrente', 'tensor', 'cinta', 'esteira']),
+    ('Mecânico / Desgaste', ['rolamento', 'engrenagem', 'desalinh', 'folga', 'trinca',
+                             'desgast', 'quebrad', 'quebrou', 'eixo', 'redutor', 'rolete',
+                             'vibra', 'porta', 'trava', 'rasg']),
+    ('Hidráulico / Vazamento', ['vazamento', 'vazando', 'hidraulic', 'mangueira', 'valvula',
+                                'bomba']),
+    ('Pneumático', ['pneumatic', 'ar comprimido', 'cilindro', 'solenoide']),
+    ('Aquecimento / Térmico', ['resistencia', 'aquecimento', 'temperatura', 'termostato',
+                               'caldeira', 'vapor', 'queimador', 'trocador de calor']),
+    ('Sensor / Instrumentação', ['sensor', 'encoder', 'fim de curso', 'fotocelula', 'calibra']),
+    ('Automação / Software', ['software', 'programa', 'clp', 'parametro', 'ihm']),
+    ('Vedação / Filtro', ['retentor', 'vedacao', 'filtro']),
+    ('Parada / Falha geral (sem causa específica na descrição)',
+     ['inoperante', 'parado', 'nao liga', 'nao funciona', 'sem funcionamento', 'pane']),
+]
+COMPONENTE_KEYWORDS = [
+    ('Rolamento', ['rolamento']), ('Motor', ['motor']), ('Correia', ['correia']),
+    ('Cinta', ['cinta']), ('Esteira', ['esteira']),
+    ('Polia', ['polia']), ('Corrente', ['corrente']), ('Válvula', ['valvula']),
+    ('Mangueira', ['mangueira']), ('Bomba', ['bomba']), ('Redutor', ['redutor']),
+    ('Engrenagem', ['engrenagem']), ('Eixo', ['eixo']), ('Sensor', ['sensor', 'encoder', 'fotocelula']),
+    ('Resistência', ['resistencia']), ('Contator / Disjuntor', ['contator', 'disjuntor']),
+    ('Placa eletrônica / Inversor', ['placa eletronica', 'inversor']),
+    ('Cilindro pneumático', ['cilindro']), ('Termostato', ['termostato']),
+    ('Trocador de calor', ['trocador de calor']),
+    ('Filtro', ['filtro']), ('Retentor / Vedação', ['retentor', 'vedacao']),
+    ('Porta / Trava', ['porta', 'trava']),
+    ('Painel / Cabo elétrico', ['painel eletrico', 'cabo eletrico', 'fiacao']),
+]
+def _classify(desc_norm, keyword_table):
+    for label, kws in keyword_table:
+        if any(kw in desc_norm for kw in kws):
+            return label
+    return None
+
+corr6 = corr6.copy()
+corr6['_desc_norm'] = corr6['Descrição'].apply(lambda d: _norm_colname(d) if pd.notna(d) else '')
+
+# "Acompanhamento de produção" (técnico acompanhando o desenvolvimento do
+# turno a pedido da produção) e "troca de turno" (período de passagem de
+# informações entre técnicos) não são eventos de falha/reparo de
+# equipamento — são tempo administrativo/operacional. Excluímos essas OS
+# do diagnóstico de causa raiz para não distorcer causas, componentes,
+# equipamentos e MTTR (antes caíam todas em "Não classificado").
+total_corr6_bruto = len(corr6)
+_excl_mask = (corr6['_desc_norm'].str.contains('acompanhamento', na=False) |
+              corr6['_desc_norm'].str.contains('troca de turno', na=False))
+excluidas_acompanhamento = int(_excl_mask.sum())
+corr6 = corr6[~_excl_mask].copy()
+
+corr6['_causa'] = corr6['_desc_norm'].apply(lambda d: _classify(d, CAUSA_KEYWORDS) or 'Não classificado')
+corr6['_componente'] = corr6['_desc_norm'].apply(lambda d: _classify(d, COMPONENTE_KEYWORDS))
+
+total_corr6 = len(corr6)
+hp = pd.to_numeric(corr6['horas_parada_val'], errors='coerce')
+mttr_cobertura = int(hp.notna().sum())
+
+def _mttr_de(mask):
+    vals = hp[mask].dropna()
+    return round(float(vals.mean()), 2) if len(vals) else None
+
+causas_rows = []
+for label, g in corr6.groupby('_causa'):
+    causas_rows.append({
+        'causa': label, 'count': int(len(g)),
+        'pct': round(len(g)/total_corr6, 4) if total_corr6 else 0,
+        'mttr_h': _mttr_de(corr6['_causa']==label),
+    })
+causas_rows.sort(key=lambda x: -x['count'])
+
+comp_rows = []
+componentes_identificados = corr6[corr6['_componente'].notna()]
+for label, g in componentes_identificados.groupby('_componente'):
+    comp_rows.append({
+        'componente': label, 'count': int(len(g)),
+        'pct': round(len(g)/total_corr6, 4) if total_corr6 else 0,
+        'mttr_h': _mttr_de(corr6['_componente']==label),
+    })
+comp_rows.sort(key=lambda x: -x['count'])
+
+equip_rows = []
+for label, g in corr6.groupby('Descrição do equipamento'):
+    if pd.isna(label): continue
+    equip_rows.append({
+        'equipamento': label, 'count': int(len(g)),
+        'mttr_h': _mttr_de(corr6['Descrição do equipamento']==label),
+    })
+equip_rows.sort(key=lambda x: -x['count'])
+equip_rows = equip_rows[:12]
+
+out2['os_diagnostico'] = {
+    'total_corretivas': total_corr6,
+    'total_corretivas_bruto': total_corr6_bruto,
+    'excluidas_acompanhamento': excluidas_acompanhamento,
+    'excluidas_acompanhamento_pct': round(excluidas_acompanhamento/total_corr6_bruto, 4) if total_corr6_bruto else 0,
+    'mttr_geral_h': _mttr_de(pd.Series(True, index=corr6.index)),
+    'mttr_cobertura': mttr_cobertura,
+    'mttr_cobertura_pct': round(mttr_cobertura/total_corr6, 4) if total_corr6 else 0,
+    'componentes_identificados': int(len(componentes_identificados)),
+    'causas': causas_rows,
+    'componentes': comp_rows,
+    'equipamentos': equip_rows,
+}
+print(f"Diagnóstico OS — corretivas (6m): {total_corr6} (excluídas {excluidas_acompanhamento} de acompanhamento/troca de turno, de {total_corr6_bruto} totais) | "
+      f"causas: {[c['causa'] for c in causas_rows[:5]]} | "
+      f"MTTR geral: {out2['os_diagnostico']['mttr_geral_h']}h (cobertura {mttr_cobertura}/{total_corr6})")
+
 # top equipment by ANY type of OS (mais atuações, geral) - last 6 months
 geral6 = b1[b1['ym'].isin(last6)]
 top_geral = geral6['Descrição do equipamento'].value_counts().head(15)
