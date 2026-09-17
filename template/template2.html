@@ -4,6 +4,23 @@
 <meta charset="UTF-8">
 <title>APP Manutenção · Elis Brasil - Eusébio</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- ===== PWA (Progressive Web App) — instalável na tela inicial ===== -->
+<!-- Caminhos relativos (./) de propósito: o site é publicado no GitHub
+     Pages dentro de um subdiretório (.../app-manutencao-eusebio/), e
+     caminhos absolutos começando com "/" quebrariam nesse subcaminho. -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#141516">
+<link rel="icon" type="image/png" href="./img/logo-app.png">
+<link rel="apple-touch-icon" href="./img/logo-app.png">
+<!-- iOS não usa o manifest.json plenamente (ignora start_url/display) —
+     estas meta tags são o equivalente necessário pra "Adicionar à Tela de
+     Início" no Safari abrir em modo standalone com o nome/ícone certos. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Manutenção">
+<meta name="mobile-web-app-capable" content="yes">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -307,7 +324,7 @@ th.sortable.sort-desc::after{content:'▼'; opacity:1; color:var(--tab-color, va
       </div>
     </div>
 
-    <div class="sidebar-footer">Dados: TOM (Hexagon) — snapshot diário.<br>elis Brasil · Eusébio</div>
+    <div class="sidebar-footer">Dados: TOM (Hexagon) — snapshot diário.<br>elis Brasil · Eusébio<br><span style="opacity:.75;">Desenvolvido por Jadyson</span></div>
   </div>
 
   <div class="main">
@@ -1720,6 +1737,24 @@ safeInit(renderUtilidades, 'renderUtilidades');
 safeInit(renderMapa, 'renderMapa');
 safeInit(renderCompras, 'renderCompras');
 safeInit(renderCalendario, 'renderCalendario');
+</script>
+
+<!-- ===== Registro do Service Worker (PWA) ===== -->
+<!-- Isolado num script próprio, fora do bloco principal acima: se o
+     registro falhar por qualquer motivo (ex.: navegador sem suporte),
+     não deve afetar em nada o carregamento do restante do app. -->
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+            .then(registration => {
+                console.log('Service Worker registrado:', registration.scope);
+            })
+            .catch(error => {
+                console.error('Erro ao registrar Service Worker:', error);
+            });
+    });
+}
 </script>
 </body>
 </html>
