@@ -24,6 +24,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<!-- ===== Login (Firebase Authentication) =====
+     SDK "compat", que expõe o objeto global `firebase` via <script> comum
+     — sem precisar de bundler/módulos ES, mantendo o mesmo estilo do
+     restante do projeto (arquivo único, sem build step). -->
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <style>
 :root{
   --bg:#141516; --bg2:#191a1b; --panel:#1e1f20; --line:#333537; --line-soft:#26282a;
@@ -293,8 +301,77 @@ th.sortable::after{content:'⇅'; font-size:9px; opacity:.35; margin-left:5px;}
 th.sortable.sort-asc::after{content:'▲'; opacity:1; color:var(--tab-color, var(--teal));}
 th.sortable.sort-desc::after{content:'▼'; opacity:1; color:var(--tab-color, var(--teal));}
 </style>
+
+<!-- ===== Estilo do gate de login =====
+     Bloco isolado de propósito (mesmo raciocínio do Service Worker): se
+     algo aqui falhar/for removido, não deve arrastar o CSS do app junto. -->
+<style>
+body:not(.app-authed) #app{ display:none !important; }
+#login-gate{
+  position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(1100px 550px at 100% -10%, #2a2b2c33, transparent), var(--bg);
+  padding:20px;
+}
+body.app-authed #login-gate{ display:none; }
+.login-box{
+  width:100%; max-width:340px; background:var(--panel); border:1px solid var(--line);
+  border-radius:14px; padding:28px 26px 24px; box-shadow:0 20px 60px #0007;
+}
+.login-logo{ display:flex; justify-content:center; margin-bottom:14px; }
+.login-logo img{ height:44px; width:auto; }
+.login-title{ font-family:'Space Grotesk'; font-weight:600; font-size:16px; color:var(--text); text-align:center; margin-bottom:2px; }
+.login-sub{ font-size:11.5px; color:var(--text-dim); text-align:center; margin-bottom:20px; }
+.login-field{ margin-bottom:12px; }
+.login-field label{ display:block; font-size:10.5px; color:var(--text-dim); margin-bottom:5px; }
+.login-field input{
+  width:100%; box-sizing:border-box; background:var(--bg); border:1px solid var(--line); color:var(--text);
+  border-radius:8px; padding:10px 11px; font-size:13.5px; font-family:'Inter';
+}
+.login-field input:focus{ outline:none; border-color:#5a5d60; }
+#login-btn{
+  width:100%; margin-top:6px; padding:10px 11px; border-radius:8px; border:none; cursor:pointer;
+  background:var(--text); color:#101112; font-weight:600; font-size:13px; font-family:'Inter';
+}
+#login-btn:disabled{ opacity:.55; cursor:default; }
+#login-forgot{ display:block; text-align:center; margin-top:14px; font-size:11px; color:var(--text-dim); cursor:pointer; text-decoration:underline; }
+#login-msg{ min-height:16px; font-size:11.5px; text-align:center; margin-top:10px; line-height:1.4; }
+#login-msg.err{ color:#e07a6f; }
+#login-msg.ok{ color:#7bbf8a; }
+#btn-logout{
+  margin-top:6px; background:none; border:1px solid var(--line-soft); color:var(--text-dimmer);
+  font-size:9.5px; padding:4px 9px; border-radius:12px; cursor:pointer; font-family:'Inter';
+}
+#btn-logout:hover{ color:var(--text-dim); border-color:var(--line); }
+</style>
 </head>
 <body>
+
+<!-- ===== Gate de login (Firebase Authentication) =====
+     Fica por cima de tudo até o usuário autenticar E constar na lista de
+     e-mails autorizados (Firestore). O conteúdo do app só aparece depois
+     disso — ver classe "app-authed" no <body>, controlada pelo script no
+     fim da página. -->
+<div id="login-gate">
+  <div class="login-box">
+    <div class="login-logo"><img src="data:image/png;base64,__LOGO_B64__" alt="Elis Brasil"></div>
+    <div class="login-title">APP Manutenção</div>
+    <div class="login-sub">elis Brasil · Eusébio — acesso restrito à equipe</div>
+    <form id="login-form" autocomplete="on">
+      <div class="login-field">
+        <label for="login-email">E-mail</label>
+        <input type="email" id="login-email" autocomplete="username" required>
+      </div>
+      <div class="login-field">
+        <label for="login-password">Senha</label>
+        <input type="password" id="login-password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" id="login-btn">Entrar</button>
+    </form>
+    <span id="login-forgot">Esqueci minha senha</span>
+    <div id="login-msg"></div>
+  </div>
+</div>
+
 <div id="app">
   <div class="sidebar">
     <div class="brand" style="flex-direction:column; align-items:flex-start; gap:8px;">
@@ -324,7 +401,7 @@ th.sortable.sort-desc::after{content:'▼'; opacity:1; color:var(--tab-color, va
       </div>
     </div>
 
-    <div class="sidebar-footer">Dados: TOM (Hexagon) — snapshot diário.<br>elis Brasil · Eusébio<br><span style="opacity:.75;">Desenvolvido por Jadyson</span></div>
+    <div class="sidebar-footer">Dados: TOM (Hexagon) — snapshot diário.<br>elis Brasil · Eusébio<br><span style="opacity:.75;">Desenvolvido por Jadyson</span><br><span id="login-user-email" style="opacity:.6;"></span><br><button id="btn-logout" type="button">Sair</button></div>
   </div>
 
   <div class="main">
@@ -1755,6 +1832,116 @@ if ('serviceWorker' in navigator) {
             });
     });
 }
+</script>
+
+<!-- ===== Login (Firebase Authentication + Firestore) =====
+     Isolado num script próprio, no fim da página (mesmo padrão do Service
+     Worker acima): controla só a classe "app-authed" no <body> e os
+     elementos do #login-gate — não toca em nenhuma lógica das outras
+     abas/módulos do app. -->
+<script>
+(function(){
+  const firebaseConfig = {
+    apiKey: "AIzaSyDIKsG316jZU6X4lR3GWhL1LCeD8_vtT3A",
+    authDomain: "app-manutencao-elis-eusebio.firebaseapp.com",
+    projectId: "app-manutencao-elis-eusebio",
+    storageBucket: "app-manutencao-elis-eusebio.firebasestorage.app",
+    messagingSenderId: "211314830357",
+    appId: "1:211314830357:web:b800cd32b7d2ce1604721c"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  const gate = document.getElementById('login-gate');
+  const form = document.getElementById('login-form');
+  const emailInput = document.getElementById('login-email');
+  const passInput = document.getElementById('login-password');
+  const btn = document.getElementById('login-btn');
+  const msg = document.getElementById('login-msg');
+  const forgot = document.getElementById('login-forgot');
+  const logoutBtn = document.getElementById('btn-logout');
+  const userLabel = document.getElementById('login-user-email');
+
+  function setMsg(text, kind){
+    msg.textContent = text || '';
+    msg.className = kind || '';
+  }
+  function setLoading(is){
+    btn.disabled = is;
+    btn.textContent = is ? 'Entrando…' : 'Entrar';
+  }
+
+  // Mensagens de erro do Firebase traduzidas pro contexto do time.
+  function traduzErro(err){
+    const c = (err && err.code) || '';
+    if (c === 'auth/invalid-email') return 'E-mail inválido.';
+    if (c === 'auth/user-not-found' || c === 'auth/invalid-credential' || c === 'auth/wrong-password')
+      return 'E-mail ou senha incorretos.';
+    if (c === 'auth/too-many-requests') return 'Muitas tentativas. Aguarde um pouco e tente de novo.';
+    if (c === 'auth/user-disabled') return 'Este acesso foi desativado. Fale com o administrador.';
+    if (c === 'auth/network-request-failed') return 'Falha de conexão. Verifique sua internet.';
+    return 'Não foi possível entrar. Tente novamente.';
+  }
+
+  form.addEventListener('submit', function(ev){
+    ev.preventDefault();
+    setMsg('');
+    setLoading(true);
+    auth.signInWithEmailAndPassword(emailInput.value.trim(), passInput.value)
+      .catch(function(err){
+        setLoading(false);
+        setMsg(traduzErro(err), 'err');
+      });
+    // Em caso de sucesso, onAuthStateChanged (abaixo) assume e libera o app.
+  });
+
+  forgot.addEventListener('click', function(){
+    const email = emailInput.value.trim();
+    if (!email){ setMsg('Digite seu e-mail acima e clique em "Esqueci minha senha" de novo.', 'err'); return; }
+    setMsg('Enviando...', '');
+    auth.sendPasswordResetEmail(email)
+      .then(function(){ setMsg('Enviamos um link de redefinição de senha para ' + email + '.', 'ok'); })
+      .catch(function(err){ setMsg(traduzErro(err), 'err'); });
+  });
+
+  if (logoutBtn){
+    logoutBtn.addEventListener('click', function(){ auth.signOut(); });
+  }
+
+  // Lista de e-mails autorizados: coleção "equipe_autorizada" no Firestore,
+  // um documento por pessoa com o ID = e-mail (sempre em minúsculas).
+  // Cadastro/remoção é feito direto pelo Jadyson no console do Firebase —
+  // o app só faz leitura, nunca escreve nessa coleção.
+  auth.onAuthStateChanged(function(user){
+    if (!user){
+      document.body.classList.remove('app-authed');
+      setLoading(false);
+      if (userLabel) userLabel.textContent = '';
+      return;
+    }
+    const email = (user.email || '').toLowerCase();
+    db.collection('equipe_autorizada').doc(email).get()
+      .then(function(doc){
+        if (doc.exists && doc.data().ativo !== false){
+          document.body.classList.add('app-authed');
+          setLoading(false);
+          setMsg('');
+          form.reset();
+          if (userLabel) userLabel.textContent = email;
+        } else {
+          setMsg('Seu e-mail (' + email + ') ainda não tem acesso liberado a este aplicativo. Fale com o administrador.', 'err');
+          setLoading(false);
+          auth.signOut();
+        }
+      })
+      .catch(function(){
+        setMsg('Não foi possível verificar sua permissão de acesso agora. Tente novamente.', 'err');
+        setLoading(false);
+        auth.signOut();
+      });
+  });
+})();
 </script>
 </body>
 </html>
