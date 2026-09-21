@@ -999,26 +999,38 @@ except Exception as e:
 out3['agenda_sheet'] = agenda_list
 
 try:
+    # Reestruturação de set/2026: a aba passou a trazer o histórico completo do
+    # ano (antes só vinham as OCs em aberto) e trocou os campos de tonelagem
+    # (Tns.Produto/Tns.Serviço, quase sempre vazios) por um Tipo (Produto/
+    # Serviço) e uma Descrição de verdade do que foi comprado — muito mais
+    # útil pra análise. O nome da coluna de status também mudou de fato: o
+    # que antes vinha como "Situação" (com o valor real) tinha uma coluna
+    # "Status" homônima e vazia ao lado, que o código antigo lia por engano
+    # (por isso "Aberto Parcial" nunca batia certo) — agora só existe
+    # "Situação", então essa ambiguidade não existe mais.
     sheet_compras = find_sheet(F, 'Gestão de Compras', contains_fallback='compras')
     compras = pd.read_excel(F, sheet_name=sheet_compras)
     col_oc = find_col(compras, 'Ordem de Compra', contains_fallback='ordem de compra')
-    col_forn_id = find_col(compras, 'n° Fornecedor', contains_fallback='fornecedor', required=False)
-    col_forn = find_col(compras, 'Fornecedor', contains_fallback='fornecedor')
-    col_valor = find_col(compras, 'Valor Rateado', contains_fallback='valor')
     col_data_emissao = find_col(compras, 'Data Emissão', contains_fallback='emiss', required=False)
-    col_tns_produto = find_col(compras, 'Tns.Produto', contains_fallback='produto', required=False)
-    col_tns_servico = find_col(compras, 'Tns.Serviço', contains_fallback='servico', required=False)
-    col_status = find_col(compras, 'Status', contains_fallback='status', required=False)
+    col_forn_id = find_col(compras, 'Fornecedor Cód.', required=False)
+    col_forn = find_col(compras, 'Fornecedor', contains_fallback='fornecedor')
+    col_tipo = find_col(compras, 'Tipo', contains_fallback='tipo', required=False)
+    col_prod_cod = find_col(compras, 'Produto/Serviço Cód.', required=False)
+    col_desc = find_col(compras, 'Descrição', contains_fallback='descri', required=False)
+    col_valor = find_col(compras, 'Valor Rateado', contains_fallback='valor')
+    col_situacao = find_col(compras, 'Situação', contains_fallback='situacao', required=False)
     compras_rows = compras.dropna(subset=[col_oc])
     compras_list = []
     for _, r in compras_rows.iterrows():
         compras_list.append({
             'oc': clean(r[col_oc]), 'fornecedor_id': clean(r[col_forn_id]) if col_forn_id else None,
-            'fornecedor': clean(r[col_forn]), 'valor': clean(r[col_valor]),
+            'fornecedor': clean(r[col_forn]),
+            'tipo': clean(r[col_tipo]) if col_tipo else None,
+            'produto_servico_cod': clean(r[col_prod_cod]) if col_prod_cod else None,
+            'descricao': clean(r[col_desc]) if col_desc else None,
+            'valor': clean(r[col_valor]),
             'data_emissao': clean(r[col_data_emissao]) if col_data_emissao else None,
-            'tns_produto': clean(r[col_tns_produto]) if col_tns_produto else None,
-            'tns_servico': clean(r[col_tns_servico]) if col_tns_servico else None,
-            'status': clean(r[col_status]) if col_status else None,
+            'situacao': clean(r[col_situacao]) if col_situacao else None,
         })
     print("Compras: aba '%s' | %d linhas com Ordem de Compra preenchida (de %d linhas na aba)" % (
         sheet_compras, len(compras_list), len(compras)))

@@ -554,22 +554,23 @@ body.app-authed #login-gate{ display:none; }
         <select id="compras-mes-select" class="period-pill mono" style="border:1px solid color-mix(in srgb, var(--c-compras) 35%, transparent);"><option value="">Todos os meses</option></select>
       </div>
       <div class="grid g4" style="margin-bottom:14px;">
-        <div class="card kpi"><div class="kpi-label">OCs em aberto</div><div class="kpi-value" id="compras-k-qtd">–</div></div>
-        <div class="card kpi"><div class="kpi-label">Valor em aberto</div><div class="kpi-value" id="compras-k-valor">–</div></div>
+        <div class="card kpi"><div class="kpi-label">OCs no período</div><div class="kpi-value" id="compras-k-qtd">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Valor movimentado</div><div class="kpi-value" id="compras-k-valor">–</div></div>
         <div class="card kpi"><div class="kpi-label">Fornecedores envolvidos</div><div class="kpi-value" id="compras-k-forn">–</div></div>
-        <div class="card kpi"><div class="kpi-label">Aberto Parcial</div><div class="kpi-value" id="compras-k-parcial">–</div></div>
+        <div class="card kpi"><div class="kpi-label">Em aberto</div><div class="kpi-value" id="compras-k-parcial">–</div></div>
       </div>
       <div class="card">
         <div class="card-head"><div class="card-title">Ordens de Compra<span class="sub" id="compras-count-sub"></span></div></div>
         <div class="toolbar">
-          <input type="text" id="compras-search" placeholder="Buscar fornecedor, OC...">
+          <input type="text" id="compras-search" placeholder="Buscar fornecedor, OC, descrição...">
           <select id="compras-forn-filter"><option value="">Todos os fornecedores</option></select>
-          <select id="compras-status-filter"><option value="">Todos os status</option></select>
+          <select id="compras-tipo-filter"><option value="">Produto e Serviço</option></select>
+          <select id="compras-status-filter"><option value="">Todas as situações</option></select>
         </div>
         <div class="table-wrap tbl-scroll">
-          <table><thead id="compras-thead"><tr><th data-key="oc" data-type="num">OC</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="data_emissao" data-type="date">Data emissão</th><th data-key="valor" data-type="num">Valor rateado</th><th data-key="tns_produto" data-type="num">Tns. Produto</th><th data-key="tns_servico" data-type="num">Tns. Serviço</th><th data-key="status" data-type="text">Status</th></tr></thead><tbody id="compras-tbody"></tbody></table>
+          <table><thead id="compras-thead"><tr><th data-key="oc" data-type="num">OC</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="data_emissao" data-type="date">Data emissão</th><th data-key="tipo" data-type="text">Tipo</th><th data-key="descricao" data-type="text">Descrição</th><th data-key="valor" data-type="num">Valor rateado</th><th data-key="situacao" data-type="text">Situação</th></tr></thead><tbody id="compras-tbody"></tbody></table>
         </div>
-        <div class="foot-note">Não há status "Aguardando Aprovação" explícito nesta planilha — todas as linhas listadas na aba "Gestão de Compras" já representam ordens em aberto (Não Fechado / Aberto Total / Aberto Parcial).</div>
+        <div class="foot-note">Base atualizada em set/2026 para trazer o histórico completo do ano (antes só vinham as OCs em aberto) e uma descrição real do produto/serviço comprado. "Valor movimentado" soma todas as situações, exceto Cancelado.</div>
       </div>
     </div>
 
@@ -1559,43 +1560,48 @@ function renderCalendario(){
 /* ===================== GESTÃO DE COMPRAS ===================== */
 function renderCompras(){
   const list = DATA.compras_list || [];
+  const ABERTAS = new Set(['Aberto Total','Aberto Parcial','Não Fechado']);
   const mesSel = document.getElementById('compras-mes-select');
   const mesesSet = [...new Set(list.map(c=> c.data_emissao ? c.data_emissao.slice(0,7) : null).filter(Boolean))].sort();
   mesesSet.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); mesSel.appendChild(o); });
 
-  const fornSel = document.getElementById('compras-forn-filter'), statusSel = document.getElementById('compras-status-filter');
+  const fornSel = document.getElementById('compras-forn-filter'), tipoSel = document.getElementById('compras-tipo-filter'), statusSel = document.getElementById('compras-status-filter');
   [...new Set(list.map(c=>c.fornecedor))].filter(Boolean).sort().forEach(f=>{ const o=document.createElement('option'); o.value=f; o.textContent=f; fornSel.appendChild(o); });
-  [...new Set(list.map(c=>c.status))].filter(Boolean).forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; statusSel.appendChild(o); });
+  [...new Set(list.map(c=>c.tipo))].filter(Boolean).sort().forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; tipoSel.appendChild(o); });
+  [...new Set(list.map(c=>c.situacao))].filter(Boolean).forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; statusSel.appendChild(o); });
 
   document.getElementById('compras-count-sub').textContent = ` · ${list.length} ordens de compra`;
 
   function filtered(){
-    const mn = mesSel.value, q = document.getElementById('compras-search').value.toLowerCase(), fn = fornSel.value, st = statusSel.value;
+    const mn = mesSel.value, q = document.getElementById('compras-search').value.toLowerCase(), fn = fornSel.value, tp = tipoSel.value, st = statusSel.value;
     return list.filter(c=>{
       const matchMes = !mn || (c.data_emissao && c.data_emissao.slice(0,7)===mn);
-      const hay = (String(c.oc)+(c.fornecedor||'')).toLowerCase();
-      return matchMes && (!q||hay.includes(q)) && (!fn||c.fornecedor===fn) && (!st||c.status===st);
+      const hay = (String(c.oc)+(c.fornecedor||'')+(c.descricao||'')).toLowerCase();
+      return matchMes && (!q||hay.includes(q)) && (!fn||c.fornecedor===fn) && (!tp||c.tipo===tp) && (!st||c.situacao===st);
     });
   }
 
   function drawCards(){
     const rows = filtered();
     document.getElementById('compras-k-qtd').textContent = fmtNum(rows.length);
-    document.getElementById('compras-k-valor').textContent = fmtBRL(rows.reduce((a,c)=>a+(c.valor||0),0));
+    document.getElementById('compras-k-valor').textContent = fmtBRL(rows.filter(c=>c.situacao!=='Cancelado').reduce((a,c)=>a+(c.valor||0),0));
     document.getElementById('compras-k-forn').textContent = new Set(rows.map(c=>c.fornecedor)).size;
-    document.getElementById('compras-k-parcial').textContent = fmtNum(rows.filter(c=>c.status==='Aberto Parcial').length);
+    document.getElementById('compras-k-parcial').textContent = fmtNum(rows.filter(c=>ABERTAS.has(c.situacao)).length);
   }
   function drawTable(){
     const rows = filtered();
-    const statusBadge = s => s==='Aberto Total'?'b-green': s==='Aberto Parcial'?'b-amber':'b-gray';
+    const statusBadge = s => s==='Liquidado'?'b-green': s==='Aberto Total'?'b-blue': s==='Aberto Parcial'?'b-amber': s==='Não Fechado'?'b-amber': s==='Cancelado'?'b-red':'b-gray';
+    const tipoBadge = t => t==='Serviço'?'b-blue':'b-gray';
     document.getElementById('compras-tbody').innerHTML = applySort('compras', rows).map(c=>`
       <tr><td class="mono">${c.oc}</td><td>${c.fornecedor||'—'}</td>
       <td class="mono">${c.data_emissao?c.data_emissao.split(' ')[0].split('-').reverse().join('/'):'—'}</td>
-      <td class="mono">${fmtBRL(c.valor)}</td><td class="mono">${fmtNum(c.tns_produto,0)}</td><td class="mono">${fmtNum(c.tns_servico,0)}</td>
-      <td><span class="badge ${statusBadge(c.status)}">${c.status||'—'}</span></td></tr>`).join('') || `<tr><td colspan="7" class="empty">Nenhuma ordem de compra encontrada</td></tr>`;
+      <td>${c.tipo?`<span class="badge ${tipoBadge(c.tipo)}">${c.tipo}</span>`:'—'}</td>
+      <td>${c.descricao||'—'}</td>
+      <td class="mono">${fmtBRL(c.valor)}</td>
+      <td><span class="badge ${statusBadge(c.situacao)}">${c.situacao||'—'}</span></td></tr>`).join('') || `<tr><td colspan="7" class="empty">Nenhuma ordem de compra encontrada</td></tr>`;
   }
   wireSortHeaders('compras-thead', 'compras', drawTable);
-  [mesSel, fornSel, statusSel].forEach(el=>el.addEventListener('change', ()=>{ drawCards(); drawTable(); }));
+  [mesSel, fornSel, tipoSel, statusSel].forEach(el=>el.addEventListener('change', ()=>{ drawCards(); drawTable(); }));
   document.getElementById('compras-search').addEventListener('input', ()=>{ drawCards(); drawTable(); });
   drawCards(); drawTable();
 }
