@@ -76,6 +76,51 @@ def find_col(df, target, contains_fallback=None, required=True):
 # "Melhoria da Página Orçamento e Custo — Apuração Consolidada do Realizado".
 # Regra de ouro: serviço terceirizado de manutenção é SEMPRE Equipamentos,
 # nunca Pessoas. Pessoas é EXCLUSIVAMENTE folha/benefício de equipe própria.
+#
+# --- Redesenho de set/2026 (refino do classificador, não só vocabulário) ---
+# O modelo antigo testava as categorias em ordem fixa (Pessoas > Meio Amb. >
+# Limpeza > Predial > Equipamentos) e devolvia a PRIMEIRA que batesse uma
+# palavra-chave. Isso fazia qualquer descrição composta que mencionasse
+# "limpeza" cair sempre em Limpeza, mesmo quando o resto da frase deixava
+# claro que era manutenção de equipamento — ex.: "Limpeza, teste e
+# substituição de um niple", "Revisão/limpeza para inversor de frequência",
+# "Calibração/ajuste/limpeza equipamentos" — todas caíam em Limpeza porque
+# a palavra "limpeza" aparecia e essa categoria era testada antes.
+#
+# Agora cada categoria acumula uma PONTUAÇÃO com base em QUANTOS termos
+# próprios dela aparecem no texto (não é só "bateu = ganhou"; é "quem tem
+# mais sinais no texto vence"). Dentro de Limpeza, a palavra solta "limpeza"
+# conta como sinal FRACO (ela é comum tanto em serviço de limpeza de
+# verdade quanto como uma etapa dentro de uma ordem de manutenção), enquanto
+# termos específicos de cada categoria (peça nomeada, produto de limpeza,
+# item predial, termo ambiental) contam como sinal FORTE. Assim, uma
+# descrição que menciona "limpeza" E um termo forte de Equipamentos
+# (ex.: "niple", "inversor de frequência", "retentor") vai para
+# Equipamentos — o sinal forte da peça específica pesa mais que a menção
+# genérica a limpeza.
+#
+# Além disso, o NOME DO FORNECEDOR entra com peso bem menor que a
+# DESCRIÇÃO do lançamento (10x menos): o nome de uma empresa terceirizada
+# quase sempre carrega palavras do próprio ramo dela — "... Prestadora de
+# Serviços", "... Manutenção Elétrica", "... Comércio de Produtos de
+# Limpeza" — que não têm relação com o item/serviço específico daquela
+# nota. Usar o fornecedor com o mesmo peso da descrição causava falsos
+# positivos reais na base (ex.: um cabo prolongador comprado de um
+# fornecedor de produtos de limpeza caindo em Limpeza; qualquer compra de
+# uma "Fulano Prestadora de Serviços Ltda" caindo em Equipamentos só pelo
+# nome). O fornecedor agora só ajuda a desempatar quando a descrição sozinha
+# não é suficiente.
+#
+# Outros ajustes de precisão feitos junto (encontrados analisando ~1100
+# lançamentos reais da base): "reparo/reparação" agora cobre todas as
+# variações (antes só "reparo" batia, "reparação" ficava de fora); "cinza"
+# só conta para Meio Ambiente quando vem junto de "caldeira/forno/fornalha"
+# (cinza de resíduo/combustão) — sozinha, "cinza" quase sempre é a COR
+# (tinta/epóxi cinza), não resíduo; a regra de "serviço terceirizado =
+# sempre Equipamentos" ficou mais estrita (exige o radical "terceiriz" de
+# fato, ou "prestação/contrato de serviço" perto da palavra "manutenção") —
+# antes bastava a palavra "prestador(a)" aparecer em QUALQUER nome de
+# fornecedor, o que é praticamente todo prestador de serviço no Brasil.
 import re as _re
 
 def _norm_txt(s):
@@ -86,8 +131,10 @@ def _norm_txt(s):
     return s.lower()
 
 _TERCEIRIZ_RE = _re.compile(
-    r'\bterceiriz|\bterceir|prestacao de servico|prestador|contrato de servico|'
-    r'\bmao de obra terceir|empresa especializada|servico especializado',
+    r'\bterceiriz\w*|\bmao de obra terceir|'
+    r'(prestacao de servico|contrato de servico|servico especializado|empresa especializada)'
+    r'(\w|\s){0,40}manuten|'
+    r'manuten(\w|\s){0,40}(prestacao de servico|contrato de servico|servico especializado|empresa especializada)'
 )
 _PESSOAS_RE = _re.compile(
     r'\bsalari|\bencargo|\bfolha de pagamento|\bferias\b|\b13[ºo°]? ?salario|'
@@ -105,7 +152,8 @@ _PESSOAS_RE = _re.compile(
 _MEIOAMB_RE = _re.compile(
     r'\bresiduo|\befluente|\bdestinac|\bdescarte|\baterro|\breciclag|'
     r'\blicenciamento ambiental|\boutorga\b|\bestacao de tratamento|\bete\b|'
-    r'\besgoto|\blodo\b|\bcinza\b|\bcoleta de (residuo|lixo|entulho)|'
+    r'\besgoto|\blodo\b|\bcinza(s)?\s*(da |de |do )?(caldeira|forno|fornalha)|'
+    r'\bcoleta de (residuo|lixo|entulho|cinza)|'
     r'\btratamento de (residuo|efluente|agua|esgoto)|servico(s)? ambient(al|ais)|'
     r'\btransporte de (residuo|efluente|lodo|cinza)|\bdedetiza|\bdesratiza|'
     r'\bfossa septica|\bgaseificacao (septico|do septico)|\bseptico\b|'
@@ -113,8 +161,13 @@ _MEIOAMB_RE = _re.compile(
     r'\bemissao atmosferica|\banalise ambiental|\bmonitoramento ambiental|'
     r'\brecuperacao ambiental|\bpassivo ambiental|\btecnologias? ambient(al|ais)'
 )
-_LIMPEZA_RE = _re.compile(
-    r'\blimpeza\b|\bhigien|\bfaxina\b|\bdesinfec|\bdesinfetante|\bsaneante|'
+# "limpeza" pura (sem qualificador) é o termo mais ambíguo do dicionário
+# todo — sinal FRACO (peso 1). O restante da lista, que só faz sentido como
+# Limpeza mesmo (detergente, vassoura, sabonete, limpeza técnica/
+# hidrojateamento contratada isoladamente etc.), é sinal FORTE (peso 2).
+_LIMPEZA_FRACA_RE = _re.compile(r'\blimpeza\b')
+_LIMPEZA_FORTE_RE = _re.compile(
+    r'\bhigien|\bfaxina\b|\bdesinfec|\bdesinfetante|\bsaneante|'
     r'material de limpeza|\bdiluidor de limpeza|\bproduto de limpeza|'
     r'\bsabonete|\balcool gel|\bpapel higienico|\bdetergente|\bdesengraxante|'
     r'\bdispenser\b|\bsaboneteira|'
@@ -140,7 +193,7 @@ _PREDIAL_RE = _re.compile(
     r'\bthinner\b|\bverniz\b|\bassento sanitario|\brefletor(es)? led|\blampada(s)? led|\bluminaria(s)?\b|'
     r'\bbloco luminoso|\bluminaria(s)? high bay|'
     r'\bconstrucao civil|\breforma (do )?banheiro|\bacessorios? (para )?banheiro|'
-    r'\btelha(s)?\b|\bpredial\b|\brocadeira\b|\bsoprador de folhas|\breservatorio de agua'
+    r'\btelha(s)?\b|\bpredial\b|\brocadeira\b|\bsoprador de folhas|\breservatorio de agua|\bandaime(s)?\b'
 )
 _EQUIP_RE = _re.compile(
     r'\bpecas?\b|\bcomponente|\brolamento|\bcorreia|\bsensor|\bmotor(es)?\b|'
@@ -152,13 +205,14 @@ _EQUIP_RE = _re.compile(
     r'\bdisjuntor(es)?\b|\bcabo (eletrico|de forca|de aco)\b|\bcabo lenze|\bquadro eletrico|'
     r'\bmanutencao\b|\bpreventiva(s)?\b|\bcorretiva(s)?\b|\bassistencia tecnica|'
     r'\bcalibra|\binspecao (tecnica|de equipamento|e laudo)|\blaudo tecnico|\baterramento|'
-    r'\breparo|\brevisao (tecnica|de motor|de bomba|de equipamento)|'
-    r'\bretifica|\businagem|\bserralheria|'
+    r'\brepar[a-z]*\b|'
+    r'\brevisao (tecnica|de motor|de bomba|de equipamento)|'
+    r'\bretifica|\businagem|\bserralh\w*|'
     r'\brecuperacao|\breforma (de equipamento|de motor|de bomba|de secadora|de caldeira|de esteira|de picador)|'
     r'\bcontrato de manutencao|\bmanutencao industrial|\bpeca de reposicao|'
     r'\bconexao (hidraulica|pneumatica|industrial)|\btubo(s)? ((de )?aco|(de )?polietileno|galvanizado|industrial|de condensado)|'
     r'\btubos? curvas?|\bbujao|\bbujoes|\btampao\b|\bcap ac sch|'
-    r'\bmaquina de (solda|corte)|\bequipamento de (protecao|solda|corte|medicao)|'
+    r'\bmaquina de (solda|corte)|\bmaquina(s)?\b|\bmunk\b|\bequipamento(s)? (de )?(protecao|solda|corte|medicao)|\bequipamentos?\b|'
     r'\bacoplamento|\brolo(s)?\b|\bcabecote|\bpistao|\bbucha(s)?\b|\bmola(s)?\b|\bcuremax|'
     r'\bnobreak|\bbateria industrial|\btransformador(es)?\b|\bgerador(es)?\b|\bmotoredutor|'
     r'\bcablagem|\bterminal (eletrico|pino|tubular)|\brele(s)?\b|\bcontrolador(es)?\b|\bihm\b|\bclp\b|\bencoder\b|\benconder\b|'
@@ -177,7 +231,7 @@ _EQUIP_RE = _re.compile(
     r'\bengenharia eletrica|\beletricista\b|\bmontagem de (maquina|equipamento)|'
     r'\binstalacao e montagem|\bteste hidrostatico|\bar.?condicionado\b|\bvapor\b|'
     r'\bcabo\b|\barame\b|\brotor\b|\bconfeccao (de )?rotor|\bpicador\b|'
-    r'\batendimento (emergencial|tecnico)|\bvazamento\b|\bcondensado\b|'
+    r'\batendimento tecnico\b|\b(atendimento|servico|chamado)s? emergencial\b|\bvazamento\b|\bcondensado\b|'
     r'\bfita adesiva|\btubulaco(es)?\b|\bcola (branca|contact|industrial|de contato)|'
     r'\bcaracol dosador|\bdosador de polimero|\bmecanica (industrial|automotiva)|\bradiador\b|'
     r'\bgrampo\b|\btranspaleteira\b|\bbloco de contato|\bcadeado\b|'
@@ -215,27 +269,59 @@ _FORNEC_UTIL_RE = _re.compile(
 )
 
 CATEGORIAS_ORCAMENTO = ['Equipamentos', 'Predial', 'Limpeza', 'Meio Ambiente / Resíduos', 'Pessoas']
+# Ordem de desempate quando duas categorias empatam em pontuação — mantém o
+# julgamento de especificidade do modelo antigo (ambiental é mais específico
+# que limpeza, que é mais específico que predial, que é mais específico que
+# o "catch-all" de equipamentos).
+_TIEBREAK_ORCAMENTO = ['Meio Ambiente / Resíduos', 'Limpeza', 'Predial', 'Equipamentos']
+_CAT_RE_ORCAMENTO = {'Meio Ambiente / Resíduos': _MEIOAMB_RE, 'Predial': _PREDIAL_RE, 'Equipamentos': _EQUIP_RE}
 
-def classificar_categoria(descricao, fornecedor=None, tipo=None):
+def _score(regex, texto, peso):
+    return peso * len(regex.findall(texto))
+
+def classificar_categoria(descricao, fornecedor=None, tipo=None, debug=False):
     """Classifica um lançamento do centro de custo Manutenção em uma das 5
     categorias gerenciais (ou 'Outros' quando não há termo classificatório
-    identificável — não força classificação errada)."""
+    identificável — não força classificação errada).
+
+    Cada categoria acumula uma pontuação = soma dos pesos dos termos que
+    baterem na descrição (peso 2, x10) e no fornecedor (peso 2, sem o x10 —
+    o fornecedor pesa 10x menos que a descrição) — ver comentário grande
+    acima do bloco de regex para o racional completo. Quem tiver a maior
+    pontuação vence; empate é resolvido por _TIEBREAK_ORCAMENTO (ordem de
+    especificidade). debug=True devolve o dicionário de pontuações em vez
+    da categoria, útil para depurar um caso específico.
+    """
     texto = _norm_txt(descricao)
     forn = _norm_txt(fornecedor)
     hay = texto + ' ' + forn
     is_terceiriz = bool(_TERCEIRIZ_RE.search(hay))
+
+    # Regra de política do negócio: continua como corte definitivo, não
+    # entra na pontuação (não faz sentido "perder" por contagem de termos).
     if _PESSOAS_RE.search(hay) and not is_terceiriz:
         return 'Pessoas'
-    if _MEIOAMB_RE.search(hay):
-        return 'Meio Ambiente / Resíduos'
-    if _LIMPEZA_RE.search(hay):
-        return 'Limpeza'
-    if _PREDIAL_RE.search(hay):
-        return 'Predial'
-    if _EQUIP_RE.search(hay) or is_terceiriz:
-        return 'Equipamentos'
+
+    scores = {cat: _score(regex, texto, 2)*10 + _score(regex, forn, 2)
+              for cat, regex in _CAT_RE_ORCAMENTO.items()}
+    scores['Limpeza'] = (
+        (_score(_LIMPEZA_FRACA_RE, texto, 1) + _score(_LIMPEZA_FORTE_RE, texto, 2)) * 10
+        + (_score(_LIMPEZA_FRACA_RE, forn, 1) + _score(_LIMPEZA_FORTE_RE, forn, 2))
+    )
+
+    if is_terceiriz:
+        scores['Equipamentos'] += 20  # regra: serviço terceirizado de manutenção é sempre Equipamentos
     if _FORNEC_UTIL_RE.search(forn):
-        return 'Equipamentos'
+        scores['Equipamentos'] += 2
+
+    if debug:
+        return scores
+    max_score = max(scores.values())
+    if max_score == 0:
+        return 'Outros'
+    for cat in _TIEBREAK_ORCAMENTO:
+        if scores[cat] == max_score:
+            return cat
     return 'Outros'
 
 
