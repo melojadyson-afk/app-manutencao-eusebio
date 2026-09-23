@@ -1123,14 +1123,27 @@ except Exception as e:
     print(f"escala de manutenção ('{_ESCALA_SHEET}'): não encontrada/erro ->", repr(e))
 
 # Vincula cada linha da escala ao "Nome do funcionário" (formato TOM: SOBRENOME Nome).
-# Usa correspondência por tokens (ignora acento/caixa) — cobre a maioria dos
-# casos, mas nomes abreviados na escala (ex. "Ant." em vez de "Antônio") ou
-# sobrenomes divergentes entre a escala e o TOM não são resolvidos
-# automaticamente; esses ficam sinalizados como "não localizado" na página
-# (dado real da planilha, não um bug de comparação).
+# Primeiro tenta um apelido cadastrado manualmente (assets/escala_apelidos.json)
+# — para os casos em que o sobrenome na escala é mesmo diferente do sobrenome
+# no cadastro do TOM (não é abreviação nem erro de digitação, é outra grafia
+# pra mesma pessoa; ex.: "Jean Faber" na escala = "JEAN Ribeiro" no TOM). Só
+# depois cai na correspondência automática por tokens (ignora acento/caixa),
+# que cobre os casos de nome abreviado ("Ant." por "Antônio") ou nomes que
+# batem em qualquer ordem. Quem não bater em nenhum dos dois fica sinalizado
+# como "não localizado" na página — normalmente porque a pessoa não teve
+# nenhum apontamento no TOM naquele período, não por erro de comparação.
+apelidos_path = os.path.join(ROOT, 'assets', 'escala_apelidos.json')
+apelidos_escala = {}
+if os.path.exists(apelidos_path):
+    for item in json.load(open(apelidos_path, encoding='utf-8')):
+        apelidos_escala[strip_accents(item['colaborador']).upper().strip()] = item['nome_tom']
+
 nomes_tom = sorted({d['nome'] for d in out3['hh_por_funcionario_mes']})
 def match_tom_name(colaborador):
     full = strip_accents(colaborador).upper()
+    apelido = apelidos_escala.get(full.strip())
+    if apelido and apelido in nomes_tom:
+        return apelido
     for nome_tom in nomes_tom:
         toks = [t for t in strip_accents(nome_tom).upper().replace('.', '').split() if len(t) > 2]
         if toks and all(t in full for t in toks):
