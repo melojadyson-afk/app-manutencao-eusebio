@@ -1020,38 +1020,114 @@ for d in out3['hh_por_funcionario']:
 out3['funcionarios_cargos'] = func_info
 
 # ================= ESCALA DE MANUTENÇÃO (disponibilidade real de horas) =================
-# Bloco lateral da aba "Gestão de Pessoas" com a escala de turnos do mês.
-# Layout: colunas 25 (Cargo) a 58 (Total de hrs), com blocos de cabeçalho
-# repetidos entre grupos de funcionários — identificamos as linhas de dado
-# real pelo fato de terem um valor numérico na coluna de "Total de hrs".
+# Setembro/2026: a escala passou a viver na aba própria "GP Escala 2026"
+# (antes era um bloco lateral dentro de "Gestão de Pessoas" que já não existe
+# mais nessa planilha — por isso o código antigo sempre achava 0 funcionários).
+#
+# Layout da aba nova: vários "blocos" empilhados verticalmente, um por
+# turno/escala — ex. "Manutenção 1° Turno (05:00 h às 14:23 h)" na coluna A,
+# seguido 1 linha abaixo pelas datas do mês (coluna D em diante, uma coluna
+# por dia) e 2 linhas abaixo pelo cabeçalho (Matrícula/Cargo/Colaborador +
+# dia da semana). As linhas de funcionário vêm logo depois, uma por pessoa,
+# até a primeira linha com a coluna "Colaborador" vazia. Cada célula de dia
+# traz o código do dia: "T" = trabalhado, "F" = folga, "FE" = férias.
+#
+# Regra de horas/dia por perfil (definida pelo usuário, não vem da planilha):
+#   - Comercial (bloco "Manutenção Comercial")           -> 8,86 h/dia
+#   - Líder de 1°/2° turno (bloco separado, "Escala 5x2") -> 8,48 h/dia
+#   - Turno regular 1°/2°/3° (bloco "Escala 6x2")          -> 8,23 h/dia
+# A distinção "líder x regular" não é um rótulo explícito na planilha: os
+# líderes aparecem num bloco à parte do mesmo turno, com "Escala 5x2" em vez
+# de "Escala 6x2" (hoje isso identifica exatamente Iago Oliveira Gonçalves,
+# líder do 2° turno, e Renato Nogueira Costa, líder do 1°) — usar o tipo de
+# escala do bloco em vez de nome fixo faz a regra continuar valendo se a
+# liderança mudar de pessoa no futuro.
+#
+# O mês de referência de cada bloco é tirado da PRIMEIRA DATA real da linha
+# de datas (não do texto do título, que na planilha de set/2026 veio errado
+# em um dos blocos — "Agosto de 2026" com datas de setembro).
+_ESCALA_SHEET = 'GP Escala 2026'
 escala_mensal = {}
+escala_grade_mensal = {}
 try:
-    raw_gp = pd.read_excel(F, sheet_name='Gestão de Pessoas', header=None)
-    if raw_gp.shape[1] >= 59:
-        sub = raw_gp.iloc[:, 25:59]
-        sub.columns = range(25, 59)
-        is_num = sub[58].apply(lambda v: isinstance(v, (int, float, np.integer, np.floating)) and not pd.isna(v))
-        escala_rows = sub[is_num]
-        # título do bloco (ex: "Escala de manutenção Agosto") fica na linha 0, coluna 24
-        titulo = raw_gp.iloc[0, 24] if raw_gp.shape[1] > 24 else None
-        mes_escala = None
-        if isinstance(titulo, str):
-            meses_map = {'JANEIRO':'01','FEVEREIRO':'02','MARÇO':'03','ABRIL':'04','MAIO':'05','JUNHO':'06',
-                         'JULHO':'07','AGOSTO':'08','SETEMBRO':'09','OUTUBRO':'10','NOVEMBRO':'11','DEZEMBRO':'12'}
-            for nome_mes, num in meses_map.items():
-                if nome_mes in titulo.upper():
-                    mes_escala = f'2026-{num}'  # assume ano corrente da planilha
-                    break
-        escala_list = []
-        for _, r in escala_rows.iterrows():
-            escala_list.append({'cargo': clean(r[25]), 'colaborador': clean(r[26]), 'horas_disponiveis': clean(r[58])})
-        if mes_escala:
-            escala_mensal[mes_escala] = escala_list
-        print(f"Escala de manutenção encontrada: {mes_escala} — {len(escala_list)} funcionários")
-except Exception as e:
-    print("escala de manutenção: não encontrada/erro ->", e)
+    raw_esc = pd.read_excel(F, sheet_name=_ESCALA_SHEET, header=None)
+    nrows_esc, ncols_esc = raw_esc.shape
+    blocos_esc = [r for r in range(nrows_esc)
+                  if isinstance(raw_esc.iat[r, 0], str) and _re.search(r'turno|comercial', raw_esc.iat[r, 0], _re.IGNORECASE)]
+    for r_titulo in blocos_esc:
+        turno_label = str(raw_esc.iat[r_titulo, 0]).strip()
+        escala_tipo_cell = raw_esc.iat[r_titulo, 3] if ncols_esc > 3 else None
+        escala_tipo = str(escala_tipo_cell).strip() if pd.notna(escala_tipo_cell) else ''
 
-# Vincula cada linha da escala ao "Nome do funcionário" (formato TOM: SOBRENOME Nome)
+        r_datas = r_titulo + 1
+        col_datas = []
+        c = 3
+        while c < ncols_esc:
+            v = raw_esc.iat[r_datas, c]
+            if pd.isna(v):
+                break
+            col_datas.append((c, v))
+            c += 1
+        if not col_datas:
+            continue
+        try:
+            mes_ref = pd.Timestamp(col_datas[0][1]).strftime('%Y-%m')
+        except Exception:
+            continue
+
+        low_turno, low_tipo = turno_label.lower(), escala_tipo.lower()
+        if 'comercial' in low_turno or 'comercial' in low_tipo:
+            categoria_horas, horas_dia = 'Comercial', 8.86
+        elif '5x2' in low_tipo:
+            categoria_horas, horas_dia = 'Líder de turno', 8.48
+        else:
+            categoria_horas, horas_dia = 'Turno regular', 8.23
+
+        r_func = r_titulo + 3
+        while r_func < nrows_esc:
+            colaborador = raw_esc.iat[r_func, 2] if ncols_esc > 2 else None
+            if pd.isna(colaborador) or not str(colaborador).strip():
+                break
+            dias_t = dias_f = dias_fe = dias_outros = 0
+            dias_detalhe = []
+            for c, data_col in col_datas:
+                v = raw_esc.iat[r_func, c]
+                code = str(v).strip().upper() if pd.notna(v) else ''
+                if code == 'T': dias_t += 1
+                elif code == 'F': dias_f += 1
+                elif code == 'FE': dias_fe += 1
+                elif code: dias_outros += 1
+                try:
+                    data_str = pd.Timestamp(data_col).strftime('%Y-%m-%d')
+                except Exception:
+                    data_str = None
+                dias_detalhe.append({'data': data_str, 'codigo': code or None})
+            item = {
+                'matricula': clean(raw_esc.iat[r_func, 0]), 'cargo': clean(raw_esc.iat[r_func, 1]),
+                'colaborador': str(colaborador).strip(), 'turno': turno_label,
+                'categoria_horas': categoria_horas, 'horas_dia': horas_dia,
+                'dias_trabalhados': dias_t, 'dias_folga': dias_f, 'dias_ferias': dias_fe, 'dias_outros': dias_outros,
+                'horas_disponiveis': round(dias_t * horas_dia, 2),
+            }
+            escala_mensal.setdefault(mes_ref, []).append(item)
+            escala_grade_mensal.setdefault(mes_ref, []).append({**item, 'dias': dias_detalhe})
+            r_func += 1
+    for mes, lst in escala_mensal.items():
+        print(f"Escala de manutenção encontrada: {mes} — {len(lst)} funcionários "
+              f"({sum(1 for i in lst if i['categoria_horas']=='Turno regular')} turno regular, "
+              f"{sum(1 for i in lst if i['categoria_horas']=='Líder de turno')} líder, "
+              f"{sum(1 for i in lst if i['categoria_horas']=='Comercial')} comercial)")
+    if not escala_mensal:
+        print(f"AVISO: nenhum bloco de turno reconhecido na aba '{_ESCALA_SHEET}'")
+except Exception as e:
+    print(f"escala de manutenção ('{_ESCALA_SHEET}'): não encontrada/erro ->", repr(e))
+
+# Vincula cada linha da escala ao "Nome do funcionário" (formato TOM: SOBRENOME Nome).
+# Usa correspondência por tokens (ignora acento/caixa) — cobre a maioria dos
+# casos, mas nomes abreviados na escala (ex. "Ant." em vez de "Antônio") ou
+# sobrenomes divergentes entre a escala e o TOM não são resolvidos
+# automaticamente; esses ficam sinalizados como "não localizado" na página
+# (dado real da planilha, não um bug de comparação).
 nomes_tom = sorted({d['nome'] for d in out3['hh_por_funcionario_mes']})
 def match_tom_name(colaborador):
     full = strip_accents(colaborador).upper()
@@ -1061,14 +1137,13 @@ def match_tom_name(colaborador):
             return nome_tom
     return None
 
-escala_out = {}
+escala_out, escala_grade_out = {}, {}
 for mes, lst in escala_mensal.items():
-    linhas = []
-    for item in lst:
-        nome_tom = match_tom_name(item['colaborador']) if item['colaborador'] else None
-        linhas.append({**item, 'nome_tom': nome_tom})
-    escala_out[mes] = linhas
+    escala_out[mes] = [{**item, 'nome_tom': match_tom_name(item['colaborador'])} for item in lst]
+for mes, lst in escala_grade_mensal.items():
+    escala_grade_out[mes] = [{**item, 'nome_tom': match_tom_name(item['colaborador'])} for item in lst]
 out3['escala_disponibilidade'] = escala_out
+out3['escala_grade'] = escala_grade_out
 
 # ================= AGENDA / COMPRAS (empty for now, schema-ready) =================
 try:

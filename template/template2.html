@@ -672,7 +672,18 @@ body.app-authed #login-gate{ display:none; }
       <div class="card">
         <div class="card-head"><div class="card-title">Hora-Homem individual<span class="sub">Horas TOM × Horas de escala × % apropriação — mês selecionado. <b>*</b> = valor estimado, sem escala real cadastrada para a pessoa/mês</span></div></div>
         <div class="table-wrap tbl-scroll">
-          <table><thead id="hh-thead"><tr><th data-key="nome" data-type="text">Funcionário</th><th data-key="cargo" data-type="text">Cargo</th><th data-key="horas" data-type="num">Horas TOM</th><th data-key="horas_escala" data-type="num">Horas escala</th><th data-key="pct" data-type="num">% Apropriação</th></tr></thead><tbody id="hh-individual-tbody"></tbody></table>
+          <table><thead id="hh-thead"><tr><th data-key="nome" data-type="text">Funcionário</th><th data-key="cargo" data-type="text">Cargo</th><th data-key="categoria_horas" data-type="text">Turno</th><th data-key="horas" data-type="num">Horas TOM</th><th data-key="horas_escala" data-type="num">Horas escala</th><th data-key="pct" data-type="num">% Apropriação</th></tr></thead><tbody id="hh-individual-tbody"></tbody></table>
+        </div>
+      </div>
+      <div class="card" id="hh-escala-card" style="margin-top:14px; display:none;">
+        <div class="card-head"><div class="card-title">Escala do mês<span class="sub">Dia a dia por técnico — T = trabalhado, F = folga, FE = férias</span></div></div>
+        <div class="legend-row" style="margin-bottom:10px;">
+          <span><span class="legend-dot" style="background:var(--green)"></span>Trabalhado (T)</span>
+          <span><span class="legend-dot" style="background:var(--c-agenda)"></span>Férias (FE)</span>
+          <span><span class="legend-dot" style="background:var(--line)"></span>Folga (F)</span>
+        </div>
+        <div class="table-wrap tbl-scroll">
+          <table id="hh-escala-grade"><thead id="hh-escala-thead"></thead><tbody id="hh-escala-tbody"></tbody></table>
         </div>
       </div>
     </div>
@@ -1269,10 +1280,19 @@ async function renderPessoas(){
     lst.forEach(item=>{ if(item.nome_tom) map[item.nome_tom] = item.horas_disponiveis; });
     return map;
   }
+  // Mapa nome_tom -> item completo da escala (turno, categoria de horas, dias trabalhados etc.)
+  function escalaInfoMap(mes){
+    const lst = (DATA.escala_disponibilidade||{})[mes];
+    if(!lst) return null;
+    const map = {};
+    lst.forEach(item=>{ if(item.nome_tom) map[item.nome_tom] = item; });
+    return map;
+  }
   function naoLocalizados(mes){
     const lst = (DATA.escala_disponibilidade||{})[mes];
     return lst ? lst.filter(i=>!i.nome_tom) : [];
   }
+  const CATEGORIA_BADGE = {'Turno regular':'b-blue', 'Líder de turno':'b-amber', 'Comercial':'b-green'};
 
   function updateEscalaBadge(mes){
     const box = document.getElementById('hh-escala-input').parentElement;
@@ -1308,6 +1328,7 @@ async function renderPessoas(){
   function drawIndiv(){
     const ym = mesSel.value;
     const real = escalaRealMap(ym);
+    const info = escalaInfoMap(ym);
     let rows = DATA.hh_por_funcionario_mes.filter(r=>r.mes===ym);
     // Se há escala real e alguém da escala ainda não tem apontamento no mês, mostra com 0h TOM
     if(real){
@@ -1317,19 +1338,52 @@ async function renderPessoas(){
     rows = rows.map(r=>{
       const horasEscala = real ? (real[r.nome] ?? escalaH) : escalaH;
       const pct = horasEscala ? r.horas/horasEscala : 0;
-      return {...r, cargo: cargoMap[r.nome]||'Não identificado', horas_escala: horasEscala, pct, fonte_estimada: !(real && real[r.nome]!=null)};
+      const infoR = info ? info[r.nome] : null;
+      return {...r, cargo: cargoMap[r.nome]||'Não identificado', horas_escala: horasEscala, pct,
+        fonte_estimada: !(real && real[r.nome]!=null),
+        categoria_horas: infoR ? infoR.categoria_horas : null, dias_trabalhados: infoR ? infoR.dias_trabalhados : null};
     });
     rows = __sortState['hh-individual'] ? applySort('hh-individual', rows) : rows.sort((a,b)=>b.horas-a.horas);
     document.getElementById('hh-individual-tbody').innerHTML = rows.map(r=>{
       const color = r.pct>1 ? 'var(--red)' : r.pct>0.85 ? 'var(--green)' : 'var(--amber)';
       const fonte = r.fonte_estimada ? ' *' : '';
+      const turnoCel = r.categoria_horas
+        ? `<span class="badge ${CATEGORIA_BADGE[r.categoria_horas]||'b-gray'}">${r.categoria_horas}</span>${r.dias_trabalhados!=null?` <span style="color:var(--text-dimmer); font-size:10px;">${r.dias_trabalhados}d</span>`:''}`
+        : '<span style="color:var(--text-dimmer)">—</span>';
       return `<tr><td>${r.nome}</td><td style="color:var(--text-dim); font-size:11px;">${r.cargo}</td>
+      <td>${turnoCel}</td>
       <td class="mono">${fmtNum(r.horas,1)}h</td><td class="mono">${fmtNum(r.horas_escala,0)}h${fonte}</td>
       <td class="mono" style="color:${color}; font-weight:700;">${fmtPct(r.pct)}</td></tr>`;
-    }).join('') || `<tr><td colspan="5" class="empty">Sem apontamentos neste mês</td></tr>`;
+    }).join('') || `<tr><td colspan="6" class="empty">Sem apontamentos neste mês</td></tr>`;
+  }
+  function drawEscalaGrade(){
+    const ym = mesSel.value;
+    const grade = (DATA.escala_grade||{})[ym];
+    const card = document.getElementById('hh-escala-card');
+    if(!grade || !grade.length){ card.style.display = 'none'; return; }
+    card.style.display = '';
+    const dias = grade[0].dias || [];
+    const diaCel = (codigo)=>{
+      if(codigo==='T') return `<td style="text-align:center; background:var(--green-dim); color:var(--green); font-weight:700; font-size:10px;">T</td>`;
+      if(codigo==='FE') return `<td style="text-align:center; background:color-mix(in srgb, var(--c-agenda) 22%, transparent); color:var(--c-agenda); font-weight:700; font-size:10px;">FE</td>`;
+      if(codigo==='F') return `<td style="text-align:center; color:var(--text-dimmer); font-size:10px;">·</td>`;
+      return `<td style="text-align:center; color:var(--text-dimmer); font-size:10px;">—</td>`;
+    };
+    document.getElementById('hh-escala-thead').innerHTML = `<tr><th>Colaborador</th><th>Turno</th>${
+      dias.map(d=>{
+        const n = d.data ? parseInt(d.data.slice(-2),10) : '?';
+        return `<th style="text-align:center; font-size:10px; padding:4px 3px;">${n}</th>`;
+      }).join('')
+    }</tr>`;
+    const ordenado = [...grade].sort((a,b)=> (a.turno||'').localeCompare(b.turno||'') || a.colaborador.localeCompare(b.colaborador));
+    document.getElementById('hh-escala-tbody').innerHTML = ordenado.map(item=>{
+      const badge = `<span class="badge ${CATEGORIA_BADGE[item.categoria_horas]||'b-gray'}">${item.categoria_horas}</span>`;
+      const cels = (item.dias||[]).map(d=>diaCel(d.codigo)).join('');
+      return `<tr><td>${item.colaborador}${item.nome_tom?'':' <span title="Não localizado no TOM" style="color:var(--amber)">⚠</span>'}</td><td>${badge}</td>${cels}</tr>`;
+    }).join('');
   }
   wireSortHeaders('hh-thead', 'hh-individual', drawIndiv);
-  mesSel.addEventListener('change', ()=>{ drawCards(); drawIndiv(); });
+  mesSel.addEventListener('change', ()=>{ drawCards(); drawIndiv(); drawEscalaGrade(); });
 
   const tt = DATA.hh_tipo_trend;
   const colors=[PAL.amber,PAL.mapa,PAL.compras,PAL.os,PAL.green,PAL.red,'#e8e8e8','#7d8ba1'];
@@ -1339,7 +1393,7 @@ async function renderPessoas(){
   const maxH = Math.max(...DATA.hh_por_funcionario.map(d=>d.horas));
   new Chart(document.getElementById('chart-hh-ranking'), {type:'bar', data:{labels:DATA.hh_por_funcionario.map(d=>d.nome), datasets:[{data:DATA.hh_por_funcionario.map(d=>d.horas), backgroundColor:PAL.pessoas, borderRadius:4, maxBarThickness:14}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
-  drawCards(); drawIndiv();
+  drawCards(); drawIndiv(); drawEscalaGrade();
 }
 
 /* ===================== MAPA ===================== */
