@@ -1363,23 +1363,40 @@ async function renderPessoas(){
     if(!grade || !grade.length){ card.style.display = 'none'; return; }
     card.style.display = '';
     const dias = grade[0].dias || [];
+    const ncols = 1 + dias.length;
     const diaCel = (codigo)=>{
       if(codigo==='T') return `<td style="text-align:center; background:var(--green-dim); color:var(--green); font-weight:700; font-size:10px;">T</td>`;
       if(codigo==='FE') return `<td style="text-align:center; background:color-mix(in srgb, var(--c-agenda) 22%, transparent); color:var(--c-agenda); font-weight:700; font-size:10px;">FE</td>`;
       if(codigo==='F') return `<td style="text-align:center; color:var(--text-dimmer); font-size:10px;">·</td>`;
       return `<td style="text-align:center; color:var(--text-dimmer); font-size:10px;">—</td>`;
     };
-    document.getElementById('hh-escala-thead').innerHTML = `<tr><th>Colaborador</th><th>Turno</th>${
+    document.getElementById('hh-escala-thead').innerHTML = `<tr><th>Colaborador</th>${
       dias.map(d=>{
         const n = d.data ? parseInt(d.data.slice(-2),10) : '?';
         return `<th style="text-align:center; font-size:10px; padding:4px 3px;">${n}</th>`;
       }).join('')
     }</tr>`;
-    const ordenado = [...grade].sort((a,b)=> (a.turno||'').localeCompare(b.turno||'') || a.colaborador.localeCompare(b.colaborador));
-    document.getElementById('hh-escala-tbody').innerHTML = ordenado.map(item=>{
-      const badge = `<span class="badge ${CATEGORIA_BADGE[item.categoria_horas]||'b-gray'}">${item.categoria_horas}</span>`;
-      const cels = (item.dias||[]).map(d=>diaCel(d.codigo)).join('');
-      return `<tr><td>${item.colaborador}${item.nome_tom?'':' <span title="Não localizado no TOM" style="color:var(--amber)">⚠</span>'}</td><td>${badge}</td>${cels}</tr>`;
+    // Agrupa mantendo a ordem original dos blocos tal como vêm na aba "GP
+    // Escala 2026" da planilha (1° turno, 2° turno, 3° turno, líderes,
+    // comercial — cada bloco com seu próprio título/horário) — não reordena
+    // por nome nem por categoria, só separa visualmente cada bloco.
+    const grupos = [];
+    const idxPorTurno = {};
+    grade.forEach(item=>{
+      const key = item.turno || '—';
+      if(!(key in idxPorTurno)){ idxPorTurno[key] = grupos.length; grupos.push({turno:key, categoria_horas:item.categoria_horas, horas_dia:item.horas_dia, itens:[]}); }
+      grupos[idxPorTurno[key]].itens.push(item);
+    });
+    document.getElementById('hh-escala-tbody').innerHTML = grupos.map(g=>{
+      const badge = `<span class="badge ${CATEGORIA_BADGE[g.categoria_horas]||'b-gray'}">${g.categoria_horas}</span>`;
+      const header = `<tr><td colspan="${ncols}" style="background:var(--line-soft); font-weight:700; font-size:11.5px; padding:7px 10px;">
+        ${g.turno} ${badge} <span style="color:var(--text-dimmer); font-weight:400; font-size:10.5px;">· ${fmtNum(g.horas_dia,2)}h/dia trabalhado</span>
+      </td></tr>`;
+      const linhas = g.itens.map(item=>{
+        const cels = (item.dias||[]).map(d=>diaCel(d.codigo)).join('');
+        return `<tr><td>${item.colaborador}${item.nome_tom?'':' <span title="Não localizado no TOM" style="color:var(--amber)">⚠</span>'}</td>${cels}</tr>`;
+      }).join('');
+      return header + linhas;
     }).join('');
   }
   wireSortHeaders('hh-thead', 'hh-individual', drawIndiv);
