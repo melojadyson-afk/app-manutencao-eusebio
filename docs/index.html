@@ -35,12 +35,12 @@
 <style>
 :root{
   --bg:#141516; --bg2:#191a1b; --panel:#1e1f20; --line:#333537; --line-soft:#26282a;
-  --text:#ededee; --text-dim:#9a9c9e; --text-dimmer:#6a6c6e;
+  --text:#ededee; --text-dim:#a7a9ac; --text-dimmer:#8a8d90;
   --nickel:#c7ccd1; --nickel-dim:#35373a;
-  --c-geral:#00a3a0; --c-orc:#d31d29; --c-os:#8b98a3; --c-compras:#ef5c66;
-  --c-equip:#0d7a78; --c-pessoas:#57646e; --c-agenda:#a11520; --c-mapa:#4fc9c4;
-  --c-performance:#e0972f; --c-utilidades:#6a93b0;
-  --red:#cc4a3c; --green:#00a3a0; --amber:#e0972f; --blue:#6a93b0;
+  --c-geral:#00c2b8; --c-orc:#e0293a; --c-os:#4d8dff; --c-compras:#ff5470;
+  --c-equip:#22c55e; --c-pessoas:#a78bfa; --c-agenda:#ff2d55; --c-mapa:#22d3ee;
+  --c-performance:#ffa629; --c-utilidades:#38bdf8;
+  --red:#ef4444; --green:#00c2b8; --amber:#ffa629; --blue:#38bdf8;
   --red-dim:#3d2421; --green-dim:#0f2b2a; --amber-dim:#3f331d; --blue-dim:#25313b;
   --radius:10px;
 }
@@ -183,7 +183,7 @@ input[type=text]{min-width:200px;}
 
 .fixo-pin{position:absolute; margin-left:-11px; margin-top:-11px; width:22px; height:22px; cursor:pointer;}
 .fixo-pin .dot{width:100%; height:100%; border-radius:50%; background:var(--c-mapa); color:#0c1615; border:2px solid #141516cc; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono'; font-size:9px; font-weight:700; box-shadow:0 0 0 1px var(--c-mapa);}
-.fixo-pin.highlight .dot{background:var(--amber); box-shadow:0 0 0 3px #e0972f55;}
+.fixo-pin.highlight .dot{background:var(--amber); box-shadow:0 0 0 3px #ffa62955;}
 .fixo-pin .pin-label{position:absolute; bottom:26px; left:50%; transform:translateX(-50%); font-family:'IBM Plex Mono'; font-size:9.5px; background:#0d0e0eee; color:var(--c-mapa); padding:3px 7px; border-radius:3px; white-space:normal; width:max-content; max-width:220px; border:1px solid #2a4a48; opacity:0; pointer-events:none; transition:opacity .15s; z-index:5;}
 .fixo-pin:hover .pin-label{opacity:1;}
 .fixo-leg-item{display:flex; gap:8px; padding:7px 0; border-bottom:1px solid var(--line-soft); font-size:11.5px; cursor:pointer;}
@@ -193,7 +193,7 @@ input[type=text]{min-width:200px;}
 .fixo-leg-desc{color:var(--text);}
 .pin-remove{position:absolute; top:-6px; right:-6px; width:14px;height:14px;background:var(--red); color:#fff; border-radius:50%; font-size:9px; display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0; transition:opacity .15s;}
 .map-pin:hover .pin-remove{opacity:1;}
-.map-note{margin-top:10px; font-size:11px; color:var(--text-dim); display:flex; gap:8px; align-items:flex-start; background:var(--amber-dim); border:1px solid #e0972f33; padding:9px 11px; border-radius:8px;}
+.map-note{margin-top:10px; font-size:11px; color:var(--text-dim); display:flex; gap:8px; align-items:flex-start; background:var(--amber-dim); border:1px solid #ffa62933; padding:9px 11px; border-radius:8px;}
 
 .modal-backdrop{position:fixed; inset:0; background:#03040666; background:#050606cc; display:none; align-items:center; justify-content:center; z-index:150; backdrop-filter:blur(2px);}
 .modal-backdrop.active{display:flex;}
@@ -767,8 +767,8 @@ body.app-authed #login-gate{ display:none; }
           <div class="map-wrap" id="map-wrap"><img id="map-img" src="" alt="Planta baixa BR-Eusébio"><div id="map-pins"></div></div>
           <div class="legend-row" style="margin-top:12px;">
             <span><span class="legend-dot" style="background:#5c9c6f"></span>Baixa incidência</span>
-            <span><span class="legend-dot" style="background:#e0972f"></span>Média incidência</span>
-            <span><span class="legend-dot" style="background:#cc4a3c"></span>Alta incidência (foco de ação)</span>
+            <span><span class="legend-dot" style="background:#ffa629"></span>Média incidência</span>
+            <span><span class="legend-dot" style="background:#ef4444"></span>Alta incidência (foco de ação)</span>
           </div>
           <div class="map-note">
             <span>⚠</span>
@@ -876,8 +876,8 @@ function wireSortHeaders(theadId, tableId, redrawFn){
     });
   });
 }
-Chart.defaults.color = '#9a9c9e'; Chart.defaults.font.family = "Inter, sans-serif"; Chart.defaults.font.size = 11; Chart.defaults.borderColor = '#333537';
-const PAL = {geral:'#00a3a0', orc:'#d31d29', os:'#8b98a3', compras:'#ef5c66', equip:'#0d7a78', pessoas:'#57646e', agenda:'#a11520', mapa:'#4fc9c4', performance:'#e0972f', utilidades:'#6a93b0', red:'#cc4a3c', green:'#00a3a0', amber:'#e0972f', gray:'#9a9c9e'};
+Chart.defaults.color = '#a7a9ac'; Chart.defaults.font.family = "Inter, sans-serif"; Chart.defaults.font.size = 11; Chart.defaults.borderColor = '#333537';
+const PAL = {geral:'#00c2b8', orc:'#e0293a', os:'#4d8dff', compras:'#ff5470', equip:'#22c55e', pessoas:'#a78bfa', agenda:'#ff2d55', mapa:'#22d3ee', performance:'#ffa629', utilidades:'#38bdf8', red:'#ef4444', green:'#00c2b8', amber:'#ffa629', gray:'#a7a9ac'};
 
 document.querySelectorAll('.navitem').forEach(el=>{
   el.addEventListener('click', ()=>{
@@ -1132,10 +1132,10 @@ function renderOS(){
     const byStatus = {}; rows.forEach(o=>{ byStatus[o.status]=(byStatus[o.status]||0)+1; });
     const tipoColors = [PAL.os,PAL.amber,PAL.pessoas,PAL.compras,PAL.agenda,PAL.gray];
     if(window.__osTipoChart) window.__osTipoChart.destroy();
-    window.__osTipoChart = new Chart(document.getElementById('chart-os-tipo-mes'), {type:'pie', data:{labels:Object.keys(byTipo), datasets:[{data:Object.values(byTipo), backgroundColor:tipoColors, borderColor:'#171819', borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:7,boxHeight:7,usePointStyle:true,font:{size:9.5}}}, title:{display:true, text:'Por tipo', color:'#9a9c9e', font:{size:10.5}}}}});
+    window.__osTipoChart = new Chart(document.getElementById('chart-os-tipo-mes'), {type:'pie', data:{labels:Object.keys(byTipo), datasets:[{data:Object.values(byTipo), backgroundColor:tipoColors, borderColor:'#171819', borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:7,boxHeight:7,usePointStyle:true,font:{size:9.5}}}, title:{display:true, text:'Por tipo', color:'#a7a9ac', font:{size:10.5}}}}});
     if(window.__osStatusChart) window.__osStatusChart.destroy();
     const statusColors = {'Encerrado':PAL.green,'1-Em curso':PAL.os,'Concluído':PAL.mapa,'Anulado . Fora de prazo':PAL.red};
-    window.__osStatusChart = new Chart(document.getElementById('chart-os-status-mes'), {type:'pie', data:{labels:Object.keys(byStatus), datasets:[{data:Object.values(byStatus), backgroundColor:Object.keys(byStatus).map(k=>statusColors[k]||PAL.gray), borderColor:'#171819', borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:7,boxHeight:7,usePointStyle:true,font:{size:9.5}}}, title:{display:true, text:'Por status', color:'#9a9c9e', font:{size:10.5}}}}});
+    window.__osStatusChart = new Chart(document.getElementById('chart-os-status-mes'), {type:'pie', data:{labels:Object.keys(byStatus), datasets:[{data:Object.values(byStatus), backgroundColor:Object.keys(byStatus).map(k=>statusColors[k]||PAL.gray), borderColor:'#171819', borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:7,boxHeight:7,usePointStyle:true,font:{size:9.5}}}, title:{display:true, text:'Por status', color:'#a7a9ac', font:{size:10.5}}}}});
   }
   mesSel.addEventListener('change', drawPrevCards);
 
@@ -1160,15 +1160,15 @@ function renderOS(){
 
     const causas = diag.causas;
     if(window.__osDiagCausasChart) window.__osDiagCausasChart.destroy();
-    window.__osDiagCausasChart = new Chart(document.getElementById('chart-os-diag-causas'), {type:'bar', data:{labels:causas.map(c=>c.causa), datasets:[{data:causas.map(c=>c.count), backgroundColor:causas.map((c,i)=>diagPal[i%diagPal.length]), borderRadius:4, maxBarThickness:18}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Causa raiz (por palavras-chave na descrição)', color:'#9a9c9e', font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS (${fmtPct(causas[c.dataIndex].pct)}) · MTTR ${causas[c.dataIndex].mttr_h!=null?fmtNum(causas[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
+    window.__osDiagCausasChart = new Chart(document.getElementById('chart-os-diag-causas'), {type:'bar', data:{labels:causas.map(c=>c.causa), datasets:[{data:causas.map(c=>c.count), backgroundColor:causas.map((c,i)=>diagPal[i%diagPal.length]), borderRadius:4, maxBarThickness:18}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Causa raiz (por palavras-chave na descrição)', color:'#a7a9ac', font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS (${fmtPct(causas[c.dataIndex].pct)}) · MTTR ${causas[c.dataIndex].mttr_h!=null?fmtNum(causas[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
     const equipD = diag.equipamentos.slice(0,10);
     if(window.__osDiagEquipChart) window.__osDiagEquipChart.destroy();
-    window.__osDiagEquipChart = new Chart(document.getElementById('chart-os-diag-equip'), {type:'bar', data:{labels:equipD.map(e=>(e.equipamento||'').trim()), datasets:[{data:equipD.map(e=>e.count), backgroundColor:PAL.compras, borderRadius:4, maxBarThickness:18}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Equipamentos mais afetados (corretivas)', color:'#9a9c9e', font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS · MTTR ${equipD[c.dataIndex].mttr_h!=null?fmtNum(equipD[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
+    window.__osDiagEquipChart = new Chart(document.getElementById('chart-os-diag-equip'), {type:'bar', data:{labels:equipD.map(e=>(e.equipamento||'').trim()), datasets:[{data:equipD.map(e=>e.count), backgroundColor:PAL.compras, borderRadius:4, maxBarThickness:18}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Equipamentos mais afetados (corretivas)', color:'#a7a9ac', font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS · MTTR ${equipD[c.dataIndex].mttr_h!=null?fmtNum(equipD[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
     const comps = diag.componentes.slice(0,12);
     if(window.__osDiagCompChart) window.__osDiagCompChart.destroy();
-    window.__osDiagCompChart = new Chart(document.getElementById('chart-os-diag-componentes'), {type:'bar', data:{labels:comps.map(c=>c.componente), datasets:[{data:comps.map(c=>c.count), backgroundColor:PAL.equip, borderRadius:4, maxBarThickness:16}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Componentes mais citados na descrição', color:'#9a9c9e', font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS · MTTR ${comps[c.dataIndex].mttr_h!=null?fmtNum(comps[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
+    window.__osDiagCompChart = new Chart(document.getElementById('chart-os-diag-componentes'), {type:'bar', data:{labels:comps.map(c=>c.componente), datasets:[{data:comps.map(c=>c.count), backgroundColor:PAL.equip, borderRadius:4, maxBarThickness:16}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Componentes mais citados na descrição', color:'#a7a9ac', font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS · MTTR ${comps[c.dataIndex].mttr_h!=null?fmtNum(comps[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
     document.getElementById('os-diag-causas-tbody').innerHTML = causas.map(c=>`
       <tr><td>${c.causa}</td><td class="mono">${fmtNum(c.count)}</td><td class="mono">${fmtPct(c.pct)}</td><td class="mono">${c.mttr_h!=null?fmtNum(c.mttr_h,2)+'h':'—'}</td></tr>`).join('');
