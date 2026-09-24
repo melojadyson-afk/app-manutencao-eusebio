@@ -924,6 +924,8 @@ try:
 
     corr_periodo = corr6[(corr6['data_prog'] >= dt_min) & (corr6['data_prog'] <= dt_max)].copy()
 
+    tag_to_classif = crit_small.set_index('tag')['classif'].to_dict()
+
     mtbf_rows = []
     for label, g in corr_periodo.groupby('Descrição do equipamento'):
         if pd.isna(label):
@@ -935,15 +937,19 @@ try:
         tag = clean(tag_vals[0]) if len(tag_vals) else None
         tempo_disponivel = max(horas_operacao - horas_parada_total, 0.0)
         confiavel = n_falhas >= 3
+        # MTTR no MESMO recorte de tempo do MTBF (período do WinWash), não o
+        # MTTR anual do diagnóstico acima — assim os dois indicadores do
+        # alerta descrevem exatamente as mesmas falhas, no mesmo período.
+        mttr_h = round(float(hp_equip.mean()), 2) if len(hp_equip) else None
         mtbf_rows.append({
-            'equipamento': label, 'tag': tag, 'n_falhas': n_falhas,
+            'equipamento': label, 'tag': tag, 'classe': tag_to_classif.get(tag), 'n_falhas': n_falhas,
             'horas_parada_total': round(horas_parada_total, 1),
             'mtbf_h': round(tempo_disponivel/n_falhas, 1) if confiavel else None,
+            'mttr_h': mttr_h, 'mttr_cobertura': int(len(hp_equip)),
             'confiavel': confiavel,
         })
     mtbf_rows.sort(key=lambda x: (not x['confiavel'], -x['n_falhas']))
 
-    tag_to_classif = crit_small.set_index('tag')['classif'].to_dict()
     corr_periodo['_classif'] = corr_periodo['Equipamento'].map(tag_to_classif)
     classe_rows = []
     for label, g in corr_periodo.groupby('_classif'):
@@ -959,16 +965,80 @@ try:
         })
     classe_rows.sort(key=lambda x: str(x['classe']))
 
+    # ================= ALERTAS DE CONFIABILIDADE (MTBF baixo + MTTR alto) =================
+    # Marca equipamentos em situação crítica cruzando os dois indicadores:
+    # MTBF baixo (falha com frequência) e MTTR alto (demora pra resolver
+    # quando falha) — a combinação das duas é o pior cenário (ativo instável
+    # E lento de recuperar). Em vez de um valor fixo de corte (que não existe
+    # de forma universal — varia por tipo de equipamento), cada indicador é
+    # comparado com a MEDIANA do próprio parque no período: abaixo da mediana
+    # de MTBF = sinal de frequência ruim; acima da mediana de MTTR = sinal de
+    # severidade ruim. Só entram nessa comparação os equipamentos com MTBF
+    # "confiável" (≥3 falhas no período) — com poucas falhas o MTBF individual
+    # já não é mostrado, então também não teria base para gerar alerta.
+    # A classe de criticidade oficial (AA/A/B/C, da Análise de Criticidade)
+    # ajusta a severidade final: um ativo AA ou A com os mesmos sinais ruins
+    # é mais urgente que um B/C, então sobe um nível (Atenção -> Crítico,
+    # Crítico -> Crítico · ativo AA/A).
+    elegiveis = [r for r in mtbf_rows if r['confiavel']]
+    mtbf_vals = sorted(r['mtbf_h'] for r in elegiveis if r['mtbf_h'] is not None)
+    mttr_vals = sorted(r['mttr_h'] for r in elegiveis if r['mttr_h'] is not None)
+
+    def _mediana(vals):
+        n = len(vals)
+        if n == 0:
+            return None
+        meio = n // 2
+        return vals[meio] if n % 2 else (vals[meio-1] + vals[meio]) / 2
+
+    mediana_mtbf = _mediana(mtbf_vals)
+    mediana_mttr = _mediana(mttr_vals)
+
+    def _nivel_alerta(sinal_mtbf, sinal_mttr, classe):
+        n_sinais = int(sinal_mtbf) + int(sinal_mttr)
+        if n_sinais == 0:
+            return None
+        prioritario = classe in ('AA', 'A')
+        if n_sinais == 2:
+            return 'Crítico · ativo AA/A' if prioritario else 'Crítico'
+        return 'Crítico' if prioritario else 'Atenção'
+
+    _ordem_nivel = {'Crítico · ativo AA/A': 0, 'Crítico': 1, 'Atenção': 2}
+    alertas_rows = []
+    for r in elegiveis:
+        sinal_mtbf = mediana_mtbf is not None and r['mtbf_h'] is not None and r['mtbf_h'] < mediana_mtbf
+        sinal_mttr = mediana_mttr is not None and r['mttr_h'] is not None and r['mttr_h'] > mediana_mttr
+        nivel = _nivel_alerta(sinal_mtbf, sinal_mttr, r['classe'])
+        if nivel is None:
+            continue
+        alertas_rows.append({
+            'equipamento': r['equipamento'], 'tag': r['tag'], 'classe': r['classe'],
+            'mtbf_h': r['mtbf_h'], 'mttr_h': r['mttr_h'],
+            'sinal_mtbf': sinal_mtbf, 'sinal_mttr': sinal_mttr, 'nivel': nivel,
+        })
+    alertas_rows.sort(key=lambda x: (_ordem_nivel.get(x['nivel'], 9), x['mtbf_h'] if x['mtbf_h'] is not None else 1e9))
+
     out2['mtbf'] = {
         'periodo': mtbf_periodo,
         'n_corretivas_periodo': int(len(corr_periodo)),
         'equipamentos': mtbf_rows[:30],
         'por_classe': classe_rows,
+        'alertas': {
+            'mediana_mtbf_h': round(mediana_mtbf, 1) if mediana_mtbf is not None else None,
+            'mediana_mttr_h': round(mediana_mttr, 2) if mediana_mttr is not None else None,
+            'n_elegiveis': len(elegiveis),
+            'n_criticos': sum(1 for a in alertas_rows if a['nivel'].startswith('Crítico')),
+            'n_atencao': sum(1 for a in alertas_rows if a['nivel'] == 'Atenção'),
+            'equipamentos': alertas_rows,
+        },
     }
     print(f"MTBF — período WinWash {mtbf_periodo['min']}–{mtbf_periodo['max']} ({mtbf_periodo['dias']} dias, "
           f"{mtbf_periodo['horas_operacao']}h de produção, média {mtbf_periodo['media_h_dia']}h/dia) | "
           f"corretivas no período: {len(corr_periodo)} | "
           f"equipamentos com MTBF individual confiável (≥3 falhas): {sum(1 for r in mtbf_rows if r['confiavel'])}")
+    print(f"Alertas de confiabilidade — mediana MTBF {out2['mtbf']['alertas']['mediana_mtbf_h']}h, "
+          f"mediana MTTR {out2['mtbf']['alertas']['mediana_mttr_h']}h | "
+          f"críticos: {out2['mtbf']['alertas']['n_criticos']} | atenção: {out2['mtbf']['alertas']['n_atencao']}")
 except Exception as e:
     print("WinWash Rapport / MTBF: não encontrada/erro ->", repr(e))
 

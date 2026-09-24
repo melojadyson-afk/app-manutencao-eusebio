@@ -546,6 +546,20 @@ body.app-authed #login-gate{ display:none; }
       </div>
 
       <div class="card" style="margin-bottom:14px;">
+        <div class="card-head"><div class="card-title">Alertas de Confiabilidade<span class="sub" id="os-alertas-sub"></span></div></div>
+        <div class="grid g4" style="margin-bottom:14px;">
+          <div class="card kpi"><div class="kpi-label">Equipamentos críticos</div><div class="kpi-value" id="os-alertas-criticos" style="color:var(--red);">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Em atenção</div><div class="kpi-value" id="os-alertas-atencao" style="color:var(--amber);">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Mediana MTBF do parque</div><div class="kpi-value" id="os-alertas-mediana-mtbf">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Mediana MTTR do parque</div><div class="kpi-value" id="os-alertas-mediana-mttr">–</div></div>
+        </div>
+        <div class="table-wrap tbl-scroll" style="max-height:360px;">
+          <table><thead><tr><th>Nível</th><th>Equipamento</th><th>Classe</th><th>MTBF</th><th>MTTR</th><th>Sinais</th></tr></thead><tbody id="os-alertas-tbody"></tbody></table>
+        </div>
+        <div class="foot-note" id="os-alertas-foot"></div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
         <div class="card-head"><div class="card-title">Quantidade de ordens por tipo e status<span class="sub">Geral — últimos 6 meses</span></div></div>
         <div class="grid g2">
           <div class="chart-box"><canvas id="chart-os-tipo-mes"></canvas></div>
@@ -1213,6 +1227,7 @@ function renderOS(){
     const card = document.getElementById('os-mtbf-sub').closest('.card');
     if(!m || !m.periodo){
       card.style.display = 'none';
+      drawAlertas(m);
       return;
     }
     card.style.display = '';
@@ -1243,6 +1258,41 @@ function renderOS(){
       `Tempo de operação = soma diária de "Tempo de produção" do WinWash Rapport (lavagem/secagem/transporte) — ${fmtNum(p.horas_operacao,0)}h em ${p.dias} dias, média ${fmtNum(p.media_h_dia,2)}h/dia (não são 24h/dia corridas). `+
       `Como o WinWash não separa o tempo de operação por equipamento, o mesmo total da planta é usado como base para todos — é uma aproximação, não o tempo real daquela máquina. `+
       `MTBF individual só é mostrado com ≥3 falhas no período; com menos, use o agregado por classe de criticidade ao lado.`;
+
+    drawAlertas(m);
+  }
+
+  /* --- Alertas de Confiabilidade: MTBF baixo + MTTR alto (mesmo período do MTBF), ponderado pela criticidade oficial --- */
+  function drawAlertas(m){
+    const al = (m && m.alertas) || null;
+    const card = document.getElementById('os-alertas-sub').closest('.card');
+    if(!al || !al.n_elegiveis){
+      card.style.display = 'none';
+      return;
+    }
+    card.style.display = '';
+    document.getElementById('os-alertas-sub').textContent = ` · ${al.n_elegiveis} equipamentos com MTBF confiável comparados entre si`;
+    document.getElementById('os-alertas-criticos').textContent = al.n_criticos;
+    document.getElementById('os-alertas-atencao').textContent = al.n_atencao;
+    document.getElementById('os-alertas-mediana-mtbf').innerHTML = al.mediana_mtbf_h!=null ? fmtNum(al.mediana_mtbf_h,1)+'<span class="unit">h</span>' : '—';
+    document.getElementById('os-alertas-mediana-mttr').innerHTML = al.mediana_mttr_h!=null ? fmtNum(al.mediana_mttr_h,2)+'<span class="unit">h</span>' : '—';
+
+    const nivelBadge = n => n==='Crítico · ativo AA/A' ? 'b-red' : n==='Crítico' ? 'b-red' : 'b-amber';
+    const rows = al.equipamentos||[];
+    document.getElementById('os-alertas-tbody').innerHTML = rows.map(e=>{
+      const sinais = [e.sinal_mtbf?'MTBF baixo':null, e.sinal_mttr?'MTTR alto':null].filter(Boolean).join(' + ') || '—';
+      return `<tr>
+        <td><span class="badge ${nivelBadge(e.nivel)}">${e.nivel}</span></td>
+        <td>${(e.equipamento||'').trim()}${e.tag?` <span style="color:var(--text-dimmer); font-size:10px;">(${e.tag})</span>`:''}</td>
+        <td>${e.classe?`<span class="badge b-gray">${e.classe}</span>`:'<span style="color:var(--text-dimmer)">—</span>'}</td>
+        <td class="mono">${e.mtbf_h!=null?fmtNum(e.mtbf_h,1)+'h':'—'}</td>
+        <td class="mono">${e.mttr_h!=null?fmtNum(e.mttr_h,2)+'h':'—'}</td>
+        <td style="font-size:11px; color:var(--text-dim);">${sinais}</td></tr>`;
+    }).join('') || `<tr><td colspan="6" class="empty">Nenhum equipamento em alerta neste período</td></tr>`;
+
+    document.getElementById('os-alertas-foot').textContent =
+      `Compara cada equipamento com MTBF confiável (≥3 falhas no período) contra a mediana do próprio parque no mesmo período: MTBF abaixo da mediana (${fmtNum(al.mediana_mtbf_h,1)}h) = sinal de frequência ruim; MTTR acima da mediana (${fmtNum(al.mediana_mttr_h,2)}h) = sinal de severidade ruim (demora pra resolver). `+
+      `Atenção = 1 sinal ruim; Crítico = os 2 sinais ao mesmo tempo. Ativos classificados como AA ou A na Análise de Criticidade sobem um nível (Atenção vira Crítico; Crítico vira "Crítico · ativo AA/A") — mesmo desempenho pesa mais em ativo mais crítico pro negócio.`;
   }
 
 
