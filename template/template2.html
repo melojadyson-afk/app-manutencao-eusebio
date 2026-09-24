@@ -145,6 +145,8 @@ thead th{text-align:left; padding:9px 11px; background:#1a1b1c; color:var(--text
 tbody td{padding:8px 11px; border-bottom:1px solid var(--line-soft); white-space:nowrap; color:var(--text);}
 tbody tr:hover{background:#ffffff05;} tbody tr:last-child td{border-bottom:none;}
 .tbl-scroll{max-height:440px; overflow-y:auto;}
+tfoot td{padding:9px 11px; background:#1a1b1c; color:var(--text); font-weight:700; border-top:2px solid var(--line-soft); white-space:nowrap; position:sticky; bottom:0;}
+tfoot{position:sticky; bottom:0;}
 
 .toolbar{display:flex; gap:9px; flex-wrap:wrap; margin-bottom:13px; align-items:center;}
 input[type=text],input[type=number],select{background:#151617; border:1px solid var(--line-soft); color:var(--text); padding:7px 11px; border-radius:7px; font-size:12px; font-family:'Inter'; outline:none;}
@@ -691,7 +693,7 @@ body.app-authed #login-gate{ display:none; }
       <div class="card">
         <div class="card-head"><div class="card-title">Hora-Homem individual<span class="sub">Horas TOM × Horas de escala × Horas RH (ponto eletrônico) — mês selecionado. <b>*</b> = valor estimado, sem escala real cadastrada para a pessoa/mês</span></div></div>
         <div class="table-wrap tbl-scroll">
-          <table><thead id="hh-thead"><tr><th data-key="nome" data-type="text">Funcionário</th><th data-key="cargo" data-type="text">Cargo</th><th data-key="categoria_horas" data-type="text">Turno</th><th data-key="horas" data-type="num">Horas TOM</th><th data-key="horas_escala" data-type="num">Horas escala</th><th data-key="pct" data-type="num">% Apropriação<br><span style="font-weight:400; font-size:9.5px; color:var(--text-dimmer);">TOM÷escala</span></th><th data-key="horas_rh" data-type="num">Horas RH<br><span style="font-weight:400; font-size:9.5px; color:var(--text-dimmer);">ponto</span></th><th data-key="pct_rh" data-type="num">% Ponto<br><span style="font-weight:400; font-size:9.5px; color:var(--text-dimmer);">TOM÷RH</span></th></tr></thead><tbody id="hh-individual-tbody"></tbody></table>
+          <table><thead id="hh-thead"><tr><th data-key="nome" data-type="text">Funcionário</th><th data-key="cargo" data-type="text">Cargo</th><th data-key="categoria_horas" data-type="text">Turno</th><th data-key="horas" data-type="num">Horas TOM</th><th data-key="horas_escala" data-type="num">Horas escala</th><th data-key="pct" data-type="num">% Apropriação<br><span style="font-weight:400; font-size:9.5px; color:var(--text-dimmer);">TOM÷escala</span></th><th data-key="horas_rh" data-type="num">Horas RH<br><span style="font-weight:400; font-size:9.5px; color:var(--text-dimmer);">ponto</span></th><th data-key="pct_rh" data-type="num">% Ponto<br><span style="font-weight:400; font-size:9.5px; color:var(--text-dimmer);">TOM÷RH</span></th></tr></thead><tbody id="hh-individual-tbody"></tbody><tfoot id="hh-individual-tfoot"></tfoot></table>
         </div>
         <div class="foot-note" id="hh-rh-foot"></div>
       </div>
@@ -1431,6 +1433,32 @@ async function renderPessoas(){
       <td class="mono">${rhCel}</td>
       <td class="mono" style="color:${colorRh}; font-weight:700;">${pctRhCel}</td></tr>`;
     }).join('') || `<tr><td colspan="8" class="empty">Sem apontamentos neste mês</td></tr>`;
+
+    // Linha de totais: soma nas colunas de horas, média nas colunas de percentual.
+    const tfoot = document.getElementById('hh-individual-tfoot');
+    if(rows.length){
+      const soma = (arr) => arr.reduce((a,v)=>a+(v||0),0);
+      const media = (arr) => arr.length ? soma(arr)/arr.length : null;
+      const somaTom = soma(rows.map(r=>r.horas));
+      const somaEscala = soma(rows.map(r=>r.horas_escala));
+      const mediaPct = media(rows.map(r=>r.pct));
+      const rowsComRh = rows.filter(r=>r.horas_rh!=null);
+      const somaRh = soma(rowsComRh.map(r=>r.horas_rh));
+      const rowsComPctRh = rows.filter(r=>r.pct_rh!=null);
+      const mediaPctRh = media(rowsComPctRh.map(r=>r.pct_rh));
+      const corMedia = mediaPct>1 ? 'var(--red)' : mediaPct>0.85 ? 'var(--green)' : 'var(--amber)';
+      const corMediaRh = mediaPctRh==null ? 'var(--text-dimmer)' : mediaPctRh>1 ? 'var(--red)' : mediaPctRh>0.85 ? 'var(--green)' : 'var(--amber)';
+      tfoot.innerHTML = `<tr>
+        <td colspan="3">Total / média (${rows.length} pessoa${rows.length>1?'s':''})</td>
+        <td class="mono">${fmtNum(somaTom,1)}h</td>
+        <td class="mono">${fmtNum(somaEscala,0)}h</td>
+        <td class="mono" style="color:${corMedia};">${fmtPct(mediaPct)}</td>
+        <td class="mono">${rowsComRh.length?fmtNum(somaRh,0)+'h':'—'}</td>
+        <td class="mono" style="color:${corMediaRh};">${mediaPctRh!=null?fmtPct(mediaPctRh):'—'}</td>
+      </tr>`;
+    } else {
+      tfoot.innerHTML = '';
+    }
 
     const rhFoot = document.getElementById('hh-rh-foot');
     const per = DATA.rh_periodo;
