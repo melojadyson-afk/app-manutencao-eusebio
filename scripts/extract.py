@@ -600,6 +600,11 @@ json.dump(out, open(os.path.join(BUILD_DIR, 'part_orcamento.json'), 'w', encodin
 print("NF:", len(nf_list), "Estoque:", len(est_list))
 print(out['orcamento_mensal'])
 
+# ================= CRITICIDADE (carregada cedo: usada no diagnóstico de OS/MTBF e na aba Equipamentos) =================
+crit = pd.read_excel(CRIT_F, sheet_name='Analise criticidade', header=3)
+crit = crit.rename(columns={'TAG do Equipamento':'tag','CLASSIF.':'classif','TOTAL':'score_total'})
+crit_small = crit[['tag','classif','score_total']].dropna(subset=['tag'])
+
 # ================= ORDENS DE SERVIÇO =================
 # Agora vem em duas abas separadas (mais fácil de colar a extração completa do TOM,
 # sem precisar recortar linhas/colunas em blocos lado a lado).
@@ -867,6 +872,106 @@ print(f"Diagnóstico OS — corretivas (ano {_ano_atual}): {total_corr6} (exclu�
       f"causas: {[c['causa'] for c in causas_rows[:5]]} | "
       f"MTTR geral: {out2['os_diagnostico']['mttr_geral_h']}h (cobertura {mttr_cobertura}/{total_corr6})")
 
+# ================= MTBF (Confiabilidade) =================
+# Usa a aba "WinWash Rapport" (relatório diário de produção da lavanderia —
+# lavagem, secagem e transporte das cargas) para estimar o "tempo total do
+# período" da fórmula clássica de MTBF: soma da coluna "Tempo de produção"
+# de cada dia, em vez de 24h corridas (a planta não roda o dia inteiro —
+# ver "média h/dia" no resultado, tipicamente bem abaixo de 24h).
+#   MTBF = (tempo de operação do período − horas paradas por corretiva do
+#            equipamento) ÷ número de falhas (OS corretivas) do equipamento
+# O tempo de operação só existe no nível da PLANTA (não por TAG individual —
+# o WinWash não registra por equipamento), então o mesmo total é usado como
+# base para todos os equipamentos do período; é uma aproximação, não o tempo
+# de funcionamento real daquela máquina específica.
+# O "número de falhas" e "horas paradas" usam a MESMA base de corretivas do
+# diagnóstico acima (corr6, já sem acompanhamento/troca de turno/5S), mas
+# recortada para o período coberto pelo WinWash (não o ano inteiro), pra não
+# comparar um numerador de poucos dias com um denominador de meses.
+# MTBF por equipamento só é considerado estatisticamente confiável com pelo
+# menos 3 falhas no período; abaixo disso, o valor individual fica nulo e a
+# leitura mais robusta é o agregado por classe de criticidade (AA/A/B/C, vindo
+# da Análise de Criticidade) — mais falhas agrupadas, número mais estável.
+out2['mtbf'] = None
+try:
+    ww = pd.read_excel(F, sheet_name='WinWash Rapport')
+    ww = ww.dropna(subset=['Data']).copy()
+    ww['Data'] = pd.to_datetime(ww['Data'], errors='coerce')
+    ww = ww.dropna(subset=['Data'])
+
+    def _dur_para_horas(v):
+        if isinstance(v, datetime.time):
+            return v.hour + v.minute/60 + v.second/3600
+        if isinstance(v, datetime.timedelta):
+            return v.total_seconds()/3600
+        if isinstance(v, (int, float)) and pd.notna(v):
+            return float(v) * 24
+        return 0.0
+
+    ww['_horas_producao'] = ww['Tempo de produção'].apply(_dur_para_horas)
+    horas_operacao = float(ww['_horas_producao'].sum())
+    dt_min, dt_max = ww['Data'].min(), ww['Data'].max()
+    dias_periodo = int(ww['Data'].nunique())
+
+    mtbf_periodo = {
+        'min': dt_min.strftime('%Y-%m-%d'), 'max': dt_max.strftime('%Y-%m-%d'),
+        'dias': dias_periodo,
+        'horas_operacao': round(horas_operacao, 1),
+        'horas_calendario': dias_periodo * 24,
+        'media_h_dia': round(horas_operacao/dias_periodo, 2) if dias_periodo else None,
+        'producao_kg_total': round(float(ww['Peso'].sum()), 1) if 'Peso' in ww.columns else None,
+    }
+
+    corr_periodo = corr6[(corr6['data_prog'] >= dt_min) & (corr6['data_prog'] <= dt_max)].copy()
+
+    mtbf_rows = []
+    for label, g in corr_periodo.groupby('Descrição do equipamento'):
+        if pd.isna(label):
+            continue
+        n_falhas = int(len(g))
+        hp_equip = pd.to_numeric(g['horas_parada_val'], errors='coerce').dropna()
+        horas_parada_total = float(hp_equip.sum()) if len(hp_equip) else 0.0
+        tag_vals = g['Equipamento'].dropna().unique()
+        tag = clean(tag_vals[0]) if len(tag_vals) else None
+        tempo_disponivel = max(horas_operacao - horas_parada_total, 0.0)
+        confiavel = n_falhas >= 3
+        mtbf_rows.append({
+            'equipamento': label, 'tag': tag, 'n_falhas': n_falhas,
+            'horas_parada_total': round(horas_parada_total, 1),
+            'mtbf_h': round(tempo_disponivel/n_falhas, 1) if confiavel else None,
+            'confiavel': confiavel,
+        })
+    mtbf_rows.sort(key=lambda x: (not x['confiavel'], -x['n_falhas']))
+
+    tag_to_classif = crit_small.set_index('tag')['classif'].to_dict()
+    corr_periodo['_classif'] = corr_periodo['Equipamento'].map(tag_to_classif)
+    classe_rows = []
+    for label, g in corr_periodo.groupby('_classif'):
+        if pd.isna(label):
+            continue
+        n = int(len(g))
+        hp_classe = pd.to_numeric(g['horas_parada_val'], errors='coerce').dropna()
+        horas_parada_classe = float(hp_classe.sum()) if len(hp_classe) else 0.0
+        tempo_disp_classe = max(horas_operacao - horas_parada_classe, 0.0)
+        classe_rows.append({
+            'classe': label, 'n_falhas': n,
+            'mtbf_h': round(tempo_disp_classe/n, 1) if n else None,
+        })
+    classe_rows.sort(key=lambda x: str(x['classe']))
+
+    out2['mtbf'] = {
+        'periodo': mtbf_periodo,
+        'n_corretivas_periodo': int(len(corr_periodo)),
+        'equipamentos': mtbf_rows[:30],
+        'por_classe': classe_rows,
+    }
+    print(f"MTBF — período WinWash {mtbf_periodo['min']}–{mtbf_periodo['max']} ({mtbf_periodo['dias']} dias, "
+          f"{mtbf_periodo['horas_operacao']}h de produção, média {mtbf_periodo['media_h_dia']}h/dia) | "
+          f"corretivas no período: {len(corr_periodo)} | "
+          f"equipamentos com MTBF individual confiável (≥3 falhas): {sum(1 for r in mtbf_rows if r['confiavel'])}")
+except Exception as e:
+    print("WinWash Rapport / MTBF: não encontrada/erro ->", repr(e))
+
 # top equipment by ANY type of OS (mais atuações, geral) - last 6 months
 geral6 = b1[b1['ym'].isin(last6)]
 top_geral = geral6['Descrição do equipamento'].value_counts().head(15)
@@ -938,9 +1043,7 @@ print(ranking_by_month[-3:])
 
 # ================= EQUIPAMENTOS =================
 eq = pd.read_excel(F, sheet_name='Equipamentos')
-crit = pd.read_excel(CRIT_F, sheet_name='Analise criticidade', header=3)
-crit = crit.rename(columns={'TAG do Equipamento':'tag','CLASSIF.':'classif','TOTAL':'score_total'})
-crit_small = crit[['tag','classif','score_total']].dropna(subset=['tag'])
+# crit / crit_small já foram carregados no início do script (usados também no MTBF)
 
 eq = eq.rename(columns={'Equipamento':'tag','Descrição':'desc','Classe':'classe','Criticidade':'criticidade',
     'Fabricante':'fabricante','Marca':'marca','Número de série':'serie','Ano de construção':'ano',
@@ -1157,6 +1260,111 @@ for mes, lst in escala_grade_mensal.items():
     escala_grade_out[mes] = [{**item, 'nome_tom': match_tom_name(item['colaborador'])} for item in lst]
 out3['escala_disponibilidade'] = escala_out
 out3['escala_grade'] = escala_grade_out
+
+# ================= HORAS RH (espelho de ponto real, p/ comparar com TOM e escala) =================
+# Aba "Horas Trabalho RH": um cabeçalho em 3 linhas (matrícula / nome / cargo,
+# uma coluna por técnico, formato de matrícula "102" + matrícula da escala
+# com 6 dígitos — ex.: matrícula 894 da escala = coluna "102000894" aqui,
+# confirmado batendo pessoa a pessoa) e depois uma linha por dia com a hora
+# trabalhada (célula vazia = dia sem trabalho: folga, DSR, feriado, férias,
+# atestado, compensado ou falta — conforme nota da própria planilha).
+# Junta por matrícula (mais confiável que nome) sempre que possível; quando a
+# matrícula não bate com nenhuma da escala, cai no mesmo matcher por nome
+# (com apelidos) já usado para a escala.
+_RH_SHEET = 'Horas Trabalho RH'
+rh_por_func_mes = {}   # chave (matrícula da escala OU nome da RH) -> {mes: horas}
+rh_meta = {}           # mesma chave -> dados do funcionário na RH
+rh_periodo = {'min': None, 'max': None}
+try:
+    raw_rh = pd.read_excel(F, sheet_name=_RH_SHEET, header=None)
+    nrows_rh, ncols_rh = raw_rh.shape
+
+    cols_func = []
+    for c in range(2, ncols_rh):
+        mat_cell = raw_rh.iat[2, c] if nrows_rh > 2 else None
+        mat_str = str(mat_cell).strip() if pd.notna(mat_cell) else ''
+        if not _re.fullmatch(r'\d{6,}', mat_str):
+            continue  # pula colunas sem matrícula numérica (ex.: "TOTAL DIA")
+        nome_rh = raw_rh.iat[3, c] if nrows_rh > 3 else None
+        if pd.isna(nome_rh) or not str(nome_rh).strip():
+            continue
+        cargo_rh = raw_rh.iat[4, c] if nrows_rh > 4 else None
+        try:
+            mat_escala = int(mat_str[3:]) if mat_str.startswith('102') else int(mat_str)
+        except Exception:
+            mat_escala = None
+        cols_func.append({'col': c, 'matricula_rh': mat_str, 'matricula_escala': mat_escala,
+                           'nome_rh': str(nome_rh).strip(), 'cargo_rh': clean(cargo_rh)})
+
+    def _hora_rh_para_horas(v):
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return 0.0
+        if isinstance(v, datetime.time):
+            return v.hour + v.minute/60 + v.second/3600
+        if isinstance(v, datetime.timedelta):
+            return v.total_seconds()/3600
+        if isinstance(v, (int, float)):
+            return float(v) * 24
+        if isinstance(v, str):
+            try:
+                partes = [int(x) for x in v.split(':')]
+                while len(partes) < 3: partes.append(0)
+                h, m, s = partes[:3]
+                return h + m/60 + s/3600
+            except Exception:
+                return 0.0
+        return 0.0
+
+    datas_vistas = []
+    for r in range(5, nrows_rh):
+        data_cell = raw_rh.iat[r, 0]
+        data_str = str(data_cell).strip() if pd.notna(data_cell) else ''
+        if not _re.fullmatch(r'\d{2}/\d{2}/\d{4}', data_str):
+            continue  # ignora linhas em branco, "TOTAL PERÍODO" e a nota de rodapé
+        data_ts = pd.to_datetime(data_str, format='%d/%m/%Y', errors='coerce')
+        if pd.isna(data_ts):
+            continue
+        datas_vistas.append(data_ts)
+        mes = data_ts.strftime('%Y-%m')
+        for fc in cols_func:
+            horas = _hora_rh_para_horas(raw_rh.iat[r, fc['col']])
+            key = fc['matricula_escala'] if fc['matricula_escala'] is not None else fc['nome_rh']
+            rh_por_func_mes.setdefault(key, {}).setdefault(mes, 0.0)
+            rh_por_func_mes[key][mes] += horas
+            rh_meta[key] = fc
+
+    if datas_vistas:
+        rh_periodo = {'min': min(datas_vistas).strftime('%Y-%m-%d'), 'max': max(datas_vistas).strftime('%Y-%m-%d')}
+    print(f"Horas RH ('{_RH_SHEET}'): {len(cols_func)} funcionários, "
+          f"período {rh_periodo['min']}–{rh_periodo['max']} ({len(datas_vistas)} dias)")
+except Exception as e:
+    print(f"Horas RH ('{_RH_SHEET}'): não encontrada/erro ->", repr(e))
+
+# matrícula (escala) -> nome_tom, a partir da própria escala já casada acima
+matricula_nome_tom = {}
+for _mes, _lst in escala_out.items():
+    for _item in _lst:
+        if _item.get('matricula') is not None and _item.get('nome_tom'):
+            try:
+                matricula_nome_tom[int(float(_item['matricula']))] = _item['nome_tom']
+            except Exception:
+                pass
+
+rh_horas_rows = []
+for key, meta in rh_meta.items():
+    nome_tom = None
+    if meta['matricula_escala'] is not None:
+        nome_tom = matricula_nome_tom.get(meta['matricula_escala'])
+    if not nome_tom:
+        nome_tom = match_tom_name(meta['nome_rh'])
+    for mes, horas in rh_por_func_mes[key].items():
+        rh_horas_rows.append({
+            'matricula_escala': meta['matricula_escala'], 'nome_rh': meta['nome_rh'],
+            'cargo_rh': meta['cargo_rh'], 'nome_tom': nome_tom, 'mes': mes,
+            'horas_rh': round(horas, 2),
+        })
+out3['rh_horas_por_funcionario_mes'] = rh_horas_rows
+out3['rh_periodo'] = rh_periodo
 
 # ================= AGENDA / COMPRAS (empty for now, schema-ready) =================
 try:

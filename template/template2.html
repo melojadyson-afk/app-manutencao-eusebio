@@ -525,6 +525,25 @@ body.app-authed #login-gate{ display:none; }
       </div>
 
       <div class="card" style="margin-bottom:14px;">
+        <div class="card-head"><div class="card-title">Confiabilidade — MTBF<span class="sub" id="os-mtbf-sub"></span></div></div>
+        <div class="grid g4" style="margin-bottom:14px;">
+          <div class="card kpi"><div class="kpi-label">Tempo de operação da planta</div><div class="kpi-value" id="os-mtbf-horas-op">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Média diária de produção</div><div class="kpi-value" id="os-mtbf-media-dia">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Corretivas no período</div><div class="kpi-value" id="os-mtbf-n-corretivas">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Equip. com MTBF confiável <span style="color:var(--text-dimmer)">(≥3 falhas)</span></div><div class="kpi-value" id="os-mtbf-n-confiavel">–</div></div>
+        </div>
+        <div class="grid g2">
+          <div class="table-wrap tbl-scroll" style="max-height:320px;">
+            <table><thead><tr><th>Equipamento</th><th>Falhas no período</th><th>Horas paradas</th><th>MTBF</th></tr></thead><tbody id="os-mtbf-equip-tbody"></tbody></table>
+          </div>
+          <div class="table-wrap tbl-scroll" style="max-height:320px;">
+            <table><thead><tr><th>Classe de criticidade</th><th>Falhas no período</th><th>MTBF agregado</th></tr></thead><tbody id="os-mtbf-classe-tbody"></tbody></table>
+          </div>
+        </div>
+        <div class="foot-note" id="os-mtbf-foot"></div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
         <div class="card-head"><div class="card-title">Quantidade de ordens por tipo e status<span class="sub">Geral — últimos 6 meses</span></div></div>
         <div class="grid g2">
           <div class="chart-box"><canvas id="chart-os-tipo-mes"></canvas></div>
@@ -670,10 +689,11 @@ body.app-authed #login-gate{ display:none; }
         <div class="card"><div class="card-head"><div class="card-title">Ranking de apropriações<span class="sub">Total acumulado por técnico</span></div></div><div class="chart-box tall"><canvas id="chart-hh-ranking"></canvas></div></div>
       </div>
       <div class="card">
-        <div class="card-head"><div class="card-title">Hora-Homem individual<span class="sub">Horas TOM × Horas de escala × % apropriação — mês selecionado. <b>*</b> = valor estimado, sem escala real cadastrada para a pessoa/mês</span></div></div>
+        <div class="card-head"><div class="card-title">Hora-Homem individual<span class="sub">Horas TOM × Horas de escala × Horas RH (ponto eletrônico) — mês selecionado. <b>*</b> = valor estimado, sem escala real cadastrada para a pessoa/mês</span></div></div>
         <div class="table-wrap tbl-scroll">
-          <table><thead id="hh-thead"><tr><th data-key="nome" data-type="text">Funcionário</th><th data-key="cargo" data-type="text">Cargo</th><th data-key="categoria_horas" data-type="text">Turno</th><th data-key="horas" data-type="num">Horas TOM</th><th data-key="horas_escala" data-type="num">Horas escala</th><th data-key="pct" data-type="num">% Apropriação</th></tr></thead><tbody id="hh-individual-tbody"></tbody></table>
+          <table><thead id="hh-thead"><tr><th data-key="nome" data-type="text">Funcionário</th><th data-key="cargo" data-type="text">Cargo</th><th data-key="categoria_horas" data-type="text">Turno</th><th data-key="horas" data-type="num">Horas TOM</th><th data-key="horas_escala" data-type="num">Horas escala</th><th data-key="pct" data-type="num">% Apropriação<br><span style="font-weight:400; font-size:9.5px; color:var(--text-dimmer);">TOM÷escala</span></th><th data-key="horas_rh" data-type="num">Horas RH<br><span style="font-weight:400; font-size:9.5px; color:var(--text-dimmer);">ponto</span></th><th data-key="pct_rh" data-type="num">% Ponto<br><span style="font-weight:400; font-size:9.5px; color:var(--text-dimmer);">TOM÷RH</span></th></tr></thead><tbody id="hh-individual-tbody"></tbody></table>
         </div>
+        <div class="foot-note" id="hh-rh-foot"></div>
       </div>
       <div class="card" id="hh-escala-card" style="margin-top:14px; display:none;">
         <div class="card-head"><div class="card-title">Escala do mês<span class="sub">Dia a dia por técnico — T = trabalhado, F = folga, FE = férias</span></div></div>
@@ -1185,6 +1205,44 @@ function renderOS(){
       <tr><td>${c.causa}</td><td class="mono">${fmtNum(c.count)}</td><td class="mono">${fmtPct(c.pct)}</td><td class="mono">${c.mttr_h!=null?fmtNum(c.mttr_h,2)+'h':'—'}</td></tr>`).join('');
   }
 
+  /* --- MTBF (Confiabilidade) — WinWash Rapport (tempo de operação) × corretivas TOM no mesmo período --- */
+  function drawMtbf(){
+    const m = DATA.mtbf;
+    const card = document.getElementById('os-mtbf-sub').closest('.card');
+    if(!m || !m.periodo){
+      card.style.display = 'none';
+      return;
+    }
+    card.style.display = '';
+    const p = m.periodo;
+    const brDate = s => s ? s.split('-').reverse().join('/') : '—';
+    document.getElementById('os-mtbf-sub').textContent = ` · WinWash Rapport, ${brDate(p.min)} a ${brDate(p.max)} (${p.dias} dias)`;
+    document.getElementById('os-mtbf-horas-op').innerHTML = fmtNum(p.horas_operacao,0)+'<span class="unit">h</span>';
+    document.getElementById('os-mtbf-media-dia').innerHTML = fmtNum(p.media_h_dia,2)+'<span class="unit">h/dia</span>';
+    document.getElementById('os-mtbf-n-corretivas').textContent = fmtNum(m.n_corretivas_periodo);
+    const nConfiavel = (m.equipamentos||[]).filter(e=>e.confiavel).length;
+    document.getElementById('os-mtbf-n-confiavel').textContent = nConfiavel;
+
+    document.getElementById('os-mtbf-equip-tbody').innerHTML = (m.equipamentos||[]).map(e=>`
+      <tr><td>${(e.equipamento||'').trim()}${e.tag?` <span style="color:var(--text-dimmer); font-size:10px;">(${e.tag})</span>`:''}</td>
+      <td class="mono">${fmtNum(e.n_falhas)}</td>
+      <td class="mono">${fmtNum(e.horas_parada_total,1)}h</td>
+      <td class="mono" style="${e.confiavel?'font-weight:700;':'color:var(--text-dimmer);'}">${e.mtbf_h!=null?fmtNum(e.mtbf_h,1)+'h':'insuficiente'}</td></tr>`).join('')
+      || `<tr><td colspan="4" class="empty">Sem corretivas no período</td></tr>`;
+
+    const classeOrdem = {'AA':0,'A':1,'B':2,'C':3};
+    const classes = [...(m.por_classe||[])].sort((a,b)=>(classeOrdem[a.classe]??9)-(classeOrdem[b.classe]??9));
+    document.getElementById('os-mtbf-classe-tbody').innerHTML = classes.map(c=>`
+      <tr><td>${c.classe}</td><td class="mono">${fmtNum(c.n_falhas)}</td><td class="mono">${c.mtbf_h!=null?fmtNum(c.mtbf_h,1)+'h':'—'}</td></tr>`).join('')
+      || `<tr><td colspan="3" class="empty">Sem classificação de criticidade no período</td></tr>`;
+
+    document.getElementById('os-mtbf-foot').textContent =
+      `MTBF = (tempo de operação da planta no período − horas paradas por corretiva do equipamento) ÷ nº de falhas (OS corretivas) do equipamento. `+
+      `Tempo de operação = soma diária de "Tempo de produção" do WinWash Rapport (lavagem/secagem/transporte) — ${fmtNum(p.horas_operacao,0)}h em ${p.dias} dias, média ${fmtNum(p.media_h_dia,2)}h/dia (não são 24h/dia corridas). `+
+      `Como o WinWash não separa o tempo de operação por equipamento, o mesmo total da planta é usado como base para todos — é uma aproximação, não o tempo real daquela máquina. `+
+      `MTBF individual só é mostrado com ≥3 falhas no período; com menos, use o agregado por classe de criticidade ao lado.`;
+  }
+
 
   const list = DATA.os_list;
   document.getElementById('os-detail-sub').textContent = ` · ${list.length} OS (últimos 6 meses)`;
@@ -1218,7 +1276,7 @@ function renderOS(){
   document.getElementById('os-search').addEventListener('input', ()=>{osPage=1; drawTable();});
   [statusSel,tipoSel,prioSel].forEach(el=>el.addEventListener('change', ()=>{osPage=1; drawTable();}));
 
-  drawPrevCards(); drawGeralCharts(); drawTable(); drawDiagnostico();
+  drawPrevCards(); drawGeralCharts(); drawTable(); drawDiagnostico(); drawMtbf();
 }
 
 /* ===================== EQUIPAMENTOS ===================== */
@@ -1292,6 +1350,15 @@ async function renderPessoas(){
     const lst = (DATA.escala_disponibilidade||{})[mes];
     return lst ? lst.filter(i=>!i.nome_tom) : [];
   }
+  // Mapa nome_tom -> horas reais do ponto eletrônico (RH), por mês — vem da aba
+  // "Horas Trabalho RH" (espelho de ponto), casada por matrícula com a escala.
+  function horasRhMap(mes){
+    const rows = (DATA.rh_horas_por_funcionario_mes||[]).filter(r=>r.mes===mes && r.nome_tom);
+    if(!rows.length) return null;
+    const map = {};
+    rows.forEach(r=>{ map[r.nome_tom] = r.horas_rh; });
+    return map;
+  }
   const CATEGORIA_BADGE = {'Turno regular':'b-blue', 'Líder de turno':'b-amber', 'Comercial':'b-green'};
 
   function updateEscalaBadge(mes){
@@ -1329,6 +1396,7 @@ async function renderPessoas(){
     const ym = mesSel.value;
     const real = escalaRealMap(ym);
     const info = escalaInfoMap(ym);
+    const rh = horasRhMap(ym);
     let rows = DATA.hh_por_funcionario_mes.filter(r=>r.mes===ym);
     // Se há escala real e alguém da escala ainda não tem apontamento no mês, mostra com 0h TOM
     if(real){
@@ -1339,9 +1407,12 @@ async function renderPessoas(){
       const horasEscala = real ? (real[r.nome] ?? escalaH) : escalaH;
       const pct = horasEscala ? r.horas/horasEscala : 0;
       const infoR = info ? info[r.nome] : null;
+      const horasRh = rh ? rh[r.nome] : null;
+      const pctRh = (horasRh!=null && horasRh>0) ? r.horas/horasRh : null;
       return {...r, cargo: cargoMap[r.nome]||'Não identificado', horas_escala: horasEscala, pct,
         fonte_estimada: !(real && real[r.nome]!=null),
-        categoria_horas: infoR ? infoR.categoria_horas : null, dias_trabalhados: infoR ? infoR.dias_trabalhados : null};
+        categoria_horas: infoR ? infoR.categoria_horas : null, dias_trabalhados: infoR ? infoR.dias_trabalhados : null,
+        horas_rh: horasRh, pct_rh: pctRh};
     });
     rows = __sortState['hh-individual'] ? applySort('hh-individual', rows) : rows.sort((a,b)=>b.horas-a.horas);
     document.getElementById('hh-individual-tbody').innerHTML = rows.map(r=>{
@@ -1350,11 +1421,29 @@ async function renderPessoas(){
       const turnoCel = r.categoria_horas
         ? `<span class="badge ${CATEGORIA_BADGE[r.categoria_horas]||'b-gray'}">${r.categoria_horas}</span>${r.dias_trabalhados!=null?` <span style="color:var(--text-dimmer); font-size:10px;">${r.dias_trabalhados}d</span>`:''}`
         : '<span style="color:var(--text-dimmer)">—</span>';
+      const rhCel = r.horas_rh!=null ? `${fmtNum(r.horas_rh,0)}h` : '<span style="color:var(--text-dimmer)">—</span>';
+      const colorRh = r.pct_rh==null ? 'var(--text-dimmer)' : r.pct_rh>1 ? 'var(--red)' : r.pct_rh>0.85 ? 'var(--green)' : 'var(--amber)';
+      const pctRhCel = r.pct_rh!=null ? fmtPct(r.pct_rh) : '—';
       return `<tr><td>${r.nome}</td><td style="color:var(--text-dim); font-size:11px;">${r.cargo}</td>
       <td>${turnoCel}</td>
       <td class="mono">${fmtNum(r.horas,1)}h</td><td class="mono">${fmtNum(r.horas_escala,0)}h${fonte}</td>
-      <td class="mono" style="color:${color}; font-weight:700;">${fmtPct(r.pct)}</td></tr>`;
-    }).join('') || `<tr><td colspan="6" class="empty">Sem apontamentos neste mês</td></tr>`;
+      <td class="mono" style="color:${color}; font-weight:700;">${fmtPct(r.pct)}</td>
+      <td class="mono">${rhCel}</td>
+      <td class="mono" style="color:${colorRh}; font-weight:700;">${pctRhCel}</td></tr>`;
+    }).join('') || `<tr><td colspan="8" class="empty">Sem apontamentos neste mês</td></tr>`;
+
+    const rhFoot = document.getElementById('hh-rh-foot');
+    const per = DATA.rh_periodo;
+    if(rh && per && per.min && per.max){
+      const brDate = s => s.split('-').reverse().join('/');
+      rhFoot.textContent = `Horas RH = soma do ponto eletrônico ("Horas Trabalho RH", cartão-ponto Teclav) casada por matrícula. `+
+        `Cobertura atual do espelho de ponto: ${brDate(per.min)} a ${brDate(per.max)} — cobre o mês selecionado só parcialmente se ele começar/terminar fora dessa janela; nesse caso "% Ponto" fica sub ou superestimado até o espelho trazer o mês completo. `+
+        `Pessoas sem "Horas RH" não tiveram matrícula localizada no espelho ou na escala deste mês.`;
+    } else if(per && per.min){
+      rhFoot.textContent = `Espelho de ponto (RH) disponível para ${per.min.split('-').reverse().join('/')} a ${per.max.split('-').reverse().join('/')} — nenhuma pessoa deste mês foi localizada nele ainda.`;
+    } else {
+      rhFoot.textContent = '';
+    }
   }
   function drawEscalaGrade(){
     const ym = mesSel.value;
