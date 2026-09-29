@@ -665,6 +665,29 @@ body.app-authed #login-gate{ display:none; }
           <div class="card-title" style="margin-bottom:9px;">Referência de vazão nominal por fabricante</div>
           <div class="table-wrap"><table><thead id="sec-ref-thead"><tr><th data-key="marca" data-type="text">Marca</th><th data-key="modelo" data-type="text">Modelo</th><th data-key="vazao_nominal" data-type="text">Vazão nominal (m³/h)</th></tr></thead><tbody id="sec-ref-tbody"></tbody></table></div>
         </div>
+        <div class="card" id="sec-resumo-card" style="margin-top:14px; display:none;">
+          <div class="card-head"><div class="card-title">Desempenho de Secagem<span class="sub" id="sec-resumo-sub">Resumo por secadora — log detalhado de batches (TOM)</span></div></div>
+          <div class="grid g4" style="margin-bottom:14px;">
+            <div class="card kpi"><div class="kpi-label">Batches no período</div><div class="kpi-value" id="sec-res-k-batches">–</div></div>
+            <div class="card kpi"><div class="kpi-label">Peso total processado</div><div class="kpi-value" id="sec-res-k-peso">–</div></div>
+            <div class="card kpi"><div class="kpi-label">Tempo médio de secagem</div><div class="kpi-value" id="sec-res-k-tempo">–</div></div>
+            <div class="card kpi"><div class="kpi-label">% Alarme (média frota)</div><div class="kpi-value" id="sec-res-k-alarme">–</div></div>
+          </div>
+          <div class="table-wrap tbl-scroll">
+            <table><thead id="sec-resumo-thead"><tr>
+              <th data-key="secador" data-type="text">Secadora</th>
+              <th data-key="marca" data-type="text">Marca / Modelo</th>
+              <th data-key="n_batches" data-type="num">Batches</th>
+              <th data-key="peso_total_kg" data-type="num">Peso total (kg)</th>
+              <th data-key="peso_medio_kg" data-type="num">Peso médio (kg)</th>
+              <th data-key="tempo_secagem_medio_min" data-type="num">Tempo médio de secagem</th>
+              <th data-key="tempo_por_kg_medio_min" data-type="num">Tempo/kg médio</th>
+              <th data-key="pct_alarme" data-type="num">% Alarme</th>
+              <th data-key="pct_off" data-type="num">% Desligada</th>
+            </tr></thead><tbody id="sec-resumo-tbody"></tbody></table>
+          </div>
+          <div class="foot-note" id="sec-resumo-foot"></div>
+        </div>
       </div>
 
       <!-- ---- Túneis ---- -->
@@ -1935,6 +1958,52 @@ function renderPerformance(){
       <tr><td>${r.marca}</td><td>${r.modelo}</td><td class="mono">${r.vazao_nominal}</td></tr>`).join('') ||
       `<tr><td colspan="3" class="empty">Sem referência cadastrada</td></tr>`;
   });
+
+  // ---- Secadoras: desempenho de secagem (log por batch) ----
+  const secResumo = perf.secadoras_resumo;
+  const secResumoCard = document.getElementById('sec-resumo-card');
+  if(!secResumo || !secResumo.secadoras || !secResumo.secadoras.length){
+    secResumoCard.style.display = 'none';
+  } else {
+    secResumoCard.style.display = '';
+    const rows = secResumo.secadoras;
+    const fmtMin = m => (m==null||isNaN(m)) ? '—' : fmtNum(m,1)+' min';
+    const brDT = s => s ? s.split(' ')[0].split('-').reverse().join('/') : '—';
+
+    document.getElementById('sec-res-k-batches').textContent = fmtNum(secResumo.total_batches,0);
+    const pesoTotal = rows.reduce((a,r)=>a+(r.peso_total_kg||0),0);
+    document.getElementById('sec-res-k-peso').textContent = fmtNum(pesoTotal,0)+' kg';
+    const temposValidos = rows.map(r=>r.tempo_secagem_medio_min).filter(v=>v!=null);
+    const tempoMedioFrota = temposValidos.length ? temposValidos.reduce((a,b)=>a+b,0)/temposValidos.length : null;
+    document.getElementById('sec-res-k-tempo').textContent = fmtMin(tempoMedioFrota);
+    const alarmeValidos = rows.map(r=>r.pct_alarme).filter(v=>v!=null);
+    const alarmeMedioFrota = alarmeValidos.length ? alarmeValidos.reduce((a,b)=>a+b,0)/alarmeValidos.length : null;
+    document.getElementById('sec-res-k-alarme').textContent = fmtPct(alarmeMedioFrota);
+
+    function secResumoRows(list){
+      return list.map(r=>`
+        <tr>
+          <td>${r.secador}</td>
+          <td>${r.marca||'—'} ${r.modelo||''}</td>
+          <td class="mono">${fmtNum(r.n_batches,0)}</td>
+          <td class="mono">${fmtNum(r.peso_total_kg,0)}</td>
+          <td class="mono">${fmtNum(r.peso_medio_kg,1)}</td>
+          <td class="mono">${fmtMin(r.tempo_secagem_medio_min)}</td>
+          <td class="mono">${fmtMin(r.tempo_por_kg_medio_min)}</td>
+          <td class="mono">${fmtPct(r.pct_alarme)}</td>
+          <td class="mono">${fmtPct(r.pct_off)}</td>
+        </tr>`).join('');
+    }
+    document.getElementById('sec-resumo-tbody').innerHTML = secResumoRows(applySort('sec-resumo', rows));
+    wireSortHeaders('sec-resumo-thead', 'sec-resumo', ()=>{
+      document.getElementById('sec-resumo-tbody').innerHTML = secResumoRows(applySort('sec-resumo', rows));
+    });
+
+    const periodo = secResumo.periodo || {};
+    document.getElementById('sec-resumo-foot').textContent =
+      `Período: ${brDT(periodo.min)} – ${brDT(periodo.max)} · ${fmtNum(secResumo.total_batches,0)} batches registrados no log de secagem (TOM). `+
+      `"% Alarme" e "% Desligada" indicam a frequência de sinalizações do equipamento durante os batches — não representam necessariamente falha, mas ajudam a identificar secadoras com comportamento fora do padrão da frota.`;
+  }
 
   // ---- Túneis ----
   const diaShort = {'domingo':'Dom','segunda-feira':'Seg','terça-feira':'Ter','quarta-feira':'Qua','quinta-feira':'Qui','sexta-feira':'Sex','sábado':'Sáb'};

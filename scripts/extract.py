@@ -1026,7 +1026,7 @@ try:
     out2['mtbf'] = {
         'periodo': mtbf_periodo,
         'n_corretivas_periodo': int(len(corr_periodo)),
-        'equipamentos': mtbf_rows[:30],
+        'equipamentos': mtbf_rows[:60],
         'por_classe': classe_rows,
         'alertas': {
             'mediana_mtbf_h': round(mediana_mtbf, 1) if mediana_mtbf is not None else None,
@@ -1614,6 +1614,74 @@ try:
     print(f"Performance — Secadores: {len(secadores)} equipamentos")
 except Exception as e:
     print("Performance (Secadores): não encontrado/erro ->", e)
+
+# --- Secadoras automáticas — resumo do log detalhado por batch de secagem ---
+# A partir de set/2026 a aba Performance passou a trazer também um log bruto
+# por BATCH de secagem (bloco "Performance Secadora Automática", a partir da
+# coluna AP), com data/hora, secador, produto, peso, tempo de secagem, tempo
+# por kg, temperaturas de descarga e sinalizações de alarme/desligamento.
+# É um volume grande (dezenas de milhares de linhas ao longo do ano) — em vez
+# de embutir cada batch no JSON (deixaria o app pesado à toa), resume por
+# secadora: total de batches, peso total/médio, tempo médio de secagem, tempo
+# médio por kg e o % de batches com alarme/desligado no período coberto.
+# Junta com a tabela de vazão de ar já lida acima (mesma numeração — "P759"
+# no log == id 759 na tabela de vazão) pra trazer marca/modelo junto.
+try:
+    sec_log = perf_raw.iloc[2:, 41:54].copy()
+    sec_log.columns = ['data', 'batch', 'secador', 'prog_secagem', 'produto', 'peso_kg',
+                        'tempo_secagem', 'tempo_por_kg', 'temp_saida', 'temp_lixivia',
+                        '_spacer', 'alarme', 'off']
+    sec_log = sec_log.dropna(subset=['secador']).copy()
+    sec_log['data'] = pd.to_datetime(sec_log['data'], errors='coerce')
+    sec_log['peso_kg'] = pd.to_numeric(sec_log['peso_kg'], errors='coerce')
+
+    def _tempo_para_min(v):
+        if isinstance(v, datetime.time):
+            return v.hour * 60 + v.minute + v.second / 60
+        if isinstance(v, datetime.timedelta):
+            return v.total_seconds() / 60
+        if isinstance(v, (int, float)) and pd.notna(v):
+            return float(v) * 24 * 60  # fração de dia (serial Excel)
+        return None
+
+    sec_log['_tempo_secagem_min'] = sec_log['tempo_secagem'].apply(_tempo_para_min)
+    sec_log['_tempo_por_kg_min'] = sec_log['tempo_por_kg'].apply(_tempo_para_min)
+
+    secadores_by_id = {s['id']: s for s in secadores}
+    resumo_secadoras = []
+    for secador_str, g in sec_log.groupby('secador'):
+        try:
+            sid = int(str(secador_str).strip().lstrip('Pp'))
+        except ValueError:
+            sid = None
+        info = secadores_by_id.get(sid, {})
+        n = int(len(g))
+        n_alarme = int((g['alarme'] == 'Sim').sum())
+        n_off = int((g['off'] == 'Sim').sum())
+        resumo_secadoras.append({
+            'secador': secador_str, 'id': sid,
+            'marca': info.get('marca'), 'modelo': info.get('modelo'), 'status_vazao': info.get('status'),
+            'n_batches': n,
+            'peso_total_kg': clean(g['peso_kg'].sum()),
+            'peso_medio_kg': clean(g['peso_kg'].mean()),
+            'tempo_secagem_medio_min': clean(g['_tempo_secagem_min'].mean()),
+            'tempo_por_kg_medio_min': clean(g['_tempo_por_kg_min'].mean()),
+            'pct_alarme': round(n_alarme / n, 4) if n else None,
+            'pct_off': round(n_off / n, 4) if n else None,
+        })
+    resumo_secadoras.sort(key=lambda x: (x['id'] is None, x['id']))
+
+    periodo_min, periodo_max = sec_log['data'].min(), sec_log['data'].max()
+    out5['secadoras_resumo'] = {
+        'periodo': {'min': clean(periodo_min), 'max': clean(periodo_max)},
+        'total_batches': int(len(sec_log)),
+        'secadoras': resumo_secadoras,
+    }
+    print(f"Performance — Secadoras (log por batch): {len(sec_log)} batches, {len(resumo_secadoras)} secadoras, "
+          f"período {clean(periodo_min)}–{clean(periodo_max)}")
+except Exception as e:
+    print("Performance (log de batches de secadoras): não encontrado/erro ->", e)
+    out5['secadoras_resumo'] = None
 
 # --- Túneis de Lavagem (busca dinâmica de blocos "Túnel de Lavagem N") ---
 try:
