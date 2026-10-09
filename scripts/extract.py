@@ -1759,6 +1759,9 @@ tpl = tpl.replace('__IMAGE_TERREO_B64__', mapa_terreo_b64)
 tpl = tpl.replace('__IMAGE_SUPERIOR_B64__', mapa_superior_b64)
 tpl = tpl.replace('__LOGO_B64__', logo_b64)
 tpl = tpl.replace('__PLANTA_QUADROS_B64__', planta_quadros_b64)
+# Tema alumínio: fundo opcional (assets/fundo_aluminio.jpg) embutido em base64
+_fundo = os.path.join(ROOT, 'assets', 'fundo_aluminio.jpg')
+tpl = tpl.replace('__FUNDO_B64__', base64.b64encode(open(_fundo, 'rb').read()).decode() if os.path.exists(_fundo) else '')
 
 out_path = os.path.join(DOCS_DIR, 'index.html')
 with open(out_path, 'w', encoding='utf-8') as f:

@@ -345,6 +345,307 @@ body.app-authed #login-gate{ display:none; }
 }
 #btn-logout:hover{ color:var(--text-dim); border-color:var(--line); }
 </style>
+<style id="theme-aluminio">
+/* =====================================================================
+   TEMA "ALUMÍNIO AZUL ANODIZADO" — Elis Brasil · APP Manutenção
+   ---------------------------------------------------------------------
+   Camada VISUAL apenas. Carrega depois dos outros <style> e só redefine
+   variáveis e aparência (cores, bordas, sombras, estados). Nenhum id,
+   evento, dado, cálculo ou estrutura HTML é alterado.
+   Para desligar o tema: remova este bloco <style id="theme-aluminio">.
+   ===================================================================== */
+
+/* ---------- 1) Tokens (paleta centralizada) ---------- */
+:root{
+  /* paleta oficial do redesign */
+  --cyan:#00E5FF;        /* destaque principal, ativo, foco            */
+  --turq:#00D6C9;        /* botões primários, nav selecionado, positivo */
+  --blue-m:#168BFF;      /* links, filtros, secundário                 */
+  --petrol:#073B4C;      /* superfícies selecionadas discretas         */
+  --orange:#FFAA33;      /* alertas / pendências                       */
+  --red-a:#FF4D5A;       /* erros / falhas / destrutivo                */
+  --ice:#EAF6FF;         /* texto principal sobre escuro               */
+
+  /* superfícies translúcidas (grafite/petróleo sobre o fundo) */
+  --surf:rgba(9,26,36,.70);
+  --surf-2:rgba(6,18,26,.62);
+  --surf-solid:rgba(7,21,30,.94);
+  --edge:rgba(130,205,230,.20);          /* borda metálica discreta */
+  --edge-strong:rgba(0,229,255,.55);     /* borda em hover          */
+  --glow-cyan:0 0 0 3px rgba(0,229,255,.16);
+  --shadow-card:0 10px 26px -14px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.05);
+
+  /* variáveis legadas do app → nova paleta (o resto do CSS herda sozinho) */
+  --bg:#061119; --bg2:rgba(7,22,31,.66); --panel:rgba(10,28,39,.72);
+  --line:rgba(130,205,230,.30); --line-soft:rgba(130,205,230,.17);
+  --text:#EAF6FF; --text-dim:#A9C3D1; --text-dimmer:#86A3B3;
+  --nickel:#00D6C9; --nickel-dim:#0b2a35;
+
+  --c-geral:#00D6C9; --c-orc:#00E5FF; --c-os:#168BFF; --c-compras:#FF7A59;
+  --c-equip:#4ADE80; --c-pessoas:#A78BFA; --c-agenda:#F472B6; --c-mapa:#5EEAD4;
+  --c-performance:#FFC247; --c-utilidades:#38BDF8;
+
+  --red:#FF4D5A; --green:#00D6C9; --amber:#FFAA33; --blue:#38BDF8;
+  --red-dim:rgba(255,77,90,.17); --green-dim:rgba(0,214,201,.15);
+  --amber-dim:rgba(255,170,51,.17); --blue-dim:rgba(22,139,255,.18);
+  --radius:11px;
+
+  /* imagem de fundo (embutida em base64 pelo extract.py; se faltar, cai no degradê) */
+  --bg-img:url("data:image/jpeg;base64,__FUNDO_B64__");
+}
+
+/* ---------- 2) Fundo com a placa de alumínio ---------- */
+body{ background:var(--bg); color:var(--text); }
+body::before{
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:
+    radial-gradient(900px 520px at 88% -8%, rgba(0,229,255,.17), transparent 70%),
+    radial-gradient(760px 520px at -4% 104%, rgba(22,139,255,.15), transparent 70%),
+    linear-gradient(180deg, rgba(3,12,18,.62) 0%, rgba(3,12,18,.80) 100%),
+    var(--bg-img) center top / cover no-repeat;
+}
+#login-gate{
+  background:
+    radial-gradient(900px 520px at 88% -8%, rgba(0,229,255,.20), transparent 70%),
+    linear-gradient(180deg, rgba(3,12,18,.62), rgba(3,12,18,.80)),
+    var(--bg-img) center / cover no-repeat,
+    var(--bg);
+}
+::-webkit-scrollbar-thumb{ background:rgba(0,229,255,.26); border-radius:6px; }
+::-webkit-scrollbar-thumb:hover{ background:rgba(0,229,255,.5); }
+*{ scrollbar-color:rgba(0,229,255,.32) transparent; }
+::selection{ background:rgba(0,229,255,.32); color:#fff; }
+
+/* ---------- 3) Foco de teclado (global) ---------- */
+:where(a,button,input,select,textarea,summary,[tabindex],.navitem,.chip,.perf-tab,.cal-cell,.fixo-leg-item,th.sortable):focus-visible{
+  outline:2px solid var(--cyan); outline-offset:2px;
+  box-shadow:var(--glow-cyan);
+}
+:where(input,select,textarea):focus-visible{ outline-offset:0; }
+
+/* ---------- 4) Sidebar ---------- */
+.sidebar{
+  background:linear-gradient(180deg, rgba(12,28,38,.88), rgba(5,14,20,.94));
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  border-right-color:var(--edge);
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.035), 12px 0 30px -18px rgba(0,0,0,.8);
+}
+.brand{ border-bottom-color:var(--edge); }
+.brand-title{ color:var(--ice); }
+.sidebar-fmt, .sidebar-footer{ border-top-color:var(--edge); }
+
+.navitem{
+  color:var(--text-dim); border-color:transparent; border-left:3px solid transparent;
+  transition:background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+.navitem .ic{ color:color-mix(in srgb, var(--c) 78%, #ffffff); transition:color .18s ease, filter .18s ease; }
+.navitem:hover{
+  background:linear-gradient(90deg, rgba(0,229,255,.12), rgba(0,229,255,.03));
+  border-color:rgba(0,229,255,.22); border-left-color:rgba(0,229,255,.55);
+  color:var(--ice);
+}
+.navitem:hover .ic{ color:var(--cyan); }
+.navitem.active{
+  background:linear-gradient(90deg, rgba(0,214,201,.26), rgba(7,59,76,.42));
+  border-color:rgba(0,229,255,.30); border-left:3px solid var(--turq);
+  color:#ffffff; font-weight:600;
+  box-shadow:inset 0 0 0 1px rgba(0,229,255,.06), 0 6px 18px -12px rgba(0,229,255,.55);
+}
+.navitem.active .ic{ color:var(--cyan); filter:drop-shadow(0 0 6px rgba(0,229,255,.5)); }
+.navitem .n{ background:rgba(0,229,255,.10); color:#BFE9F5; border:1px solid rgba(0,229,255,.16); }
+.navitem.active .n{ background:rgba(0,214,201,.28); color:#fff; border-color:rgba(0,229,255,.4); }
+
+.sidebar-fmt-switch{ background:rgba(3,12,18,.7); border-color:var(--edge); }
+.sidebar-fmt-switch button{ transition:background .15s, color .15s; }
+.sidebar-fmt-switch button:hover{ background:rgba(0,229,255,.14); color:var(--ice); }
+.sidebar-fmt-switch button.active{ background:var(--turq); color:#021a1c; }
+
+#btn-logout{ border-color:var(--edge); color:var(--text-dim); transition:all .15s; }
+#btn-logout:hover{ color:var(--ice); border-color:var(--edge-strong); background:rgba(0,229,255,.08); }
+
+/* ---------- 5) Cabeçalho da página / pílulas ---------- */
+.pagetitle{ color:var(--ice); text-shadow:0 2px 14px rgba(0,0,0,.55); }
+.pagetitle .dot{ box-shadow:0 0 10px color-mix(in srgb, var(--tab-color, var(--turq)) 70%, transparent); }
+.pagesub{ color:#B7D0DC; text-shadow:0 1px 8px rgba(0,0,0,.6); }
+.period-pill{
+  background:rgba(3,14,20,.55);
+  border-color:color-mix(in srgb, var(--tab-color, var(--amber)) 55%, transparent);
+  -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+}
+
+/* ---------- 6) Cartões e KPIs ---------- */
+.card{
+  background:linear-gradient(180deg, rgba(14,38,51,.74), rgba(7,21,30,.80));
+  border:1px solid var(--edge);
+  box-shadow:var(--shadow-card);
+}
+.card.kpi{
+  border-top:2px solid var(--tab-color, var(--turq));
+  background:
+    radial-gradient(240px 90px at 0% 0%, color-mix(in srgb, var(--tab-color, var(--turq)) 16%, transparent), transparent 75%),
+    linear-gradient(180deg, rgba(14,38,51,.76), rgba(7,21,30,.82));
+}
+.kpi-label{ color:#9FBFCE; }
+.kpi-value{ color:var(--ice); text-shadow:0 0 22px color-mix(in srgb, var(--tab-color, var(--turq)) 35%, transparent); }
+.kpi-value .unit{ color:var(--text-dim); text-shadow:none; }
+.card-title{ color:var(--ice); }
+.card-title .sub{ color:var(--text-dimmer); }
+.foot-note,.empty{ color:var(--text-dimmer); }
+.pbar-track{ background:rgba(255,255,255,.09); }
+
+.tagbadge{ color:#D9F3FB; background:linear-gradient(180deg, rgba(20,60,78,.9), rgba(9,34,46,.9)); border-color:rgba(0,229,255,.30); }
+.tagbadge::before{ background:#041017; border-color:rgba(0,229,255,.35); }
+.b-gray{ background:rgba(169,195,209,.16); color:var(--text-dim); }
+
+/* ---------- 7) Tabelas ---------- */
+.table-wrap{ background:rgba(4,14,21,.50); border-color:var(--edge); }
+thead th{
+  background:linear-gradient(180deg, rgba(10,58,76,.96), rgba(7,43,57,.96));
+  color:#BDEFFA; border-bottom:1px solid rgba(0,229,255,.38);
+}
+tbody td{ border-bottom-color:rgba(130,205,230,.10); color:var(--text); }
+tbody tr:nth-child(even){ background:rgba(255,255,255,.028); }
+tbody tr{ transition:background .12s ease; }
+tbody tr:hover{ background:rgba(0,229,255,.10); }
+tbody tr:hover td{ color:#fff; }
+tbody tr.selected, tbody tr.active, tbody tr.is-selected, tbody tr[aria-selected="true"]{
+  background:rgba(7,59,76,.78); box-shadow:inset 3px 0 0 var(--cyan);
+}
+tfoot td{ background:rgba(7,43,57,.97); border-top:2px solid rgba(0,229,255,.38); color:var(--ice); }
+th.sortable{ transition:color .12s, background .12s; }
+th.sortable:hover{ color:var(--cyan); background:rgba(0,229,255,.10); }
+th.sortable.sort-asc, th.sortable.sort-desc{ color:#fff; }
+th.sortable.sort-asc::after, th.sortable.sort-desc::after{ color:var(--cyan); }
+
+/* ---------- 8) Campos, filtros, botões ---------- */
+input[type=text],input[type=number],input[type=date],input[type=email],input[type=password],select,textarea{
+  background:rgba(4,15,22,.66); border:1px solid var(--line); color:var(--text);
+  transition:border-color .15s ease, background .15s ease, box-shadow .15s ease;
+  color-scheme:dark;
+}
+input::placeholder,textarea::placeholder{ color:#6F8D9D; }
+input[type=text]:hover,input[type=number]:hover,input[type=date]:hover,input[type=email]:hover,input[type=password]:hover,select:hover,textarea:hover{
+  border-color:rgba(0,229,255,.50); background:rgba(5,22,31,.80);
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--cyan); background:rgba(5,24,34,.88); box-shadow:var(--glow-cyan); outline:none;
+}
+input:focus-visible,select:focus-visible,textarea:focus-visible{ outline:2px solid var(--cyan); outline-offset:0; }
+select option{ background:#0a1e2a; color:var(--ice); }
+input:disabled,select:disabled,textarea:disabled{ opacity:.42; cursor:not-allowed; background:rgba(4,15,22,.4); }
+input[type=checkbox],input[type=radio]{ accent-color:var(--turq); }
+input[type=date]::-webkit-calendar-picker-indicator{ filter:invert(.85) sepia(1) saturate(4) hue-rotate(150deg); cursor:pointer; }
+
+.btn{
+  background:rgba(7,59,76,.55); border:1px solid rgba(0,229,255,.28); color:var(--ice);
+  transition:background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .1s ease, filter .15s ease;
+}
+.btn:hover{ filter:none; background:rgba(0,229,255,.16); border-color:var(--edge-strong); box-shadow:0 0 0 1px rgba(0,229,255,.12), 0 6px 16px -10px rgba(0,229,255,.6); }
+.btn:active{ transform:translateY(1px); }
+.btn.primary{
+  background:linear-gradient(180deg, #19e6da, var(--turq)); border-color:#46f0e6; color:#021a1c; font-weight:700;
+  box-shadow:0 6px 16px -8px rgba(0,214,201,.75);
+}
+.btn.primary:hover{ filter:brightness(1.1); background:linear-gradient(180deg, #3cf3e8, #08dccf); box-shadow:0 0 0 3px rgba(0,229,255,.2), 0 8px 20px -8px rgba(0,229,255,.8); }
+.btn:disabled,.btn[disabled]{ opacity:.42; cursor:not-allowed; box-shadow:none; filter:none; transform:none; }
+#login-btn{ background:linear-gradient(180deg,#19e6da,var(--turq)); color:#021a1c; transition:filter .15s, box-shadow .15s; }
+#login-btn:hover:not(:disabled){ filter:brightness(1.1); box-shadow:0 0 0 3px rgba(0,229,255,.2); }
+
+.pager button{
+  background:rgba(7,59,76,.5); border:1px solid rgba(0,229,255,.24); color:var(--ice);
+  transition:background .15s, border-color .15s;
+}
+.pager button:hover:not(:disabled){ background:rgba(0,229,255,.16); border-color:var(--edge-strong); }
+.pager button:disabled{ opacity:.35; cursor:not-allowed; }
+
+.perf-tab{
+  background:rgba(7,36,48,.55); border-color:var(--line); color:var(--text-dim);
+  transition:background .15s, border-color .15s, color .15s, box-shadow .15s;
+}
+.perf-tab:hover{ color:var(--ice); border-color:var(--edge-strong); background:rgba(0,229,255,.12); }
+.perf-tab.active{
+  color:#fff; background:linear-gradient(180deg, color-mix(in srgb, var(--tab-color) 28%, transparent), color-mix(in srgb, var(--tab-color) 14%, transparent));
+  border-color:var(--tab-color); box-shadow:0 0 14px -4px var(--tab-color);
+}
+.chip{ background:rgba(7,36,48,.55); border-color:var(--line); color:var(--text-dim); transition:background .15s, border-color .15s, color .15s; }
+.chip:hover{ color:var(--ice); border-color:var(--edge-strong); background:rgba(0,229,255,.12); }
+.chip.active{ color:#021a1c; background:var(--tab-color); border-color:var(--tab-color); box-shadow:0 0 12px -4px var(--tab-color); }
+
+/* ---------- 9) Performance / Utilidades ---------- */
+.sec-card{ background:rgba(8,26,36,.62); border-color:var(--edge); transition:border-color .15s, box-shadow .15s, background .15s; }
+.sec-card:hover{ border-color:rgba(0,229,255,.45); background:rgba(10,34,46,.72); box-shadow:0 10px 24px -14px rgba(0,229,255,.45); }
+.sec-pt-bar,.sec-gauge .track{ background:rgba(3,12,18,.7); border-color:var(--edge); }
+.sec-gauge .band{ background:rgba(255,255,255,.10); }
+.sec-metric-row b{ color:var(--ice); }
+.tunel-kpis b{ color:var(--ice); }
+
+/* ---------- 10) Calendário / Agenda ---------- */
+.cal-cell{
+  background:rgba(5,18,26,.58); border-color:var(--edge);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  transition:border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.cal-cell:hover{ border-color:var(--cyan); background:rgba(0,229,255,.10); box-shadow:0 0 0 1px rgba(0,229,255,.25), 0 8px 18px -12px rgba(0,229,255,.7); }
+.cal-cell.other-month{ opacity:.3; box-shadow:none; }
+.cal-cell.today{ border-color:var(--orange); background:rgba(255,170,51,.08); box-shadow:inset 0 0 0 1px var(--orange); }
+.cal-cell.selected,.cal-cell.active{ border-color:var(--cyan); background:rgba(7,59,76,.7); box-shadow:inset 0 0 0 1px var(--cyan), 0 0 16px -4px rgba(0,229,255,.6); }
+.cal-count-pill{ background:rgba(0,229,255,.14); color:#D5F6FF; }
+.day-event-item{ background:rgba(5,18,26,.72); border-color:var(--edge); transition:border-color .15s, background .15s; }
+.day-event-item:hover{ border-color:var(--edge-strong); background:rgba(0,229,255,.07); }
+.day-event-item .ev-remove:hover{ background:var(--red-a); color:#fff; }
+
+/* ---------- 11) Mapa ---------- */
+.map-wrap{ background:rgba(3,10,14,.8); border-color:var(--edge); box-shadow:var(--shadow-card); }
+.map-pin .dot,.fixo-pin .dot{ transition:transform .15s ease, box-shadow .15s ease; }
+.map-pin:hover .dot,.fixo-pin:hover .dot{ transform:scale(1.18); box-shadow:0 0 0 2px rgba(0,229,255,.7), 0 0 14px rgba(0,229,255,.7); }
+.map-pin .pin-label,.fixo-pin .pin-label{ background:rgba(4,16,24,.96); border:1px solid rgba(0,229,255,.55); color:var(--ice); box-shadow:0 8px 18px -8px #000; }
+.fixo-pin .dot{ background:var(--cyan); color:#021a1c; box-shadow:0 0 0 1px var(--cyan); }
+.fixo-pin.highlight .dot{ background:var(--orange); box-shadow:0 0 0 3px rgba(255,170,51,.4), 0 0 14px rgba(255,170,51,.7); }
+.fixo-leg-item{ border-bottom-color:rgba(130,205,230,.12); padding-left:6px; padding-right:6px; border-radius:6px; transition:background .12s; }
+.fixo-leg-item:hover{ background:rgba(0,229,255,.10); }
+.fixo-leg-item.highlight{ background:rgba(7,59,76,.8); box-shadow:inset 3px 0 0 var(--cyan); }
+.fixo-leg-num{ background:var(--cyan); color:#021a1c; }
+.map-note{ border-color:rgba(255,170,51,.35); }
+
+/* ---------- 12) Modais ---------- */
+.modal-backdrop{ background:rgba(2,9,14,.72); -webkit-backdrop-filter:blur(5px); backdrop-filter:blur(5px); }
+.modal{
+  background:linear-gradient(180deg, rgba(12,34,46,.97), rgba(6,19,27,.98)); border:1px solid rgba(0,229,255,.32);
+  box-shadow:0 24px 70px -12px rgba(0,0,0,.85), 0 0 0 1px rgba(0,229,255,.06), 0 0 40px -18px rgba(0,229,255,.55);
+}
+.modal h3{ color:var(--ice); }
+
+/* ---------- 13) Login ---------- */
+.login-box{
+  background:linear-gradient(180deg, rgba(12,34,46,.86), rgba(6,19,27,.90)); border-color:rgba(0,229,255,.30);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  box-shadow:0 24px 70px -12px rgba(0,0,0,.8), 0 0 40px -18px rgba(0,229,255,.5);
+}
+.login-field input{ background:rgba(4,15,22,.7); border-color:var(--line); }
+.login-field input:hover{ border-color:rgba(0,229,255,.5); }
+.login-field input:focus{ border-color:var(--cyan); box-shadow:var(--glow-cyan); }
+#login-forgot:hover{ color:var(--cyan); }
+#login-msg.err{ color:var(--red-a); } #login-msg.ok{ color:var(--turq); }
+
+/* ---------- 14) Mobile: mantém o comportamento original da barra inferior ---------- */
+@media (max-width:820px){
+  .navitem,.navitem:hover{ border-left:none; }
+  .navitem.active{ border-left:none; border-bottom:2px solid var(--turq); background:linear-gradient(180deg, rgba(0,214,201,.24), rgba(7,59,76,.35)); }
+  .sidebar{ background:rgba(5,14,20,.94); box-shadow:0 -10px 28px -14px rgba(0,0,0,.8); }
+}
+body.force-mobile .navitem,body.force-mobile .navitem:hover{ border-left:none; }
+body.force-mobile .navitem.active{ border-left:none; border-bottom:2px solid var(--turq); background:linear-gradient(180deg, rgba(0,214,201,.24), rgba(7,59,76,.35)); }
+body.force-mobile .sidebar{ background:rgba(5,14,20,.94); box-shadow:0 -10px 28px -14px rgba(0,0,0,.8); }
+
+/* ---------- 15) Acessibilidade de movimento/transparência ---------- */
+@media (prefers-reduced-motion: reduce){
+  .navitem,.btn,.chip,.perf-tab,.cal-cell,.map-pin .dot,.fixo-pin .dot{ transition:none; }
+}
+@media (prefers-reduced-transparency: reduce){
+  .sidebar,.login-box,.modal-backdrop,.period-pill{ -webkit-backdrop-filter:none; backdrop-filter:none; }
+  .card{ background:#0b2230; }
+}
+</style>
 </head>
 <body>
 
@@ -948,6 +1249,40 @@ function wireSortHeaders(theadId, tableId, redrawFn){
 }
 Chart.defaults.color = '#a7a9ac'; Chart.defaults.font.family = "Inter, sans-serif"; Chart.defaults.font.size = 11; Chart.defaults.borderColor = '#333537';
 const PAL = {geral:'#00c2b8', orc:'#e0293a', os:'#4d8dff', compras:'#ff5470', equip:'#22c55e', pessoas:'#a78bfa', agenda:'#ff2d55', mapa:'#22d3ee', performance:'#ffa629', utilidades:'#38bdf8', red:'#ef4444', green:'#00c2b8', amber:'#ffa629', gray:'#a7a9ac'};
+/* TEMA-ALUMINIO-JS:BEGIN — apenas aparência dos gráficos + foco de teclado (não altera dados/lógica) */
+Object.assign(PAL, {geral:'#00D6C9', orc:'#00E5FF', os:'#168BFF', compras:'#FF7A59', equip:'#4ADE80', pessoas:'#A78BFA', agenda:'#F472B6', mapa:'#5EEAD4', performance:'#FFC247', utilidades:'#38BDF8', red:'#FF4D5A', green:'#00D6C9', amber:'#FFAA33', gray:'#8CA5B5', text:'#EAF6FF'});
+const CHART_TXT  = '#B5CCD9';                    // eixos, legendas, títulos
+const CHART_GRID = 'rgba(130,205,230,.14)';       // grades discretas
+const CHART_SEP  = '#0a1c27';                     // separador de fatias (rosca/pizza)
+Chart.defaults.color = CHART_TXT;
+Chart.defaults.borderColor = CHART_GRID;
+Chart.defaults.font.family = "Inter, sans-serif";
+Chart.defaults.plugins.legend.labels.color = CHART_TXT;
+Object.assign(Chart.defaults.plugins.tooltip, {
+  backgroundColor:'rgba(4,16,24,.95)', borderColor:'rgba(0,229,255,.60)', borderWidth:1,
+  titleColor:'#EAF6FF', bodyColor:'#CFE6F2', padding:10, cornerRadius:8, boxPadding:4, displayColors:true
+});
+(function(){ /* teclado: itens clicáveis (div) ganham foco e respondem a Enter/Espaço */
+  const SEL = '.navitem, .chip, .cal-cell, .fixo-leg-item';
+  let queued = false;
+  function decorate(){
+    queued = false;
+    document.querySelectorAll(SEL).forEach(el=>{
+      if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
+      if(!el.hasAttribute('role')) el.setAttribute('role','button');
+    });
+  }
+  function schedule(){ if(!queued){ queued = true; requestAnimationFrame(decorate); } }
+  decorate();
+  new MutationObserver(schedule).observe(document.body, {childList:true, subtree:true});
+  document.addEventListener('keydown', e=>{
+    if(e.key!=='Enter' && e.key!==' ') return;
+    const el = e.target.closest && e.target.closest(SEL);
+    if(!el || el!==e.target) return;
+    e.preventDefault(); el.click();
+  });
+})();
+/* TEMA-ALUMINIO-JS:END */
 
 document.querySelectorAll('.navitem').forEach(el=>{
   el.addEventListener('click', ()=>{
@@ -991,13 +1326,13 @@ function renderGeral(){
   new Chart(document.getElementById('chart-os-trend'), {type:'line', data:{labels:t.months.map(monthLabel), datasets:[
     {label:'Preventiva', data:t.preventiva, borderColor:PAL.mapa, backgroundColor:PAL.mapa+'22', tension:.35, fill:true, pointRadius:0, borderWidth:2},
     {label:'Corretiva', data:t.corretiva, borderColor:PAL.amber, backgroundColor:PAL.amber+'15', tension:.35, fill:true, pointRadius:0, borderWidth:2},
-  ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top', align:'end', labels:{boxWidth:8,boxHeight:8,usePointStyle:true}}}, scales:{x:{grid:{display:false}, ticks:{maxTicksLimit:12}}, y:{grid:{color:'#26282a'}, beginAtZero:true}}}});
+  ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top', align:'end', labels:{boxWidth:8,boxHeight:8,usePointStyle:true}}}, scales:{x:{grid:{display:false}, ticks:{maxTicksLimit:12}}, y:{grid:{color:CHART_GRID}, beginAtZero:true}}}});
 
   const tc = DATA.top_equipment_geral.slice(0,8);
-  new Chart(document.getElementById('chart-top-corretiva'), {type:'bar', data:{labels:tc.map(d=>d.equipamento.trim()), datasets:[{data:tc.map(d=>d.count), backgroundColor:PAL.geral, borderRadius:4, maxBarThickness:16}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}}}}});
+  new Chart(document.getElementById('chart-top-corretiva'), {type:'bar', data:{labels:tc.map(d=>d.equipamento.trim()), datasets:[{data:tc.map(d=>d.count), backgroundColor:PAL.geral, borderRadius:4, maxBarThickness:16}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:CHART_GRID}}, y:{grid:{display:false}}}}});
 
   const cd = DATA.classif_dist; const order=['AA','A','B','C']; const cc={AA:PAL.red,A:PAL.amber,B:PAL.os,C:PAL.gray};
-  new Chart(document.getElementById('chart-crit-dist'), {type:'doughnut', data:{labels:order, datasets:[{data:order.map(k=>cd[k]||0), backgroundColor:order.map(k=>cc[k]), borderColor:'#171819', borderWidth:3}]}, options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12}}}}});
+  new Chart(document.getElementById('chart-crit-dist'), {type:'doughnut', data:{labels:order, datasets:[{data:order.map(k=>cd[k]||0), backgroundColor:order.map(k=>cc[k]), borderColor:CHART_SEP, borderWidth:3}]}, options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12}}}}});
 
   function drawMonthDependent(){
     const ym = mesSel.value;
@@ -1020,7 +1355,7 @@ function renderGeral(){
     const statusCounts = {}; rows.forEach(o=>{ statusCounts[o.status]=(statusCounts[o.status]||0)+1; });
     const statusColors = {'Encerrado':PAL.green,'1-Em curso':PAL.os,'Concluído':PAL.mapa,'Anulado . Fora de prazo':PAL.red};
     if(window.__geralStatusChart) window.__geralStatusChart.destroy();
-    window.__geralStatusChart = new Chart(document.getElementById('chart-os-status'), {type:'pie', data:{labels:Object.keys(statusCounts), datasets:[{data:Object.values(statusCounts), backgroundColor:Object.keys(statusCounts).map(k=>statusColors[k]||PAL.gray), borderColor:'#171819', borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12,font:{size:10}}}}}});
+    window.__geralStatusChart = new Chart(document.getElementById('chart-os-status'), {type:'pie', data:{labels:Object.keys(statusCounts), datasets:[{data:Object.values(statusCounts), backgroundColor:Object.keys(statusCounts).map(k=>statusColors[k]||PAL.gray), borderColor:CHART_SEP, borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12,font:{size:10}}}}}});
   }
   mesSel.addEventListener('change', drawMonthDependent);
   drawMonthDependent();
@@ -1086,7 +1421,7 @@ async function renderOrcamento(){
         {type:'bar', label:'Demais categorias — Realizado', data:hist.map(h=>h.total_demais_categorias), backgroundColor:PAL.gray+'99', borderRadius:5, maxBarThickness:26},
         {type:'line', label:`Budget Equipamentos (${fmtBRL(BUDGET_FIXO)})`, data:hist.map(()=>BUDGET_FIXO), borderColor:PAL.orc, borderWidth:2, borderDash:[5,4], pointRadius:2},
         {type:'line', label:`Budget Geral (${fmtBRL(BUDGET_GERAL)})`, data:hist.map(()=>BUDGET_GERAL), borderColor:PAL.text||'#aaa', borderWidth:2, borderDash:[2,3], pointRadius:2},
-      ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top', align:'end', labels:{boxWidth:8,boxHeight:8,usePointStyle:true, font:{size:10}}}}, scales:{x:{grid:{display:false}, stacked:true}, y:{grid:{color:'#26282a'}, stacked:true, ticks:{callback:v=>fmtBRL(v)}}}}
+      ]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top', align:'end', labels:{boxWidth:8,boxHeight:8,usePointStyle:true, font:{size:10}}}}, scales:{x:{grid:{display:false}, stacked:true}, y:{grid:{color:CHART_GRID}, stacked:true, ticks:{callback:v=>fmtBRL(v)}}}}
     });
   }
 
@@ -1096,11 +1431,11 @@ async function renderOrcamento(){
     const labels = CONS.categorias || [];
     const vals = labels.map(cat => cm && cm.por_categoria[cat] ? cm.por_categoria[cat].total : 0);
     if(window.__orcCompChart) window.__orcCompChart.destroy();
-    window.__orcCompChart = new Chart(document.getElementById('chart-orc-comp'), {type:'doughnut', data:{labels, datasets:[{data:vals, backgroundColor:labels.map(l=>CAT_CORES[l]||PAL.gray), borderColor:'#171819', borderWidth:3}]}, options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12,font:{size:10}}}, tooltip:{callbacks:{label:c=>c.label+': '+fmtBRL(c.parsed)}}}}});
+    window.__orcCompChart = new Chart(document.getElementById('chart-orc-comp'), {type:'doughnut', data:{labels, datasets:[{data:vals, backgroundColor:labels.map(l=>CAT_CORES[l]||PAL.gray), borderColor:CHART_SEP, borderWidth:3}]}, options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12,font:{size:10}}}, tooltip:{callbacks:{label:c=>c.label+': '+fmtBRL(c.parsed)}}}}});
   }
 
   const tf = DATA.top_fornecedores.slice(0,6);
-  new Chart(document.getElementById('chart-fornecedores'), {type:'bar', data:{labels:tf.map(d=>d.fornecedor.length>16?d.fornecedor.slice(0,16)+'…':d.fornecedor), datasets:[{data:tf.map(d=>d.valor), backgroundColor:PAL.os, borderRadius:4, maxBarThickness:14}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtBRL(c.parsed.x)}}}, scales:{x:{grid:{color:'#26282a'}, ticks:{callback:v=>fmtBRL(v)}}, y:{grid:{display:false}}}}});
+  new Chart(document.getElementById('chart-fornecedores'), {type:'bar', data:{labels:tf.map(d=>d.fornecedor.length>16?d.fornecedor.slice(0,16)+'…':d.fornecedor), datasets:[{data:tf.map(d=>d.valor), backgroundColor:PAL.os, borderRadius:4, maxBarThickness:14}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtBRL(c.parsed.x)}}}, scales:{x:{grid:{color:CHART_GRID}, ticks:{callback:v=>fmtBRL(v)}}, y:{grid:{display:false}}}}});
 
   const nfMesSel = document.getElementById('nf-mes-filter');
   [...new Set(DATA.nf_list.map(n=>n.mes))].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; nfMesSel.appendChild(o); });
@@ -1202,10 +1537,10 @@ function renderOS(){
     const byStatus = {}; rows.forEach(o=>{ byStatus[o.status]=(byStatus[o.status]||0)+1; });
     const tipoColors = [PAL.os,PAL.amber,PAL.pessoas,PAL.compras,PAL.agenda,PAL.gray];
     if(window.__osTipoChart) window.__osTipoChart.destroy();
-    window.__osTipoChart = new Chart(document.getElementById('chart-os-tipo-mes'), {type:'pie', data:{labels:Object.keys(byTipo), datasets:[{data:Object.values(byTipo), backgroundColor:tipoColors, borderColor:'#171819', borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:7,boxHeight:7,usePointStyle:true,font:{size:9.5}}}, title:{display:true, text:'Por tipo', color:'#a7a9ac', font:{size:10.5}}}}});
+    window.__osTipoChart = new Chart(document.getElementById('chart-os-tipo-mes'), {type:'pie', data:{labels:Object.keys(byTipo), datasets:[{data:Object.values(byTipo), backgroundColor:tipoColors, borderColor:CHART_SEP, borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:7,boxHeight:7,usePointStyle:true,font:{size:9.5}}}, title:{display:true, text:'Por tipo', color:CHART_TXT, font:{size:10.5}}}}});
     if(window.__osStatusChart) window.__osStatusChart.destroy();
     const statusColors = {'Encerrado':PAL.green,'1-Em curso':PAL.os,'Concluído':PAL.mapa,'Anulado . Fora de prazo':PAL.red};
-    window.__osStatusChart = new Chart(document.getElementById('chart-os-status-mes'), {type:'pie', data:{labels:Object.keys(byStatus), datasets:[{data:Object.values(byStatus), backgroundColor:Object.keys(byStatus).map(k=>statusColors[k]||PAL.gray), borderColor:'#171819', borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:7,boxHeight:7,usePointStyle:true,font:{size:9.5}}}, title:{display:true, text:'Por status', color:'#a7a9ac', font:{size:10.5}}}}});
+    window.__osStatusChart = new Chart(document.getElementById('chart-os-status-mes'), {type:'pie', data:{labels:Object.keys(byStatus), datasets:[{data:Object.values(byStatus), backgroundColor:Object.keys(byStatus).map(k=>statusColors[k]||PAL.gray), borderColor:CHART_SEP, borderWidth:2}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:7,boxHeight:7,usePointStyle:true,font:{size:9.5}}}, title:{display:true, text:'Por status', color:CHART_TXT, font:{size:10.5}}}}});
   }
   mesSel.addEventListener('change', drawPrevCards);
 
@@ -1230,15 +1565,15 @@ function renderOS(){
 
     const causas = diag.causas;
     if(window.__osDiagCausasChart) window.__osDiagCausasChart.destroy();
-    window.__osDiagCausasChart = new Chart(document.getElementById('chart-os-diag-causas'), {type:'bar', data:{labels:causas.map(c=>c.causa), datasets:[{data:causas.map(c=>c.count), backgroundColor:causas.map((c,i)=>diagPal[i%diagPal.length]), borderRadius:4, maxBarThickness:18}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Causa raiz (por palavras-chave na descrição)', color:'#a7a9ac', font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS (${fmtPct(causas[c.dataIndex].pct)}) · MTTR ${causas[c.dataIndex].mttr_h!=null?fmtNum(causas[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
+    window.__osDiagCausasChart = new Chart(document.getElementById('chart-os-diag-causas'), {type:'bar', data:{labels:causas.map(c=>c.causa), datasets:[{data:causas.map(c=>c.count), backgroundColor:causas.map((c,i)=>diagPal[i%diagPal.length]), borderRadius:4, maxBarThickness:18}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Causa raiz (por palavras-chave na descrição)', color:CHART_TXT, font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS (${fmtPct(causas[c.dataIndex].pct)}) · MTTR ${causas[c.dataIndex].mttr_h!=null?fmtNum(causas[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:CHART_GRID}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
     const equipD = diag.equipamentos.slice(0,10);
     if(window.__osDiagEquipChart) window.__osDiagEquipChart.destroy();
-    window.__osDiagEquipChart = new Chart(document.getElementById('chart-os-diag-equip'), {type:'bar', data:{labels:equipD.map(e=>(e.equipamento||'').trim()), datasets:[{data:equipD.map(e=>e.count), backgroundColor:PAL.compras, borderRadius:4, maxBarThickness:18}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Equipamentos mais afetados (corretivas)', color:'#a7a9ac', font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS · MTTR ${equipD[c.dataIndex].mttr_h!=null?fmtNum(equipD[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
+    window.__osDiagEquipChart = new Chart(document.getElementById('chart-os-diag-equip'), {type:'bar', data:{labels:equipD.map(e=>(e.equipamento||'').trim()), datasets:[{data:equipD.map(e=>e.count), backgroundColor:PAL.compras, borderRadius:4, maxBarThickness:18}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Equipamentos mais afetados (corretivas)', color:CHART_TXT, font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS · MTTR ${equipD[c.dataIndex].mttr_h!=null?fmtNum(equipD[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:CHART_GRID}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
     const comps = diag.componentes.slice(0,12);
     if(window.__osDiagCompChart) window.__osDiagCompChart.destroy();
-    window.__osDiagCompChart = new Chart(document.getElementById('chart-os-diag-componentes'), {type:'bar', data:{labels:comps.map(c=>c.componente), datasets:[{data:comps.map(c=>c.count), backgroundColor:PAL.equip, borderRadius:4, maxBarThickness:16}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Componentes mais citados na descrição', color:'#a7a9ac', font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS · MTTR ${comps[c.dataIndex].mttr_h!=null?fmtNum(comps[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
+    window.__osDiagCompChart = new Chart(document.getElementById('chart-os-diag-componentes'), {type:'bar', data:{labels:comps.map(c=>c.componente), datasets:[{data:comps.map(c=>c.count), backgroundColor:PAL.equip, borderRadius:4, maxBarThickness:16}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, title:{display:true, text:'Componentes mais citados na descrição', color:CHART_TXT, font:{size:10.5}}, tooltip:{callbacks:{label:c=>`${fmtNum(c.parsed.x)} OS · MTTR ${comps[c.dataIndex].mttr_h!=null?fmtNum(comps[c.dataIndex].mttr_h,2)+'h':'—'}`}}}, scales:{x:{grid:{color:CHART_GRID}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
     document.getElementById('os-diag-causas-tbody').innerHTML = causas.map(c=>`
       <tr><td>${c.causa}</td><td class="mono">${fmtNum(c.count)}</td><td class="mono">${fmtPct(c.pct)}</td><td class="mono">${c.mttr_h!=null?fmtNum(c.mttr_h,2)+'h':'—'}</td></tr>`).join('');
@@ -1595,10 +1930,10 @@ async function renderPessoas(){
   const tt = DATA.hh_tipo_trend;
   const colors=[PAL.amber,PAL.mapa,PAL.compras,PAL.os,PAL.green,PAL.red,'#e8e8e8','#7d8ba1'];
   const keys = Object.keys(tt.series);
-  new Chart(document.getElementById('chart-hh-trend'), {type:'bar', data:{labels:tt.months.map(monthLabel), datasets:keys.map((k,i)=>({label:k, data:tt.series[k], backgroundColor:colors[i%colors.length], stack:'s'}))}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,font:{size:9}}}}, scales:{x:{grid:{display:false}, stacked:true}, y:{grid:{color:'#26282a'}, stacked:true}}}});
+  new Chart(document.getElementById('chart-hh-trend'), {type:'bar', data:{labels:tt.months.map(monthLabel), datasets:keys.map((k,i)=>({label:k, data:tt.series[k], backgroundColor:colors[i%colors.length], stack:'s'}))}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,font:{size:9}}}}, scales:{x:{grid:{display:false}, stacked:true}, y:{grid:{color:CHART_GRID}, stacked:true}}}});
 
   const maxH = Math.max(...DATA.hh_por_funcionario.map(d=>d.horas));
-  new Chart(document.getElementById('chart-hh-ranking'), {type:'bar', data:{labels:DATA.hh_por_funcionario.map(d=>d.nome), datasets:[{data:DATA.hh_por_funcionario.map(d=>d.horas), backgroundColor:PAL.pessoas, borderRadius:4, maxBarThickness:14}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#26282a'}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
+  new Chart(document.getElementById('chart-hh-ranking'), {type:'bar', data:{labels:DATA.hh_por_funcionario.map(d=>d.nome), datasets:[{data:DATA.hh_por_funcionario.map(d=>d.horas), backgroundColor:PAL.pessoas, borderRadius:4, maxBarThickness:14}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:CHART_GRID}}, y:{grid:{display:false}, ticks:{font:{size:10}}}}}});
 
   drawCards(); drawIndiv(); drawEscalaGrade();
 }
@@ -2102,10 +2437,10 @@ function renderUtilidades(){
 
   const histLabels = (util.biomassa_por_mes||[]).map(m=>monthNamesPt[m.mes_num].slice(0,3));
   new Chart(document.getElementById('chart-bio-hist'), {type:'bar', data:{labels:histLabels, datasets:[{label:'TN', data:util.biomassa_por_mes.map(m=>m.tn), backgroundColor:PAL.utilidades, borderRadius:4}]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtNum(c.parsed.y,1)+' TN'}}}, scales:{x:{grid:{display:false}}, y:{grid:{color:'#26282a'}}}}});
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtNum(c.parsed.y,1)+' TN'}}}, scales:{x:{grid:{display:false}}, y:{grid:{color:CHART_GRID}}}}});
 
   const prod = util.biomassa_por_produto || [];
-  new Chart(document.getElementById('chart-bio-produto'), {type:'doughnut', data:{labels:prod.map(p=>p.produto), datasets:[{data:prod.map(p=>p.tn), backgroundColor:[PAL.utilidades,PAL.performance,PAL.equip,PAL.pessoas,PAL.gray], borderColor:'#171819', borderWidth:3}]},
+  new Chart(document.getElementById('chart-bio-produto'), {type:'doughnut', data:{labels:prod.map(p=>p.produto), datasets:[{data:prod.map(p=>p.tn), backgroundColor:[PAL.utilidades,PAL.performance,PAL.equip,PAL.pessoas,PAL.gray], borderColor:CHART_SEP, borderWidth:3}]},
     options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{position:'bottom', labels:{boxWidth:8,boxHeight:8,usePointStyle:true,padding:12,font:{size:10}}}, tooltip:{callbacks:{label:c=>c.label+': '+fmtNum(c.parsed,1)+' TN'}}}}});
 }
 
