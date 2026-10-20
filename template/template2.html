@@ -787,20 +787,19 @@ body.force-mobile .sidebar{ background:rgba(5,14,20,.94); box-shadow:0 -10px 28p
       <div class="card" style="margin-bottom:14px;">
         <div class="card-head"><div class="card-title">Notas de Entrada Geral — Centro de Custo Manutenção<span class="sub" id="nfg-count-sub"></span></div></div>
         <div class="grid g3" style="margin-bottom:12px;">
-          <div class="card kpi" style="border-top:2px solid var(--red);"><div class="kpi-label">Não lançadas pela Manutenção (mês)</div><div class="kpi-value" id="nfg-k-qtd">–</div></div>
-          <div class="card kpi" style="border-top:2px solid var(--red);"><div class="kpi-label">Valor não lançado (mês)</div><div class="kpi-value" id="nfg-k-valor">–</div></div>
-          <div class="card kpi"><div class="kpi-label">Já reconciliadas (lançadas por nós)</div><div class="kpi-value" id="nfg-k-ok">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Notas de entrada (conforme filtro)</div><div class="kpi-value" id="nfg-k-count">–</div></div>
+          <!-- Separação lançado/não lançado mantida só na lógica (nfgFiltered/drawNFG → window.__nfgSplit); sem exibição na tela. -->
         </div>
         <div class="toolbar">
           <input type="text" id="nfg-search" placeholder="Buscar fornecedor, nota, descrição do serviço/produto...">
           <select id="nfg-mes-filter"><option value="">Todos os meses</option></select>
-          <select id="nfg-flag-filter"><option value="">Todas</option><option value="nao">Só não lançadas por Manutenção</option><option value="sim">Só já lançadas por Manutenção</option></select>
+          <select id="nfg-flag-filter" hidden style="display:none"><option value="">Todas</option><option value="nao">Só não lançadas por Manutenção</option><option value="sim">Só já lançadas por Manutenção</option></select>
           <select id="nfg-cat-filter"><option value="">Todas as categorias</option></select>
         </div>
         <div class="table-wrap tbl-scroll">
-          <table><thead id="nfg-thead"><tr><th data-key="nota" data-type="num">Nota</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="descricao" data-type="text">Descrição do serviço/produto</th><th data-key="categoria" data-type="text">Categoria</th><th data-key="data" data-type="date">Data entrada</th><th data-key="valor" data-type="num">Valor</th><th data-key="situacao" data-type="text">Situação</th><th data-key="lancada_pela_manutencao" data-type="text">Lançada p/ Manutenção?</th></tr></thead><tbody id="nfg-tbody"></tbody></table>
+          <table><thead id="nfg-thead"><tr><th data-key="nota" data-type="num">Nota</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="descricao" data-type="text">Descrição do serviço/produto</th><th data-key="categoria" data-type="text">Categoria</th><th data-key="data" data-type="date">Data entrada</th><th data-key="valor" data-type="num">Valor</th><th data-key="situacao" data-type="text">Situação</th></tr></thead><tbody id="nfg-tbody"></tbody></table>
         </div>
-        <div class="foot-note">Este bloco vem da nova aba "Notas de entrada Geral" — todas as notas de fato lançadas no centro de custo de Manutenção, mesmo que não tenham passado pelo controle interno da sala de manutenção (aba de NF original). O sinalizador compara pelo número da nota/NF; quando não há correspondência, a nota provavelmente foi lançada por outro setor mas ainda afeta nosso número — vale revisar essas linhas para não perder o registro nem contar em duplicidade.</div>
+        <div class="foot-note">Este bloco vem da aba "Notas de entrada Geral" — todas as notas de fato lançadas no centro de custo de Manutenção. O card acima conta as notas conforme os filtros de mês, categoria e busca selecionados.</div>
       </div>
       <div class="card" style="margin-bottom:14px;">
         <div class="card-head"><div class="card-title">Notas Fiscais (lançadas pela sala de Manutenção)<span class="sub" id="nf-count-sub"></span></div></div>
@@ -1527,9 +1526,10 @@ async function renderOrcamento(){
     const rows = nfgFiltered();
     const naoLancadas = rows.filter(n=>!n.lancada_pela_manutencao);
     const lancadas = rows.filter(n=>n.lancada_pela_manutencao);
-    document.getElementById('nfg-k-qtd').textContent = fmtNum(naoLancadas.length);
-    document.getElementById('nfg-k-valor').textContent = fmtBRL(naoLancadas.reduce((a,n)=>a+(n.valor||0),0));
-    document.getElementById('nfg-k-ok').textContent = fmtNum(lancadas.length);
+    // Card visível: contagem conforme a filtragem atual (mês, busca, categoria).
+    document.getElementById('nfg-k-count').textContent = fmtNum(rows.length);
+    // Separação lançado × não lançado: velada (não exibida), disponível para uso futuro.
+    window.__nfgSplit = { naoLancadas, lancadas, valorNaoLancado: naoLancadas.reduce((a,n)=>a+(n.valor||0),0) };
     const sorted = applySort('nfg', rows);
     document.getElementById('nfg-tbody').innerHTML = sorted.map(n=>`
       <tr><td class="mono">${n.nota}</td><td>${n.fornecedor||'—'}</td>
@@ -1537,7 +1537,7 @@ async function renderOrcamento(){
       <td>${n.categoria||'—'}</td>
       <td class="mono">${n.data?n.data.split(' ')[0].split('-').reverse().join('/'):'—'}</td>
       <td class="mono">${fmtBRL(n.valor)}</td><td>${n.situacao||'—'}</td>
-      <td><span class="badge ${n.lancada_pela_manutencao?'b-green':'b-red'}">${n.lancada_pela_manutencao?'Sim':'Não'}</span></td></tr>`).join('') || `<tr><td colspan="8" class="empty">Nenhuma nota encontrada</td></tr>`;
+      </tr>`).join('') || `<tr><td colspan="7" class="empty">Nenhuma nota encontrada</td></tr>`;
   }
   wireSortHeaders('nfg-thead', 'nfg', drawNFG);
   [nfgMesSel, document.getElementById('nfg-flag-filter'), nfgCatSel].forEach(el=>el.addEventListener('change', drawNFG));

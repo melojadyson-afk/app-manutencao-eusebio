@@ -175,7 +175,9 @@ _LIMPEZA_FORTE_RE = _re.compile(
     r'\bpapel toalha|\bodorizador|\bdesodorizador|\bhidrojateamento|\blimpeza tecnica|'
     r'\bvassoura|\brodo\b|\bpano de limpeza|\bpano multiuso|\besponja\b|'
     r'\bagua sanitaria|\balcool (etilico|70|isopropilico)|\blimpador perfumado|'
-    r'\bprato plastico descartavel|\blimpa (inox|vidro|aco|metal)|\bescova (plastica|de limpeza)'
+    r'\bprato plastico descartavel|\blimpa (inox|vidro|aco|metal)|\bescova (plastica|de limpeza)|'
+    # --- Atualização out/2026 ---
+    r'\bdesengordurante|\blimpador(es)?\b|\bcera (liquida|automotiva|auto)'
 )
 _PREDIAL_RE = _re.compile(
     r'\bobra civil|\bobra predial|\breforma (predial|do predio|da fabrica|do galpao|da sala|do escritorio|do refeitorio|do banheiro|do telhado)|'
@@ -195,7 +197,9 @@ _PREDIAL_RE = _re.compile(
     r'\bconstrucao civil|\breforma (do )?banheiro|\bacessorios? (para )?banheiro|'
     r'\btelha(s)?\b|\bpredial\b|\brocadeira\b|\bsoprador de folhas|\breservatorio de agua|\bandaime(s)?\b|'
     r'\bbrita\b|\bpedra brita\b|\bcimento\b|\bbloco de concreto|\bbloco ceramico|'
-    r'\btijolo(s)?\b|\bargamassa\b|\brejunte\b|\bmaterial(is)? de construcao'
+    r'\btijolo(s)?\b|\bargamassa\b|\brejunte\b|\bmaterial(is)? de construcao|'
+    # --- Atualização out/2026 ---
+    r'\bcadeira(s)? plastica'
 )
 _EQUIP_RE = _re.compile(
     r'\bpecas?\b|\bcomponente|\brolamento|\bcorreia|\bsensor|\bmotor(es)?\b|'
@@ -264,7 +268,23 @@ _EQUIP_RE = _re.compile(
     r'\bescova (de aco|tubular|rotativa)|\btampa condulete|\bcontra faca|'
     r'\bmorsa\b|\btorno (de )?bancada|\bplaca de sinalizacao|'
     r'\binstalacao eletrica\b|\bpressostato\b|\bselo mecanico|\bkit junta|'
-    r'\btermostato\b|\brefletor(es)?\b|\bfita zebrada'
+    r'\btermostato\b|\brefletor(es)?\b|\bfita zebrada|'
+    # --- Atualização out/2026 (cruzamento com a base do controller de Equipamentos) ---
+    # Regra de negócio: tudo o que consta na base do controller é Equipamentos. Termos
+    # abaixo vieram das notas de out/2026 e de lacunas vistas na aba Orçamento (jan–out).
+    # PENDENTE de decisão: 'pintura'/'thinner' seguem em Predial (a base do controller
+    # lançou 2 notas de pintura como Equipamentos); calibração e despesas aduaneiras
+    # seguem em Equipamentos (a base do controller não as inclui).
+    # Itens que o controller lança em Equipamentos e o dicionário não reconhecia
+    # (caíam em "Outros" e ficavam FORA do total geral):
+    r'\bbateria(s)? (tracionaria|estacionaria|de empilhadeira|de plataforma)|'
+    r'\babracadeira(s)?\b|\bdobradica(s)?\b|\bbarra(s)? roscada|'
+    r'\bbobina(s)?( de)? solenoide|\bsolenoide(s)?\b|'
+    r'\balarme(s)? de incendio|\bdeteccao (de )?incendio|\bsistema de deteccao|'
+    r'\bmotor.?redutor|\bmancais\b|\brebobin\w*|\b(transporte|frete) emergencial|'
+    r'\bchave (de )?roda|\bmandril|\bmetalon|\btubo(s)? (redondo|retangular|quadrado)|'
+    r'\bnodulo(s)?\b|\bkannegiesser|\bisolamento termico|'
+    r'\bsuporte(s)? (para|de) (prensa|motor|equipamento)'
 )
 # Fornecedor de energia/utilidade sem descrição própria — cai em Equipamentos
 # como custo operacional (não há centro de custo de Utilidades separado).
