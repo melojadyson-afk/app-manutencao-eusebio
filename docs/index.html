@@ -788,6 +788,7 @@ body.force-mobile .sidebar{ background:rgba(5,14,20,.94); box-shadow:0 -10px 28p
         <div class="card-head"><div class="card-title">Notas de Entrada Geral — Centro de Custo Manutenção<span class="sub" id="nfg-count-sub"></span></div></div>
         <div class="grid g3" style="margin-bottom:12px;">
           <div class="card kpi"><div class="kpi-label">Notas de entrada (conforme filtro)</div><div class="kpi-value" id="nfg-k-count">–</div></div>
+          <div class="card kpi"><div class="kpi-label">Valor total das notas (conforme filtro)</div><div class="kpi-value" id="nfg-k-valor">–</div></div>
           <!-- Separação lançado/não lançado mantida só na lógica (nfgFiltered/drawNFG → window.__nfgSplit); sem exibição na tela. -->
         </div>
         <div class="toolbar">
@@ -1528,6 +1529,8 @@ async function renderOrcamento(){
     const lancadas = rows.filter(n=>n.lancada_pela_manutencao);
     // Card visível: contagem conforme a filtragem atual (mês, busca, categoria).
     document.getElementById('nfg-k-count').textContent = fmtNum(rows.length);
+    // Somatório dos valores da seleção atual (mês, busca, categoria), com centavos para conferência com o controller.
+    document.getElementById('nfg-k-valor').textContent = rows.reduce((a,n)=>a+(Number(n.valor)||0),0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2});
     // Separação lançado × não lançado: velada (não exibida), disponível para uso futuro.
     window.__nfgSplit = { naoLancadas, lancadas, valorNaoLancado: naoLancadas.reduce((a,n)=>a+(n.valor||0),0) };
     const sorted = applySort('nfg', rows);
