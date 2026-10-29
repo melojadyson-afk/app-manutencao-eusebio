@@ -756,6 +756,24 @@ body.force-mobile .sidebar{ background:rgba(5,14,20,.94); box-shadow:0 -10px 28p
 @media(max-width:1100px){.mp-main{grid-template-columns:1fr}.mp-kpis{grid-template-columns:repeat(2,1fr)}}
 body.force-mobile .mp-main{grid-template-columns:1fr}body.force-mobile .mp-kpis{grid-template-columns:repeat(2,1fr)}
 body.force-mobile #mp-chips{right:60px}body.force-mobile .mp-map{height:70vh}
+
+#mp-lines{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+#mp-lines .mp-lhit{pointer-events:stroke}
+.mp-pin.ghost{pointer-events:none}.mp-pin.ghost .d{width:7px;height:7px;left:-3.5px;top:-3.5px;background:#2e4a5c;border:0;box-shadow:none;opacity:.8}
+.mp-pt{position:absolute;width:0;height:0}.mp-pt:hover,.mp-pt.sel{z-index:5}
+.mp-pt .d{position:absolute;left:-11px;top:-11px;width:22px;height:22px;border-radius:50%;background:var(--pc);color:#04101a;border:2px solid #04101a;box-shadow:0 0 0 1px var(--pc),0 0 12px var(--pc);display:grid;place-items:center;font:700 9.5px 'IBM Plex Mono',monospace;transform:scale(var(--inv,1));cursor:pointer}
+.mp-pt.sel .d{box-shadow:0 0 0 2px #fff,0 0 18px var(--pc)}.mp-pt.dim .d{opacity:.15}
+.mp-pt .lb{position:absolute;left:14px;top:-30px;white-space:nowrap;background:#04101aee;border:1px solid var(--pc);color:#eaf6ff;padding:3px 8px;border-radius:7px;font:600 11px Inter;pointer-events:none;opacity:0;transform:scale(var(--inv,1));transform-origin:0 100%}
+.mp-pt:hover .lb,.mp-pt.sel .lb{opacity:1}
+#mp-draw{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);z-index:7;display:flex;gap:8px;align-items:center;background:#071823ee;border:1px solid #5eead4;border-radius:12px;padding:8px 12px;font-size:12px;color:var(--text);backdrop-filter:blur(6px);white-space:nowrap}
+#mp-draw .btn:disabled{opacity:.35;cursor:default}
+.mp-list{max-height:360px;overflow:auto;margin:0 -4px}
+.mp-row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;cursor:pointer;color:var(--text)}.mp-row:hover{background:#ffffff0d}.mp-row.on{background:color-mix(in srgb,#5eead4 14%,transparent)}.mp-row.ro{cursor:default}
+.mp-row .chipn{flex:none;min-width:26px;height:20px;padding:0 6px;border-radius:6px;text-align:center;line-height:20px;color:#04101a;font:700 10.5px 'IBM Plex Mono',monospace}
+.mp-row .n{flex:1;line-height:1.25;font-size:12.5px}.mp-row .n small{display:block;font:500 10.5px 'IBM Plex Mono',monospace;color:var(--text-dimmer)}
+.mp-links{margin-top:10px;display:flex;flex-direction:column;gap:6px}.mp-links div{background:#06141d;border:1px solid var(--mpl);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--text)}
+.mp-links span{font-size:10px;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.6px;margin-right:6px}.mp-links small{display:block;color:var(--text-dim);margin-top:2px}
+.mp-sub b{color:var(--text)}
 </style>
 </head>
 <body>
@@ -1228,15 +1246,14 @@ body.force-mobile #mp-chips{right:60px}body.force-mobile .mp-map{height:70vh}
     <div class="view" id="view-mapa" style="--tab-color:var(--c-mapa)">
       <div class="topbar">
         <div><div class="pagetitle"><span class="dot"></span>Mapa</div><div class="pagesub" id="mapa-subtitle">Planta interativa 2D e 3D — status, saúde e incidência de corretivas dos ativos</div></div>
-        <select id="mapa-tipo-select" class="period-pill mono" style="border:1px solid color-mix(in srgb, var(--c-mapa) 35%, transparent);">
-          <option value="equipamentos">Mapa de Equipamentos</option>
-          <option value="eletrico">Mapa Elétrico</option>
-          <option value="hidraulico">Mapa Hidráulico</option>
-          <option value="vapor">Mapa de Vapor</option>
-          <option value="ar">Mapa de Linha de Ar</option>
-          <option value="bombas">Mapa de Bombas</option>
-          <option value="esteiras">Mapa de Esteiras</option>
-          <option value="carros">Mapa de Carros de Transporte</option>
+        <select id="mp-layer" class="period-pill mono" style="border:1px solid color-mix(in srgb, var(--c-mapa) 35%, transparent);">
+          <option value="equip">Equipamentos</option>
+          <option value="quadros">Quadros elétricos</option>
+          <option value="bombas">Bombas</option>
+          <option value="motores">Motores</option>
+          <option value="vapor">Linha de vapor</option>
+          <option value="agua">Linha de água</option>
+          <option value="ar">Linha de ar comprimido</option>
         </select>
       </div>
 
@@ -1245,21 +1262,22 @@ body.force-mobile #mp-chips{right:60px}body.force-mobile .mp-map{height:70vh}
         <div class="mp">
           <div class="mp-kpis" id="mp-kpis"></div>
           <div class="mp-bar2">
-            <input id="mp-q" placeholder="Buscar equipamento ou TAG">
+            <input id="mp-q" placeholder="Buscar por nome, número ou TAG">
             <div class="mp-sp"></div>
             <div class="mp-seg" id="mp-mode"><button data-m="status" class="on">Status</button><button data-m="saude">Saúde do ativo</button><button data-m="corr">Corretivas</button></div>
             <div class="mp-seg" id="mp-floor"><button data-f="terreo" class="on">Térreo</button><button data-f="superior">Superior</button></div>
             <button class="btn" id="mp-mez" style="display:none">Mezanino: ligado</button>
             <div class="mp-seg" id="mp-dim"><button data-d="2" class="on">2D</button><button data-d="3">3D</button></div>
-            <button class="btn" id="mp-edit" title="Vincular ou remover pinos na planta">Editar pinos</button>
+            <button class="btn" id="mp-edit" title="Cadastrar, mover ou remover itens na planta">Editar</button>
           </div>
           <div class="mp-main">
             <div class="mp-map" id="mp-map">
-              <div id="mp-vp"><div id="mp-stage"><img id="mp-plan" alt="Planta baixa BR-Eusébio"><div id="mp-pins"></div></div></div>
+              <div id="mp-vp"><div id="mp-stage"><img id="mp-plan" alt="Planta baixa BR-Eusébio"><svg id="mp-lines" viewBox="0 0 100 100" preserveAspectRatio="none"></svg><div id="mp-pins"></div></div></div>
               <div id="mp-3d" style="display:none"><svg id="mp-svg"></svg></div>
               <div id="mp-chips"></div>
               <div class="mp-zoom" id="mp-zoom2d"><button id="mp-zi">+</button><button id="mp-zo">−</button><button id="mp-zf" title="Ajustar">⤢</button></div>
               <div class="mp-zoom" id="mp-zoom3d" style="display:none"><button id="mp-rl" title="Girar à esquerda">⟲</button><button id="mp-rr" title="Girar à direita">⟳</button><button id="mp-zf3" title="Planta toda">⤢</button></div>
+              <div id="mp-draw" style="display:none"><span id="mp-draw-t"></span><button class="btn" id="mp-draw-undo">Desfazer ponto</button><button class="btn primary" id="mp-draw-ok">Concluir</button><button class="btn" id="mp-draw-x">Cancelar</button></div>
               <div id="mp-legend"></div>
               <div id="mp-hint"></div>
               <div id="mp-tip"></div>
@@ -1269,25 +1287,29 @@ body.force-mobile #mp-chips{right:60px}body.force-mobile .mp-map{height:70vh}
         </div>
       </div>
 
-      <!-- ---- Mapas fixos (Elétrico / Hidráulico / Vapor / Ar) ---- -->
-      <div id="mapa-view-fixo" style="display:none;">
-        <div class="grid" style="grid-template-columns:1fr 300px; gap:14px;">
-          <div class="card">
-            <div class="toolbar" style="justify-content:flex-end;">
-              <span style="color:var(--text-dimmer); font-size:11px; margin-right:auto;" id="mapa-fixo-count"></span>
-              <input type="text" id="mapa-fixo-search" placeholder="Buscar ponto...">
-            </div>
-            <div class="map-wrap" id="mapa-fixo-wrap"><img id="mapa-fixo-img" src="" alt="Planta — pontos de referência"><div id="mapa-fixo-pins"></div></div>
-          </div>
-          <div class="card" style="max-height:640px; overflow-y:auto;" id="mapa-fixo-legend-card">
-            <div style="font-family:'Space Grotesk'; font-weight:600; font-size:13px; margin-bottom:10px;">Legenda</div>
-            <div id="mapa-fixo-legend"></div>
-          </div>
-        </div>
-      </div>
     </div>
 
 
+  </div>
+</div>
+
+<div class="modal-backdrop" id="mp-pt-modal">
+  <div class="modal">
+    <h3 id="mp-pt-title">Cadastrar ponto</h3><p id="mp-pt-sub"></p>
+    <input type="text" id="mp-pt-nome" placeholder="Nome / identificação">
+    <div id="mp-pt-num-wrap"><input type="text" id="mp-pt-num" placeholder="Número do quadro"></div>
+    <input type="text" id="mp-pt-search" placeholder="Vincular ao TOM: buscar por tag ou descrição...">
+    <select id="mp-pt-sel" size="6"></select>
+    <input type="text" id="mp-pt-obs" placeholder="Observação (opcional)">
+    <div class="row"><button class="btn" id="mp-pt-cancel">Cancelar</button><button class="btn primary" id="mp-pt-ok">Salvar</button></div>
+  </div>
+</div>
+<div class="modal-backdrop" id="mp-ln-modal">
+  <div class="modal">
+    <h3>Salvar linha</h3><p id="mp-ln-sub"></p>
+    <input type="text" id="mp-ln-nome" placeholder="Nome da linha (ex.: Vapor — caldeira até lavagem)">
+    <input type="text" id="mp-ln-obs" placeholder="Observação (opcional)">
+    <div class="row"><button class="btn" id="mp-ln-cancel">Cancelar</button><button class="btn primary" id="mp-ln-ok">Salvar linha</button></div>
   </div>
 </div>
 
@@ -2073,7 +2095,7 @@ function makeP3D(svg){
     ['LAVAGEM + MEZANINO (SECAGEM)',9,57,28,15,'#1961AC'],['SECAGEM DE PISO / EXTRATORAS',58,61,31,9,'#00A5AA'],['ACABAMENTO',12,73,40,12,'#4D6576'],
     ['ACABAMENTO · DOBRA',56,77,33,9,'#4D6576'],['GERADORES',56,94,43,5,'#F07D22']].map(z=>({nome:z[0],x:W*z[1]/100,y:D*z[2]/100,w:W*z[3]/100,d:D*z[4]/100,c:z[5]}));
   const VIEWS=[[50,50,1],[24,65,4.2],[34,79,3.6],[75,65,4.6],[70,45,3.6],[22,7,4.5],[75,96,4.5],[45,72,1.9]];
-  let items=[], imgs={t:'',s:''}, OVR={}, HOT={}, rot=0, zoom=1, panx=0, pany=0, sel=null, hideMez=false, S=8, OX=0, OY=0, cb={}, screenPos={};
+  let OV={points:[],lines:[]}, items=[], imgs={t:'',s:''}, OVR={}, HOT={}, rot=0, zoom=1, panx=0, pany=0, sel=null, hideMez=false, S=8, OX=0, OY=0, cb={}, screenPos={};
   const el=(n,at,par)=>{const e=document.createElementNS(NS,n);for(const k in at)e.setAttribute(k,at[k]);if(par)par.appendChild(e);return e;};
   const hexToRgb=h=>{h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.substr(i,2),16));};
   const rgbToHex=a=>'#'+a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
@@ -2164,10 +2186,32 @@ function makeP3D(svg){
       const g=el('g',{class:'mp-eq'},gE); e.draw(g);
       g.addEventListener('mousemove',ev=>cb.hover&&cb.hover(e.it,ev)); g.addEventListener('mouseleave',()=>cb.hover&&cb.hover(null));
       g.addEventListener('click',()=>cb.select&&cb.select(e.it.tag)); });
+    drawOverlay();
     ZONES.forEach(z=>{const cs=[[z.x,z.y],[z.x+z.w,z.y],[z.x+z.w,z.y+z.d],[z.x,z.y+z.d]].map(c=>rp(c[0],c[1]));let best=cs[0];cs.forEach(c=>{if(c[0]+c[1]<best[0]+best[1])best=c;});
       const p=P(best[0],best[1],0);const t=el('text',{x:p[0],y:p[1]-9,'text-anchor':'middle',class:'mp-zl',fill:z.c,stroke:'#04101a','stroke-width':4,'paint-order':'stroke'},svg);t.textContent=z.nome;});
     if(sel&&screenPos[sel]) el('circle',{cx:screenPos[sel][0],cy:screenPos[sel][1],r:11,fill:'none',stroke:'#5eead4','stroke-width':2.2,'stroke-dasharray':'3 3'},svg);
   }
+  function drawOverlay(){
+    const g=el('g',{},svg), zb=f=>f==='superior'?3.9:0, xy=(p,z)=>{const q=rp(p[0]/100*W,p[1]/100*D);return P(q[0],q[1],z);};
+    OV.lines.forEach(l=>{ if(hideMez&&l.floor==='superior') return; const z0=zb(l.floor), zt=z0+(l.floor==='superior'?.9:3.0), top=l.pts.map(p=>xy(p,zt)), base=l.pts.map(p=>xy(p,z0+.1)), op=l.op==null?1:l.op;
+      const gg=el('g',{opacity:op},g);
+      el('polyline',{points:pts(base),fill:'none',stroke:'#000','stroke-opacity':.4,'stroke-width':2,'stroke-dasharray':'4 4'},gg);
+      l.pts.forEach((p,i)=>el('line',{x1:base[i][0],y1:base[i][1],x2:top[i][0],y2:top[i][1],stroke:l.color,'stroke-opacity':.55,'stroke-width':1},gg));
+      el('polyline',{points:pts(top),fill:'none',stroke:'#04101a','stroke-width':l.sel?8:6,'stroke-linejoin':'round','stroke-linecap':'round'},gg);
+      el('polyline',{points:pts(top),fill:'none',stroke:l.color,'stroke-width':l.sel?5:3.4,'stroke-linejoin':'round','stroke-linecap':'round'},gg);
+      if(l.click){ const h=el('polyline',{points:pts(top),fill:'none',stroke:'transparent','stroke-width':14,style:'cursor:pointer'},gg); h.addEventListener('click',()=>cb.line&&cb.line(l.id)); h.addEventListener('mousemove',ev=>cb.hoverOv&&cb.hoverOv({kind:'line',id:l.id},ev)); h.addEventListener('mouseleave',()=>cb.hoverOv&&cb.hoverOv(null)); }
+    });
+    OV.points.forEach(p=>{ if(hideMez&&p.floor==='superior') return; const z0=zb(p.floor), a=xy([p.x,p.y],z0+.1), b=xy([p.x,p.y],z0+3.4);
+      const gg=el('g',{style:'cursor:pointer'},g);
+      el('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:p.color,'stroke-width':1.6,'stroke-opacity':.8},gg);
+      el('ellipse',{cx:a[0],cy:a[1],rx:5,ry:2.5,fill:p.color,opacity:.45},gg);
+      el('circle',{cx:b[0],cy:b[1],r:p.sel?12:9,fill:p.color,stroke:p.sel?'#fff':'#04101a','stroke-width':2},gg);
+      if(p.label){ const t=el('text',{x:b[0],y:b[1]+3.5,'text-anchor':'middle','font-size':p.label.length>2?8:10,'font-weight':700,fill:'#04101a','font-family':'Inter,sans-serif'},gg); t.textContent=p.label; }
+      if(p.sel) screenPos['__ov']=b;
+      gg.addEventListener('click',()=>cb.pt&&cb.pt(p.id)); gg.addEventListener('mousemove',ev=>cb.hoverOv&&cb.hoverOv({kind:'pt',id:p.id},ev)); gg.addEventListener('mouseleave',()=>cb.hoverOv&&cb.hoverOv(null));
+    });
+  }
+  function focusAt(xp,yp,fl,z){ zoom=1;panx=0;pany=0;render(); const q=rp(xp/100*W,yp/100*D),p=P(q[0],q[1],fl==='superior'?3.9:0), r=svg.getBoundingClientRect(); zoom=z||2.8; panx=-zoom*(p[0]-r.width/2); pany=-zoom*(p[1]-r.height/2); render(); }
   function goView(i){ zoom=1;panx=0;pany=0;render(); const v=VIEWS[i]||VIEWS[0]; if(v[2]===1) return; const r=svg.getBoundingClientRect(),q=rp(W*v[0]/100,D*v[1]/100),p=P(q[0],q[1],0);
     zoom=v[2];panx=-zoom*(p[0]-r.width/2);pany=-zoom*(p[1]-r.height/2);render(); }
   function focusTag(tag,z){ zoom=1;panx=0;pany=0;render(); const p=screenPos[tag]; if(!p) return; const r=svg.getBoundingClientRect(); zoom=z||2.8; panx=-zoom*(p[0]-r.width/2); pany=-zoom*(p[1]-r.height/2); render(); }
@@ -2178,7 +2222,7 @@ function makeP3D(svg){
   addEventListener('mouseup',()=>{drag=null;});
   svg.addEventListener('click',ev=>{if(moved){ev.stopPropagation();moved=false;}},true);
   return {
-    setImages(t,s){imgs.t=t;imgs.s=s;}, setItems(a){items=a;}, setColors(map,hot){OVR=map||{};HOT=hot||{};},
+    setImages(t,s){imgs.t=t;imgs.s=s;}, setOverlay(o){OV=o||{points:[],lines:[]};}, focusAt, setItems(a){items=a;}, setColors(map,hot){OVR=map||{};HOT=hot||{};},
     render, view:goView, focus:focusTag, select(tag){sel=tag;}, setMez(on){hideMez=!on;render();}, rotate(d){rot=(rot+d+4)%4;render();},
     on(o){cb=o;}, dims:{W,D}
   };
@@ -2199,10 +2243,19 @@ const MP=(function(){
   const VMAP=[0,7,1,2,3,4,4,5,6,1];
   const ELE=/eletric|motor|inversor|quadro|disjuntor|rele|cabo|fiacao|sensor|painel|contator|fusivel|comando|clp|ihm|fonte|encoder|fim de curso|aterram|reator|resistencia|alarme|erro|placa/;
   const MEC=/rolamento|correia|corrente|engrenagem|eixo|mancal|vazamento|valvula|cilindro|mangueira|bomba|redutor|acoplamento|parafuso|solda|roda|esteira|cinta|cesto|porta|trava|lubrific|graxa|oleo|vedac|retentor|junta|pneum|tubulacao|tubo|trinca|desgaste|ajuste|regulagem|rolo|tela|chapa|garra|pinca|mola|fixac|suporte|faca|lamina/;
+  const LAYERS={
+    equip:{n:'Equipamentos',t:'equip',sub:'Planta interativa 2D e 3D — status, saúde e incidência de corretivas dos ativos'},
+    quadros:{n:'Quadros elétricos',t:'pts',color:'#ff8a3d',klass:'ELC',seed:'eletrico',one:'quadro',sub:'Quadros elétricos — posição na planta e vínculo com o TOM'},
+    bombas:{n:'Bombas',t:'pts',color:'#38bdf8',klass:'PUM',seed:'bombas',one:'bomba',sub:'Bombas — posição na planta e vínculo com o TOM'},
+    motores:{n:'Motores',t:'pts',color:'#c084fc',klass:null,seed:'motores',one:'motor',sub:'Motores — posição na planta e equipamento a que pertencem'},
+    vapor:{n:'Linha de vapor',t:'line',color:'#e2e8f0',sub:'Rede de vapor — trace as linhas sobre a planta'},
+    agua:{n:'Linha de água',t:'line',color:'#22c55e',sub:'Rede de água — trace as linhas sobre a planta'},
+    ar:{n:'Linha de ar comprimido',t:'line',color:'#3b82f6',sub:'Rede de ar comprimido — trace as linhas sobre a planta'}};
+  let layer='equip', pts={quadros:[],bombas:[],motores:[]}, lines=[], draw={pts:[]}, pendingPt=null, selByLayer={}, OSBY={};
   let pins={terreo:[],superior:[]}, items=[], K={}, yms=[], MED=500, floor='terreo', mode='status', dim3=false, mezOn=true, edit=false, sel=null, q='';
   let S=1,TX=0,TY=0,needFit=true,areaIdx=1,p3=null,pending=null,vp,stage,plan,ready=false,maxCorr=1;
   const pc=i=>mode==='status'?stC[i.status]:mode==='saude'?hc(i.saude):(()=>{const r=i.corr/maxCorr;return r>.6?stC.crit:r>.25?stC.aten:stC.ok;})();
-  const hit=i=>!q||(i.nome+' '+i.tag).toLowerCase().includes(q);
+  const hit=i=>!q||(i.nome+' '+i.tag).toLowerCase().includes(q); const hitS=t=>!q||String(t).toLowerCase().includes(q);
 
   /* ---------- dados derivados (tudo vem do DATA já existente) ---------- */
   function derive(){
@@ -2211,12 +2264,12 @@ const MP=(function(){
     MED=(mt.alertas||{}).mediana_mtbf_h||500;
     const os=DATA.os_list||[], ymS=new Set(); const dkey=o=>String(o.data_criacao||o.data_prog||'');
     os.forEach(o=>{const d=dkey(o).slice(0,7); if(/^\d{4}-\d{2}$/.test(d)) ymS.add(d);});
-    yms=[...ymS].sort().slice(-6); const byTag={};
+    yms=[...ymS].sort().slice(-6); const byTag={}; OSBY=byTag;
     [...os].sort((a,b)=>dkey(b).localeCompare(dkey(a))).forEach(o=>{
       const t=o.equipamento_tag; if(!t) return; const r=byTag[t]||(byTag[t]={mes:yms.map(()=>0),ult:[],hp:0,nm:0,ne:0}), d=dkey(o);
       if(o.tipo==='Corretiva'){ const k=yms.indexOf(d.slice(0,7)); if(k>=0) r.mes[k]++; r.hp+=Number(o.horas_parada)||0;
         const tx=nrm(o.desc), e=ELE.test(tx), m=MEC.test(tx); if(m&&!e) r.nm++; else if(e&&!m) r.ne++; else if(e&&m){r.nm+=.5;r.ne+=.5;} }
-      if(r.ult.length<4) r.ult.push({ot:o.ot,desc:String(o.desc||'').slice(0,80),st:o.status,tipo:o.tipo,dt:d.slice(8,10)+'/'+d.slice(5,7)});
+      if(r.ult.length<4) r.ult.push({raw:d,ot:o.ot,desc:String(o.desc||'').slice(0,80),st:o.status,tipo:o.tipo,dt:d.slice(8,10)+'/'+d.slice(5,7)});
     });
     const lvl=t=>{const e=al[t]; if(!e) return (ms[t]&&ms[t].confiavel)?'ok':'sem'; const n=e.nivel||''; return n.startsWith('Crít')?'crit':n.startsWith('Aten')?'aten':'ok';};
     items=[];
@@ -2236,35 +2289,68 @@ const MP=(function(){
     K={n:items.length,crit:items.filter(i=>i.status==='crit').length,aten:items.filter(i=>i.status==='aten').length,saude:sv.length?sv[Math.floor((sv.length-1)/2)]:0,
        corr:items.reduce((a,i)=>a+i.corr,0),mtbf:MED,mttr:(DATA.mtbf&&DATA.mtbf.alertas&&DATA.mtbf.alertas.mediana_mttr_h)||null};
   }
-  function kpis(){ $('mp-kpis').innerHTML=
-    `<div class="mp-kpi" style="--c:#5eead4"><span>Ativos no mapa</span><b>${K.n}</b><small>vinculados por TAG</small></div>
-     <div class="mp-kpi" style="--c:${stC.crit}"><span>Críticos</span><b>${K.crit}</b><small>MTBF baixo e ativo relevante</small></div>
-     <div class="mp-kpi" style="--c:${stC.aten}"><span>Em atenção</span><b>${K.aten}</b><small>abaixo da mediana</small></div>
-     <div class="mp-kpi" style="--c:${hc(K.saude)}"><span>Saúde mediana</span><b>${K.saude}</b><small>índice de 0 a 100</small></div>
-     <div class="mp-kpi"><span>Corretivas (${yms.length} meses)</span><b>${K.corr.toLocaleString('pt-BR')}</b><small>MTBF mediano ${fmt(K.mtbf)} h</small></div>`; }
-
+  function kpis(){ const L=LAYERS[layer]; let h='';
+    const K1=(c,l,v,sm)=>`<div class="mp-kpi" style="--c:${c}"><span>${l}</span><b>${v}</b><small>${sm}</small></div>`;
+    if(layer==='equip'){ h=K1('#5eead4','Ativos no mapa',K.n,'vinculados por TAG')+K1(stC.crit,'Críticos',K.crit,'MTBF baixo e ativo relevante')+K1(stC.aten,'Em atenção',K.aten,'abaixo da mediana')+K1(hc(K.saude),'Saúde mediana',K.saude,'índice de 0 a 100')
+        +`<div class="mp-kpi"><span>Corretivas (${yms.length} meses)</span><b>${K.corr.toLocaleString('pt-BR')}</b><small>MTBF mediano ${fmt(K.mtbf)} h</small></div>`; }
+    else if(L.t==='pts'){ const a=pts[layer], un=unplaced(layer);
+      h=K1(L.color,L.n,a.length,'pontos cadastrados')+K1('#5eead4','No térreo',a.filter(p=>p.floor==='terreo').length,'na planta baixa')+K1('#5eead4','No superior',a.filter(p=>p.floor==='superior').length,'no mezanino')
+        +K1('#4d8dff','Vinculados ao TOM',a.filter(p=>linkTags(p,layer).length).length,'com TAG identificada')+K1(un==null?'#5f7686':'#ffa629','Sem posição',un==null?'—':un,un==null?'sem lista no TOM':'no TOM, ainda fora da planta'); }
+    else { const a=lines.filter(l=>l.tipo===layer), tot=a.reduce((s2,l)=>s2+lenM(l.pts),0);
+      h=K1(L.color,L.n,a.length,'linhas cadastradas')+K1('#5eead4','Comprimento',fmt(tot,0)+' m','estimado pela escala da planta')+K1('#5eead4','Trechos',a.reduce((s2,l)=>s2+Math.max(0,l.pts.length-1),0),'segmentos desenhados')+K1('#5eead4','No térreo',a.filter(l=>l.floor==='terreo').length,'linhas')+K1('#5eead4','No superior',a.filter(l=>l.floor==='superior').length,'linhas'); }
+    $('mp-kpis').innerHTML=h; }
   /* ---------- 2D ---------- */
   function apply(){ stage.style.transform=`translate(${TX}px,${TY}px) scale(${S})`; stage.style.setProperty('--inv',(1/S).toFixed(3)); }
   function fitRect(r,anim){ const w=vp.clientWidth,h=vp.clientHeight; if(!w||!h){needFit=true;return;} needFit=false;
     const rw=(r[2]-r[0])/100*IW, rh=(r[3]-r[1])/100*IH; S=Math.min(w/rw,h/rh)*.9; TX=w/2-S*((r[0]+r[2])/200*IW); TY=h/2-S*((r[1]+r[3])/200*IH);
     stage.classList.toggle('mp-nt',!anim); apply(); }
   function setFloor(f){ floor=f; plan.src='data:image/jpeg;base64,'+(f==='terreo'?IMG_TERREO_B64:IMG_SUPERIOR_B64); document.querySelectorAll('#mp-floor button').forEach(b=>b.classList.toggle('on',b.dataset.f===f)); drawPins(); }
-  function colors3d(){ const m={},h={}; items.forEach(i=>{ if(hit(i)){ m[i.tag]=pc(i); if(i.status==='crit'||i.status==='aten'||(mode==='saude'&&i.saude<60)) h[i.tag]=(i.status==='aten'&&mode==='status')?stC.aten:pc(i); } else m[i.tag]='#2b3f4d'; }); return {m,h}; }
-  function sync3d(){ if(!dim3||!p3) return; const c=colors3d(); p3.setColors(c.m,c.h); p3.select(sel); p3.render(); }
+  function colors3d(){ const m={},h={}; items.forEach(i=>{ if(layer!=='equip'){ m[i.tag]='#2a3e4c'; return; } if(hit(i)){ m[i.tag]=pc(i); if(i.status==='crit'||i.status==='aten'||(mode==='saude'&&i.saude<60)) h[i.tag]=(i.status==='aten'&&mode==='status')?stC.aten:pc(i); } else m[i.tag]='#2b3f4d'; }); return {m,h}; }
+  function overlay3d(){ const L=LAYERS[layer], o={points:[],lines:[]};
+    if(L.t==='pts') pts[layer].forEach(p=>{ if(hitS(p.nome+' '+(p.num||'')+' '+(p.tag||''))) o.points.push({id:p.id,label:String(p.num||''),x:p.x,y:p.y,floor:p.floor,color:L.color,sel:sel===p.id}); });
+    if(L.t==='line') lines.forEach(l=>o.lines.push({id:l.id,pts:l.pts,floor:l.floor,color:LAYERS[l.tipo].color,op:l.tipo===layer?1:.3,sel:sel===l.id,click:l.tipo===layer}));
+    return o; }
+  function sync3d(){ if(!dim3||!p3) return; const c=colors3d(); p3.setColors(c.m,c.h); p3.setOverlay(overlay3d()); p3.select(layer==='equip'?sel:null); p3.render(); }
   function drawPins(){
-    const g=$('mp-pins'); g.innerHTML='';
-    items.filter(i=>i.floor===floor).forEach(i=>{ const e=document.createElement('div'),h=hit(i);
-      e.className='mp-pin'+(sel===i.tag?' sel':'')+(((i.status==='crit'&&mode==='status')||(mode==='saude'&&i.saude<60))?' hot':'')+(h?'':' dim');
-      e.style.left=i.x+'%'; e.style.top=i.y+'%'; e.style.setProperty('--pc',pc(i));
-      e.innerHTML=`<div class="d"></div><div class="lb">${esc(i.nome)}${mode==='saude'?' · saúde '+i.saude:mode==='corr'?' · '+i.corr+' corretivas':''}</div>`;
-      e.onclick=ev=>{ev.stopPropagation(); select(i.tag,false);}; g.appendChild(e); });
-    legend(); sync3d();
+    const g=$('mp-pins'); g.innerHTML=''; const L=LAYERS[layer];
+    if(layer==='equip'){
+      items.filter(i=>i.floor===floor).forEach(i=>{ const e=document.createElement('div'),h=hit(i);
+        e.className='mp-pin'+(sel===i.tag?' sel':'')+(((i.status==='crit'&&mode==='status')||(mode==='saude'&&i.saude<60))?' hot':'')+(h?'':' dim');
+        e.style.left=i.x+'%'; e.style.top=i.y+'%'; e.style.setProperty('--pc',pc(i));
+        e.innerHTML=`<div class="d"></div><div class="lb">${esc(i.nome)}${mode==='saude'?' · saúde '+i.saude:mode==='corr'?' · '+i.corr+' corretivas':''}</div>`;
+        e.onclick=ev=>{ev.stopPropagation(); select(i.tag,false);}; g.appendChild(e); });
+    } else {
+      items.filter(i=>i.floor===floor).forEach(i=>{ const e=document.createElement('div'); e.className='mp-pin ghost'; e.style.left=i.x+'%'; e.style.top=i.y+'%'; e.innerHTML='<div class="d"></div>'; g.appendChild(e); });
+      if(L.t==='pts') pts[layer].filter(p=>p.floor===floor).forEach(p=>{ const e=document.createElement('div'), h=hitS(p.nome+' '+(p.num||'')+' '+(p.tag||''));
+        e.className='mp-pt'+(sel===p.id?' sel':'')+(h?'':' dim'); e.style.left=p.x+'%'; e.style.top=p.y+'%'; e.style.setProperty('--pc',L.color);
+        e.innerHTML=`<div class="d">${esc(p.num||'')}</div><div class="lb">${esc(p.nome)}</div>`; e.onclick=ev=>{ev.stopPropagation(); select(p.id,false);}; g.appendChild(e); });
+    }
+    drawLines(); legend(); sync3d();
   }
-  function legend(){ $('mp-legend').innerHTML= mode==='status'?['crit','aten','ok','sem'].map(k=>`<span><i style="background:${stC[k]}"></i>${stT[k]}</span>`).join('')
-    : mode==='saude'?`<span><i style="background:#34d399"></i>Saúde 80 a 100</span><span><i style="background:#ffa629"></i>60 a 79</span><span><i style="background:#ef4455"></i>abaixo de 60</span>`
-    : `<span><i style="background:#34d399"></i>Baixa incidência</span><span><i style="background:#ffa629"></i>Média</span><span><i style="background:#ef4455"></i>Alta (foco de ação)</span>`; }
-  function hint(){ $('mp-hint').textContent= edit?'Modo edição: clique na planta para vincular um equipamento ao ponto':(dim3?'Arraste para mover · role para zoom · clique em um bloco':'Arraste para mover · role para zoom · clique em um pino'); }
-
+  function drawLines(){
+    const svg=$('mp-lines'); if(!svg) return; let h='';
+    if(LAYERS[layer].t==='line'){
+      lines.filter(l=>l.floor===floor).forEach(l=>{ const own=l.tipo===layer, c=LAYERS[l.tipo].color, p=l.pts.map(a=>a[0]+','+a[1]).join(' '), on=sel===l.id;
+        h+=`<polyline points="${p}" fill="none" stroke="#04101a" stroke-width="${on?9:7}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" opacity="${own?1:.25}"/>`+
+           `<polyline points="${p}" fill="none" stroke="${c}" stroke-width="${on?5.5:3.6}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" opacity="${own?1:.25}"/>`+
+           (own?`<polyline class="mp-lhit" data-id="${l.id}" points="${p}" fill="none" stroke="transparent" stroke-width="16" vector-effect="non-scaling-stroke" style="pointer-events:stroke;cursor:pointer"/>`:''); });
+      if(draw.pts.length){ const c=LAYERS[layer].color, p=draw.pts.map(a=>a[0]+','+a[1]).join(' ');
+        h+=`<polyline points="${p}" fill="none" stroke="${c}" stroke-width="3.6" stroke-dasharray="7 5" vector-effect="non-scaling-stroke"/>`;
+        draw.pts.forEach(a=>{h+=`<circle cx="${a[0]}" cy="${a[1]}" r=".45" fill="${c}" stroke="#04101a" stroke-width=".18"/>`;}); }
+    }
+    svg.innerHTML=h;
+    svg.querySelectorAll('.mp-lhit').forEach(e=>e.addEventListener('click',ev=>{ if(draw.pts.length) return; ev.stopPropagation(); select(e.dataset.id,false); }));
+    drawBar();
+  }
+  function drawBar(){ const b=$('mp-draw'); const on=edit&&LAYERS[layer].t==='line'&&!dim3; b.style.display=on?'flex':'none'; if(!on) return;
+    $('mp-draw-t').textContent=draw.pts.length?`Traçando ${LAYERS[layer].n.toLowerCase()} · ${draw.pts.length} ponto${draw.pts.length>1?'s':''} · ${fmt(lenM(draw.pts),0)} m`:`Clique na planta para começar a traçar ${LAYERS[layer].n.toLowerCase()}`;
+    $('mp-draw-undo').disabled=!draw.pts.length; $('mp-draw-ok').disabled=draw.pts.length<2; $('mp-draw-x').disabled=!draw.pts.length; }
+  function legend(){ const L=LAYERS[layer]; $('mp-legend').innerHTML= layer==='equip'? (mode==='status'? ['crit','aten','ok','sem'].map(k=>`<span><i style="background:${stC[k]}"></i>${stT[k]}</span>`).join('')
+      : mode==='saude'? `<span><i style="background:#34d399"></i>Saúde 80 a 100</span><span><i style="background:#ffa629"></i>60 a 79</span><span><i style="background:#ef4455"></i>abaixo de 60</span>`
+      : `<span><i style="background:#34d399"></i>Baixa incidência</span><span><i style="background:#ffa629"></i>Média</span><span><i style="background:#ef4455"></i>Alta (foco de ação)</span>`)
+      : L.t==='pts'? `<span><i style="background:${L.color}"></i>${L.n}</span><span><i style="background:#2a3e4c"></i>Equipamentos (ao fundo)</span>`
+      : ['vapor','agua','ar'].map(k=>`<span><i style="background:${LAYERS[k].color}"></i>${LAYERS[k].n}</span>`).join(''); }
+  function hint(){ const L=LAYERS[layer]; $('mp-hint').textContent= edit?(layer==='equip'?'Modo edição: clique na planta para vincular um equipamento ao ponto':L.t==='pts'?`Modo edição: clique na planta para cadastrar ${L.one}`:'Modo edição: clique para marcar os vértices da linha'):(dim3?'Arraste para mover · role para zoom · clique em um item':'Arraste para mover · role para zoom · clique em um ponto'); }
   /* ---------- painel do equipamento ---------- */
   const ICON={op:'<svg viewBox="0 0 24 24" fill="none" stroke="#1a9f5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>',
     ele:'<svg viewBox="0 0 24 24" fill="none" stroke="#ff7a1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
@@ -2286,7 +2372,7 @@ const MP=(function(){
    <div class="mp-score" style="--sc:${hc(i.saude)};--sv:${i.saude}"><div class="ring"><b>${i.saude}</b></div><small>Saúde<br>do ativo</small></div>
    ${pill('op','Operacional',i.op,'left:6%;top:33%')}${pill('ele','Elétrico',i.ele,'left:50%;top:8%')}${pill('mec','Mecânico',i.mec,'left:36%;top:50%')}</div>`; }
   function spark(i){ const mx=Math.max(1,...i.mes); return `<div class="mp-bar">${i.mes.map(v=>`<i data-v="${v}" style="height:${Math.max(4,v/mx*100)}%"></i>`).join('')}</div><div class="mp-axis">${yms.map(y=>`<span>${MESES[+y.slice(5,7)-1]}</span>`).join('')}</div>`; }
-  function panel(){
+  function panelEquip(){
     const i=items.find(x=>x.tag===sel), pr=[...items].sort((a,b)=>a.saude-b.saude).slice(0,6), p=$('mp-panel');
     p.innerHTML=(i?`<div class="card mp-card"><div class="mp-hd"><div><h2>${esc(i.nome)}</h2><div class="tag">${esc(i.tag)}${i.classe?' · classe '+esc(i.classe):''}</div></div><span class="mp-badge" style="--bc:${stC[i.status]}">${i.status==='crit'?esc(i.nivel||'Crítico'):stT[i.status]}</span></div>${hero(i)}
       <div class="mp-mini"><div><span>MTBF</span><b>${i.mtbf!=null?fmt(i.mtbf)+' h':'—'}</b><small>mediana ${fmt(K.mtbf)} h</small></div><div><span>MTTR</span><b>${i.mttr!=null?fmt(i.mttr,2)+' h':'—'}</b><small>mediana ${fmt(K.mttr,2)} h</small></div><div><span>Falhas</span><b>${i.falhas!=null?i.falhas:'< 3'}</b><small>${fmt(i.hp)} h de parada</small></div></div>
@@ -2298,13 +2384,57 @@ const MP=(function(){
     p.querySelectorAll('.mp-prio').forEach(e=>e.onclick=()=>select(e.dataset.t,true));
     const del=$('mp-del'); if(del) del.onclick=async()=>{ const pl=pins[i.floor]; const k=pl.findIndex(z=>z.tag===i.tag&&Math.abs(z.x-i.x)<.01&&Math.abs(z.y-i.y)<.01); if(k>=0){pl.splice(k,1); await saveKV('equipment_pins_'+i.floor,pl); sel=null; refresh();} };
   }
-  function select(tag,center,fromFrame){
-    sel=tag; const i=items.find(x=>x.tag===tag); if(!i) return;
-    if(dim3){ if(!fromFrame&&center&&p3){ p3.select(tag); p3.render(); p3.focus(tag,2.8);} }
-    else{ if(i.floor!==floor) setFloor(i.floor); if(center){ const w=vp.clientWidth,h=vp.clientHeight; S=Math.max(S,1.6); TX=w/2-S*i.x/100*IW; TY=h/2-S*i.y/100*IH; stage.classList.remove('mp-nt'); apply(); } }
-    if(!fromFrame) document.querySelectorAll('#mp-chips .chip').forEach(x=>x.classList.remove('on'));
+  /* ---------- camadas de pontos e linhas ---------- */
+  const lenM=a=>{ let t=0; for(let k=1;k<a.length;k++){ const dx=(a[k][0]-a[k-1][0])/100*IW*.089, dy=(a[k][1]-a[k-1][1])/100*IH*.089; t+=Math.hypot(dx,dy);} return t; };
+  const numOf=d=>{ const m=String(d||'').match(/N[°º]\s*0*(\d+)/i); return m?+m[1]:null; };
+  const tomByKlass=k=>(DATA.equipment||[]).filter(e=>!k||e.classe===k);
+  function linkTags(p,lay){ if(p.tag) return [p.tag]; if(lay==='quadros'&&p.num!=null&&p.num!==''){ return tomByKlass('ELC').filter(e=>numOf(e.desc)===+p.num).map(e=>e.tag); } return []; }
+  function unplacedList(lay){ const L=LAYERS[lay]; if(!L.klass) return null; const used=new Set(); pts[lay].forEach(p=>linkTags(p,lay).forEach(t=>used.add(t)));
+    const nums=new Set(pts[lay].map(p=>+p.num).filter(n=>n)); return tomByKlass(L.klass).filter(e=>!used.has(e.tag)&&!(lay==='quadros'&&nums.has(numOf(e.desc)))); }
+  function unplaced(lay){ const l=unplacedList(lay); return l?l.length:null; }
+  function osOfTags(tags){ const all=[]; tags.forEach(t=>((OSBY[t]||{}).ult||[]).forEach(o=>all.push(o))); return all.sort((a,b)=>String(b.raw).localeCompare(String(a.raw))).slice(0,5); }
+  function panelPts(){
+    const L=LAYERS[layer], arr=pts[layer], p=arr.find(x=>x.id===sel), pnl=$('mp-panel'); let h='';
+    if(p){ const tags=linkTags(p,layer), os=osOfTags(tags), eqs=tags.map(t=>(DATA.equipment||[]).find(e=>e.tag===t)).filter(Boolean);
+      h+=`<div class="card mp-card"><div class="mp-hd"><div><h2>${esc(p.nome)}</h2><div class="tag">${p.num!=null&&p.num!==''?'Nº '+esc(p.num)+' · ':''}${p.floor==='superior'?'Superior':'Térreo'}</div></div><span class="mp-badge" style="--bc:${L.color}">${L.one}</span></div>
+        ${p.obs?`<p class="mp-sub" style="margin:10px 0 0">${esc(p.obs)}</p>`:''}
+        <div class="mp-links">${eqs.length?eqs.map(e=>`<div><span>TOM</span><b>${esc(e.tag)}</b><small>${esc(e.desc)}${e.classe?' · classe '+esc(e.classe):''}</small></div>`).join(''):`<div><span>TOM</span><small>Sem vínculo com equipamento do TOM</small></div>`}</div>
+        ${edit?`<div class="mp-act"><button class="btn" id="mp-del">Remover este ponto</button></div>`:''}</div>`;
+      if(tags.length) h+=`<div class="card mp-card"><h3>Últimas ordens de serviço</h3>${os.length?os.map(o=>`<div class="mp-os"><div class="t">${esc(o.desc)||'(sem descrição)'}<div class="m">OT ${esc(o.ot)} · ${esc(o.tipo)} · ${o.dt}</div></div><div class="st">${esc(o.st)}</div></div>`).join(''):'<div class="mp-sub">Sem OS no período carregado.</div>'}</div>`; }
+    h+=`<div class="card mp-card"><h3>${L.n} · ${arr.length}</h3><div class="mp-list">${[...arr].sort((a,b)=>(+a.num||1e9)-(+b.num||1e9)||String(a.nome).localeCompare(b.nome)).filter(x=>hitS(x.nome+' '+(x.num||'')+' '+(x.tag||''))).map(x=>`<div class="mp-row${sel===x.id?' on':''}" data-id="${esc(x.id)}"><span class="chipn" style="background:${L.color}">${esc(x.num||'•')}</span><div class="n">${esc(x.nome)}<small>${x.floor==='superior'?'Superior':'Térreo'}${linkTags(x,layer).length?' · '+esc(linkTags(x,layer).join(', ')):''}</small></div></div>`).join('')||'<div class="mp-sub">Nenhum ponto cadastrado ainda. Ative “Editar” e clique na planta.</div>'}</div></div>`;
+    const un=unplacedList(layer); if(un&&un.length) h+=`<div class="card mp-card"><details${layer==='bombas'?' open':''}><summary>${un.length} do TOM ainda sem posição na planta</summary><div class="mp-list" style="max-height:220px">${un.slice(0,80).map(e=>`<div class="mp-row ro"><div class="n">${esc(e.desc)}<small>${esc(e.tag)}</small></div></div>`).join('')}</div><p class="mp-sub" style="margin-top:8px">Ative “Editar”, clique no local da planta e escolha o equipamento da lista.</p></details></div>`;
+    pnl.innerHTML=h;
+    pnl.querySelectorAll('.mp-row[data-id]').forEach(e=>e.onclick=()=>select(e.dataset.id,true));
+    const del=$('mp-del'); if(del) del.onclick=async()=>{ const k=arr.findIndex(z=>z.id===p.id); if(k>=0){ arr.splice(k,1); await saveKV('mapa_pts_'+layer,arr); sel=null; refresh(); } };
+  }
+  function panelLines(){
+    const L=LAYERS[layer], arr=lines.filter(l=>l.tipo===layer), l0=arr.find(x=>x.id===sel), pnl=$('mp-panel'); let h='';
+    if(l0){ h+=`<div class="card mp-card"><div class="mp-hd"><div><h2>${esc(l0.nome)}</h2><div class="tag">${l0.floor==='superior'?'Superior':'Térreo'} · ${l0.pts.length} pontos</div></div><span class="mp-badge" style="--bc:${L.color}">${esc(L.n.replace('Linha de ',''))}</span></div>
+      <div class="mp-mini"><div><span>Comprimento</span><b>${fmt(lenM(l0.pts),0)} m</b><small>estimado</small></div><div><span>Trechos</span><b>${Math.max(0,l0.pts.length-1)}</b><small>segmentos</small></div><div><span>Piso</span><b style="font-size:14px">${l0.floor==='superior'?'Superior':'Térreo'}</b><small>&nbsp;</small></div></div>
+      ${l0.obs?`<p class="mp-sub" style="margin:10px 0 0">${esc(l0.obs)}</p>`:''}${edit?`<div class="mp-act"><button class="btn" id="mp-del">Remover esta linha</button></div>`:''}</div>`; }
+    h+=`<div class="card mp-card"><h3>${L.n} · ${arr.length}</h3><div class="mp-list">${arr.filter(x=>hitS(x.nome)).map(x=>`<div class="mp-row${sel===x.id?' on':''}" data-id="${esc(x.id)}"><span class="chipn" style="background:${L.color};width:14px;height:14px;border-radius:50%"></span><div class="n">${esc(x.nome)}<small>${fmt(lenM(x.pts),0)} m · ${x.floor==='superior'?'Superior':'Térreo'}</small></div></div>`).join('')||`<div class="mp-sub">Nenhuma linha de ${L.n.replace('Linha de ','')} cadastrada ainda.</div>`}</div></div>`;
+    h+=`<div class="card mp-card"><details${arr.length?'':' open'}><summary>Como cadastrar uma linha</summary><p class="mp-sub" style="margin-top:8px">1. Ative <b>Editar</b> (canto superior). 2. Clique na planta em cada curva ou vértice do trajeto. 3. Use <b>Desfazer ponto</b> se errar. 4. Clique em <b>Concluir</b> e dê um nome (por exemplo: “Vapor — caldeira até lavagem”). As linhas ficam salvas para todos que abrirem o APP e aparecem também no 3D, acima das máquinas.</p></details></div>`;
+    pnl.innerHTML=h; pnl.querySelectorAll('.mp-row[data-id]').forEach(e=>e.onclick=()=>select(e.dataset.id,true));
+    const del=$('mp-del'); if(del) del.onclick=async()=>{ const k=lines.findIndex(z=>z.id===l0.id); if(k>=0){ lines.splice(k,1); await saveKV('mapa_linhas',lines); sel=null; refresh(); } };
+  }
+  function panel(){ const t=LAYERS[layer].t; if(t==='equip') panelEquip(); else if(t==='pts') panelPts(); else panelLines(); }
+  function select(key,center,fromFrame){
+    sel=key; const L=LAYERS[layer];
+    if(L.t==='equip'){ const i=items.find(x=>x.tag===key); if(!i) return;
+      if(dim3){ if(!fromFrame&&center&&p3){ p3.select(key); p3.render(); p3.focus(key,2.8);} }
+      else{ if(i.floor!==floor) setFloor(i.floor); if(center){ const w=vp.clientWidth,h=vp.clientHeight; S=Math.max(S,1.6); TX=w/2-S*i.x/100*IW; TY=h/2-S*i.y/100*IH; stage.classList.remove('mp-nt'); apply(); } } }
+    else if(L.t==='pts'){ const p=pts[layer].find(x=>x.id===key); if(!p) return; if(!dim3&&p.floor!==floor) setFloor(p.floor);
+      if(center){ if(dim3&&p3){ p3.focusAt(p.x,p.y,p.floor,2.8); } else { const w=vp.clientWidth,h=vp.clientHeight; S=Math.max(S,1.8); TX=w/2-S*p.x/100*IW; TY=h/2-S*p.y/100*IH; stage.classList.remove('mp-nt'); apply(); } } }
+    else { const l=lines.find(x=>x.id===key); if(!l) return; if(!dim3&&l.floor!==floor) setFloor(l.floor);
+      if(center){ const xs=l.pts.map(a=>a[0]),ys=l.pts.map(a=>a[1]), cx=(Math.min(...xs)+Math.max(...xs))/2, cy=(Math.min(...ys)+Math.max(...ys))/2;
+        if(dim3&&p3){ p3.focusAt(cx,cy,l.floor,2.2); } else { const pad=6; fitRect([Math.min(...xs)-pad,Math.min(...ys)-pad,Math.max(...xs)+pad,Math.max(...ys)+pad],true); } } }
+    if(!fromFrame&&!dim3) document.querySelectorAll('#mp-chips .chip').forEach(x=>x.classList.remove('on'));
     drawPins(); panel(); }
-
+  function setLayer(k){
+    selByLayer[layer]=sel; draw={pts:[]}; layer=k; const L=LAYERS[k];
+    sel=selByLayer[k]!==undefined?selByLayer[k]:(k==='equip'?((items.find(i=>i.status==='crit')||items[0]||{}).tag||null):null);
+    $('mp-layer').value=k; $('mapa-subtitle').textContent=L.sub; $('mp-mode').style.display=k==='equip'?'inline-flex':'none';
+    kpis(); drawPins(); panel(); hint(); }
   /* ---------- 3D: posições a partir dos pinos ---------- */
   function build3d(){
     const WM=IW*.089, DM=IH*.089, RULES=[['tunel de lavagem','tunel',12,2.6,3.4],['lavador de gaiolas','lavador',5,3,2.4],['prensa','prensa',2.6,3,2.8],['elevador','elevador',1.4,1.4,3.4],['sorting','sorting',4.5,2.6,2.2],
@@ -2320,21 +2450,26 @@ const MP=(function(){
     function kind0(z){ return z.kind==='caldeira'?z.w:z.d; }
   }
   function ensure3d(){
-    if(!p3){ p3=makeP3D($('mp-svg')); p3.on({select:t=>select(t,false,true),hover:(it,ev)=>{const tip=$('mp-tip'); if(!it){tip.style.display='none';return;} const i=items.find(x=>x.tag===it.tag); if(!i) return;
+    if(!p3){ p3=makeP3D($('mp-svg')); p3.on({select:t=>select(t,false,true),pt:id=>select(id,false,true),line:id=>select(id,false,true),hoverOv:(o,ev)=>{const tip=$('mp-tip'); if(!o){tip.style.display='none';return;} let t='';
+      if(o.kind==='pt'){const p=pts[layer].find(x=>x.id===o.id); if(!p) return; t=`<b>${esc(p.nome)}</b>${p.num?' <span class="tg">Nº '+esc(p.num)+'</span>':''}`;} else {const l=lines.find(x=>x.id===o.id); if(!l) return; t=`<b>${esc(l.nome)}</b><br><span class="tg">${fmt(lenM(l.pts),0)} m</span>`;}
+      tip.innerHTML=t; const r=$('mp-map').getBoundingClientRect(); tip.style.display='block'; tip.style.left=Math.min(ev.clientX-r.left+14,r.width-250)+'px'; tip.style.top=Math.min(ev.clientY-r.top+12,r.height-80)+'px';},hover:(it,ev)=>{const tip=$('mp-tip'); if(!it){tip.style.display='none';return;} const i=items.find(x=>x.tag===it.tag); if(!i) return;
       tip.innerHTML=`<b>${esc(i.nome)}</b> <span class="tg">${esc(i.tag)}</span><br>${stT[i.status]} · saúde ${i.saude}<br>MTBF ${i.mtbf!=null?fmt(i.mtbf)+' h':'—'} · MTTR ${i.mttr!=null?fmt(i.mttr,2)+' h':'—'}`;
       const r=$('mp-map').getBoundingClientRect(); tip.style.display='block'; tip.style.left=Math.min(ev.clientX-r.left+14,r.width-250)+'px'; tip.style.top=Math.min(ev.clientY-r.top+12,r.height-80)+'px';}}); }
     p3.setImages('data:image/jpeg;base64,'+IMG_TERREO_B64,'data:image/jpeg;base64,'+IMG_SUPERIOR_B64); p3.setItems(build3d()); }
   function setDim(d){ dim3=(d==='3'); document.querySelectorAll('#mp-dim button').forEach(b=>b.classList.toggle('on',b.dataset.d===d));
     $('mp-3d').style.display=dim3?'block':'none'; vp.style.visibility=dim3?'hidden':'visible'; $('mp-zoom2d').style.display=dim3?'none':'flex'; $('mp-zoom3d').style.display=dim3?'flex':'none';
-    $('mp-floor').style.display=dim3?'none':'inline-flex'; $('mp-mez').style.display=dim3?'inline-block':'none'; hint();
-    if(dim3){ ensure3d(); p3.setMez(mezOn); const c=colors3d(); p3.setColors(c.m,c.h); p3.select(sel); p3.render(); p3.view(7); if(sel) p3.select(sel); } }
+    $('mp-floor').style.display=dim3?'none':'inline-flex'; $('mp-mez').style.display=dim3?'inline-block':'none'; hint(); drawBar();
+    if(dim3){ ensure3d(); p3.setMez(mezOn); sync3d(); p3.view(7); } }
   function refresh(){ derive(); kpis(); if(p3) p3.setItems(build3d()); drawPins(); panel(); }
-
   /* ---------- init ---------- */
   async function init(){
     if(ready) return; ready=true;
     vp=$('mp-vp'); stage=$('mp-stage'); plan=$('mp-plan'); const seed=DATA.equipment_pins_seed||{};
     for(const fl of ['terreo','superior']) pins[fl]=await loadKV('equipment_pins_'+fl, seed[fl]||[]);
+    const fx=DATA.mapas_fixos||{};
+    for(const k of ['quadros','bombas','motores']){ const sd=(fx[LAYERS[k].seed]||[]).map((p,ix)=>({id:'s'+k[0]+(p.num!=null?p.num:ix),num:p.num!=null?p.num:null,nome:p.desc||p.nome||('Ponto '+(ix+1)),x:+p.x,y:+p.y,floor:p.floor||'terreo',tag:p.tag||null,obs:p.obs||''}));
+      const v=await loadKV('mapa_pts_'+k, sd); pts[k]=Array.isArray(v)?v:sd; }
+    { const v=await loadKV('mapa_linhas', []); lines=Array.isArray(v)?v:[]; }
     derive(); if(!items.length){ $('mp-panel').innerHTML='<div class="card mp-card"><div class="mp-sub">Nenhum equipamento vinculado à planta ainda. Ative “Editar pinos” e clique na planta.</div></div>'; }
     sel=(items.find(i=>i.status==='crit')||items[0]||{}).tag||null;
     $('mp-chips').innerHTML=AREAS.map((a,k)=>`<button class="chip${k===1?' on':''}" data-k="${k}">${a.n}</button>`).join('');
@@ -2351,93 +2486,54 @@ const MP=(function(){
     document.querySelectorAll('#mp-floor button').forEach(b=>b.onclick=()=>{setFloor(b.dataset.f); fitRect(AREAS[b.dataset.f==='superior'?9:1].r,true);});
     document.querySelectorAll('#mp-dim button').forEach(b=>b.onclick=()=>setDim(b.dataset.d));
     $('mp-mez').onclick=()=>{mezOn=!mezOn; const b=$('mp-mez'); b.textContent='Mezanino: '+(mezOn?'ligado':'desligado'); b.classList.toggle('off',!mezOn); if(p3) p3.setMez(mezOn);};
-    $('mp-edit').onclick=()=>{edit=!edit; $('mp-edit').classList.toggle('on',edit); vp.classList.toggle('edit',edit); hint(); panel();};
-    $('mp-q').oninput=e=>{q=e.target.value.toLowerCase(); drawPins();};
-    $('mp-q').onkeydown=e=>{ if(e.key==='Enter'&&q){ const h=items.find(i=>(i.nome+' '+i.tag).toLowerCase().includes(q)); if(h) select(h.tag,true);} };
+    $('mp-edit').onclick=()=>{edit=!edit; if(!edit) draw={pts:[]}; $('mp-edit').classList.toggle('on',edit); vp.classList.toggle('edit',edit); hint(); panel(); drawLines();};
+    $('mp-layer').onchange=e=>setLayer(e.target.value);
+    $('mp-draw-undo').onclick=()=>{draw.pts.pop(); drawLines();}; $('mp-draw-x').onclick=()=>{draw={pts:[]}; drawLines();};
+    $('mp-draw-ok').onclick=()=>{ if(draw.pts.length<2) return; $('mp-ln-nome').value=''; $('mp-ln-obs').value=''; $('mp-ln-sub').textContent=LAYERS[layer].n+' · '+fmt(lenM(draw.pts),0)+' m'; $('mp-ln-modal').classList.add('active'); $('mp-ln-nome').focus(); };
+    $('mp-ln-cancel').onclick=()=>$('mp-ln-modal').classList.remove('active');
+    $('mp-ln-ok').onclick=async()=>{ const nome=$('mp-ln-nome').value.trim()||(LAYERS[layer].n+' '+(lines.filter(l=>l.tipo===layer).length+1)); const l={id:'l'+Date.now(),tipo:layer,nome,obs:$('mp-ln-obs').value.trim(),floor,pts:draw.pts.map(a=>[+a[0].toFixed(2),+a[1].toFixed(2)])};
+      lines.push(l); await saveKV('mapa_linhas',lines); draw={pts:[]}; $('mp-ln-modal').classList.remove('active'); sel=l.id; kpis(); drawPins(); panel(); };
+    addEventListener('keydown',e=>{ if(!edit||LAYERS[layer].t!=='line'||$('mp-ln-modal').classList.contains('active')) return; const tg=(e.target.tagName||'').toLowerCase(); if(tg==='input'||tg==='textarea') return;
+      if(e.key==='Escape'){draw={pts:[]}; drawLines();} else if(e.key==='Enter'&&draw.pts.length>1){$('mp-draw-ok').click();} else if((e.key==='Backspace'||(e.key==='z'&&(e.ctrlKey||e.metaKey)))&&draw.pts.length){e.preventDefault();draw.pts.pop();drawLines();} });
+    $('mp-q').oninput=e=>{q=e.target.value.toLowerCase(); drawPins(); if(layer!=='equip') panel();};
+    $('mp-q').onkeydown=e=>{ if(e.key!=='Enter'||!q) return; const L=LAYERS[layer];
+      if(L.t==='equip'){ const h=items.find(i=>(i.nome+' '+i.tag).toLowerCase().includes(q)); if(h) select(h.tag,true); }
+      else if(L.t==='pts'){ const h=pts[layer].find(p=>(p.nome+' '+(p.num||'')+' '+(p.tag||'')).toLowerCase().includes(q)); if(h) select(h.id,true); }
+      else { const h=lines.find(l=>l.tipo===layer&&l.nome.toLowerCase().includes(q)); if(h) select(h.id,true); } };
     // vincular novo pino (modo edição)
     const sel2=$('pin-select'), eqOpts=(DATA.equipment||[]).map(e=>({tag:e.tag,label:`${e.tag} — ${e.desc}`}));
     const fill=f=>{const s=(f||'').toLowerCase(); sel2.innerHTML=eqOpts.filter(e=>e.label.toLowerCase().includes(s)).slice(0,200).map(e=>`<option value="${esc(e.tag)}">${esc(e.label)}</option>`).join('');};
     $('pin-search').addEventListener('input',e=>fill(e.target.value));
-    vp.addEventListener('click',e=>{ if(!edit||e.target.closest('.mp-pin')) return; if(drag&&drag.m) return; const r=stage.getBoundingClientRect(); pending={x:((e.clientX-r.left)/r.width*100).toFixed(2),y:((e.clientY-r.top)/r.height*100).toFixed(2)}; $('pin-modal').classList.add('active'); fill(); $('pin-search').value=''; });
+    const ptXY=e=>{ const r=stage.getBoundingClientRect(); return {x:((e.clientX-r.left)/r.width*100).toFixed(2),y:((e.clientY-r.top)/r.height*100).toFixed(2)}; };
+    vp.addEventListener('click',e=>{ if(!edit||e.target.closest('.mp-pin,.mp-pt')) return; if(drag&&drag.m) return; const L=LAYERS[layer], xy=ptXY(e);
+      if(L.t==='equip'){ pending=xy; $('pin-modal').classList.add('active'); fill(); $('pin-search').value=''; }
+      else if(L.t==='pts'){ pendingPt=xy; openPt(); }
+      else { draw.pts.push([+xy.x,+xy.y]); drawLines(); } });
+    // cadastro de ponto (quadros, bombas, motores)
+    const pSel=$('mp-pt-sel'); let ptCand=[];
+    const fillPt=f=>{ const s2=nrm(f||''); const L=LAYERS[layer]; ptCand=(unplacedList(layer)||tomByKlass(L.klass)).filter(e=>nrm(e.tag+' '+e.desc).includes(s2)).slice(0,200);
+      pSel.innerHTML=ptCand.map(e=>`<option value="${esc(e.tag)}">${esc(e.tag)} — ${esc(e.desc)}</option>`).join(''); pSel.selectedIndex=-1; };
+    const openPt=()=>{ const L=LAYERS[layer]; $('mp-pt-title').textContent='Cadastrar '+L.one; $('mp-pt-sub').textContent=L.klass?'Escolha o equipamento do TOM que fica neste ponto, ou preencha o nome manualmente.':'Informe o motor e, se quiser, o equipamento do TOM a que ele pertence.';
+      $('mp-pt-nome').value=''; $('mp-pt-obs').value=''; $('mp-pt-search').value=''; const nx=Math.max(0,...pts[layer].map(p=>+p.num||0))+1; $('mp-pt-num').value=layer==='quadros'?nx:''; $('mp-pt-num-wrap').style.display=layer==='quadros'?'block':'none'; fillPt('');
+      if(!L.klass) { const all=tomByKlass(null); ptCand=all; pSel.innerHTML=all.slice(0,200).map(e=>`<option value="${esc(e.tag)}">${esc(e.tag)} — ${esc(e.desc)}</option>`).join(''); pSel.selectedIndex=-1; }
+      $('mp-pt-modal').classList.add('active'); $('mp-pt-nome').focus(); };
+    $('mp-pt-search').addEventListener('input',e=>{ if(LAYERS[layer].klass) fillPt(e.target.value); else { const s2=nrm(e.target.value); const all=tomByKlass(null).filter(x=>nrm(x.tag+' '+x.desc).includes(s2)).slice(0,200); pSel.innerHTML=all.map(x=>`<option value="${esc(x.tag)}">${esc(x.tag)} — ${esc(x.desc)}</option>`).join(''); pSel.selectedIndex=-1; } });
+    pSel.addEventListener('change',()=>{ const t=pSel.value, e=(DATA.equipment||[]).find(x=>x.tag===t); if(!e) return; if(!$('mp-pt-nome').value.trim()||layer!=='motores') $('mp-pt-nome').value=layer==='motores'?('Motor de '+e.desc):e.desc; if(layer==='quadros'){ const n=numOf(e.desc); if(n!=null) $('mp-pt-num').value=n; } });
+    $('mp-pt-cancel').onclick=()=>{ $('mp-pt-modal').classList.remove('active'); pendingPt=null; };
+    $('mp-pt-ok').onclick=async()=>{ const L=LAYERS[layer], tag=pSel.value||null, nome=$('mp-pt-nome').value.trim(); if(!nome&&!tag||!pendingPt) return;
+      const e=tag?(DATA.equipment||[]).find(x=>x.tag===tag):null; const p={id:'p'+Date.now(),num:layer==='quadros'&&$('mp-pt-num').value!==''?+$('mp-pt-num').value:null,nome:nome||(e?e.desc:L.one),x:+pendingPt.x,y:+pendingPt.y,floor,tag,obs:$('mp-pt-obs').value.trim()};
+      pts[layer].push(p); await saveKV('mapa_pts_'+layer,pts[layer]); $('mp-pt-modal').classList.remove('active'); pendingPt=null; sel=p.id; kpis(); drawPins(); panel(); };
     $('pin-cancel').onclick=()=>{$('pin-modal').classList.remove('active'); pending=null;};
     $('pin-confirm').onclick=async()=>{ const t=sel2.value; if(!t||!pending) return; pins[floor].push({x:pending.x,y:pending.y,tag:t}); await saveKV('equipment_pins_'+floor,pins[floor]); $('pin-modal').classList.remove('active'); pending=null; sel=t; refresh(); };
     new ResizeObserver(()=>{ if(dim3&&p3) p3.render(); else if(needFit||true){ if(needFit) fitRect(AREAS[areaIdx].r,false); } }).observe($('mp-map'));
-    setFloor('terreo'); kpis(); panel(); hint(); fitRect(AREAS[1].r,false);
+    setFloor('terreo'); setLayer('equip'); fitRect(AREAS[1].r,false);
   }
   return {init};
 })();
 function renderMapa(){ Promise.resolve(MP.init()).catch(e=>console.error('[mapa]',e)); }
 
 
-/* ===================== SELETOR DE TIPO DE MAPA + MAPAS FIXOS ===================== */
-const MAPA_FIXO_LABELS = {
-  eletrico: {titulo:'Mapa Elétrico', sub:'Quadros elétricos — pontos de referência marcados na planta'},
-  hidraulico: {titulo:'Mapa Hidráulico', sub:'Rede hidráulica — pontos de referência marcados na planta'},
-  vapor: {titulo:'Mapa de Vapor', sub:'Rede de vapor — pontos de referência marcados na planta'},
-  ar: {titulo:'Mapa de Linha de Ar', sub:'Linha de ar comprimido — pontos de referência marcados na planta'},
-  bombas: {titulo:'Mapa de Bombas', sub:'Bombas — pontos de referência marcados na planta'},
-  esteiras: {titulo:'Mapa de Esteiras', sub:'Esteiras transportadoras — pontos de referência marcados na planta'},
-  carros: {titulo:'Mapa de Carros de Transporte', sub:'Carros de transporte — pontos de referência marcados na planta'},
-};
-let fixoAtual = null;
 
-function renderMapaTipoSelector(){
-  const sel = document.getElementById('mapa-tipo-select');
-  sel.addEventListener('change', ()=>{
-    const tipo = sel.value;
-    if(tipo==='equipamentos'){
-      document.getElementById('mapa-subtitle').textContent = 'Planta interativa 2D e 3D — status, saúde e incidência de corretivas dos ativos';
-      document.getElementById('mapa-view-equipamentos').style.display = '';
-      document.getElementById('mapa-view-fixo').style.display = 'none';
-    } else {
-      document.getElementById('mapa-subtitle').textContent = MAPA_FIXO_LABELS[tipo].sub;
-      document.getElementById('mapa-view-equipamentos').style.display = 'none';
-      document.getElementById('mapa-view-fixo').style.display = '';
-      drawMapaFixo(tipo);
-    }
-  });
-}
-
-function drawMapaFixo(tipo){
-  fixoAtual = tipo;
-  const pontos = (DATA.mapas_fixos||{})[tipo] || [];
-  document.getElementById('mapa-fixo-img').src = 'data:image/jpeg;base64,'+PLANTA_QUADROS_B64;
-  document.getElementById('mapa-fixo-count').textContent = pontos.length+' pontos';
-
-  function render(filtro){
-    const f = (filtro||'').toLowerCase();
-    const visiveis = pontos.filter(p=> !f || p.desc.toLowerCase().includes(f) || String(p.num).includes(f));
-    document.getElementById('mapa-fixo-pins').innerHTML = pontos.map(p=>{
-      const oculto = !visiveis.includes(p);
-      return `<div class="fixo-pin" style="left:${p.x}%; top:${p.y}%; ${oculto?'opacity:.15;':''}" data-num="${p.num}">
-        <div class="dot">${p.num}</div>
-        <div class="pin-label">${p.num} — ${p.desc}</div>
-      </div>`;
-    }).join('');
-    document.getElementById('mapa-fixo-legend').innerHTML = visiveis.length ? visiveis.map(p=>`
-      <div class="fixo-leg-item" data-num="${p.num}">
-        <div class="fixo-leg-num">${p.num}</div>
-        <div class="fixo-leg-desc">${p.desc}</div>
-      </div>`).join('') : `<div class="empty">Nenhum ponto encontrado</div>`;
-
-    document.querySelectorAll('#mapa-fixo-legend .fixo-leg-item').forEach(el=>{
-      el.addEventListener('mouseenter', ()=>{
-        document.querySelectorAll('.fixo-pin').forEach(p=>p.classList.remove('highlight'));
-        const pin = document.querySelector(`.fixo-pin[data-num="${el.dataset.num}"]`);
-        if(pin) pin.classList.add('highlight');
-      });
-    });
-  }
-  render('');
-
-  document.getElementById('mapa-fixo-search').oninput = (e)=>render(e.target.value);
-
-  if(pontos.length===0){
-    document.getElementById('mapa-fixo-legend').innerHTML = `<div class="empty">Ainda não há pontos cadastrados para este mapa.</div>`;
-  }
-}
-
-renderMapaTipoSelector();
 
 /* ===================== CALENDÁRIO ===================== */
 const EVENT_COLORS = {'Preventiva':PAL.mapa,'Corretiva':PAL.amber,'Visita':PAL.os,'Serviço de Terceiros':PAL.compras,'Auditoria':PAL.equip,'Treinamento':PAL.pessoas,'Reunião':PAL.agenda,'Outro':PAL.gray};
