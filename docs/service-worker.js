@@ -14,7 +14,7 @@
  * quando a rede falha (ex.: sem sinal).
  */
 
-const CACHE_NAME = 'app-manutencao-eusebio-v1';
+const CACHE_NAME = 'app-manutencao-eusebio-v2';
 const PRECACHE_URLS = [
   './',
   './manifest.json',
@@ -49,8 +49,11 @@ self.addEventListener('fetch', (event) => {
   // Só intercepta requisições GET (a única coisa que este app faz).
   if (event.request.method !== 'GET') return;
 
+  // Navegação (a página do app) sempre vai à rede sem usar o cache HTTP do
+  // navegador, para nunca prender o usuário numa versão antiga do app.
+  const _ehPagina = event.request.mode === 'navigate';
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, _ehPagina ? { cache: 'no-store' } : undefined)
       .then((response) => {
         // Sucesso na rede: serve a resposta mais recente e atualiza o
         // cache em segundo plano, para o fallback offline nunca ficar

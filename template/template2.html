@@ -2937,9 +2937,19 @@ safeInit(renderCalendario, 'renderCalendario');
 <script>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
+        // Quando uma versão nova do app assume o controle, recarrega uma única
+        // vez para o usuário (inclusive no app instalado) ver a versão atual.
+        let _swTinhaControle = !!navigator.serviceWorker.controller, _swRecarregou = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!_swTinhaControle) { _swTinhaControle = true; return; }
+            if (_swRecarregou) return;
+            _swRecarregou = true;
+            location.reload();
+        });
+        navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' })
             .then(registration => {
                 console.log('Service Worker registrado:', registration.scope);
+                registration.update().catch(() => {});
             })
             .catch(error => {
                 console.error('Erro ao registrar Service Worker:', error);
