@@ -630,6 +630,17 @@ meses_presentes = sorted(set(
 ))
 MESES_NOME = {v: k.title() for k, v in MESES_PT.items()}
 
+# O seletor de mês da página de Orçamento lê out['orcamento_mensal'], que até aqui
+# só tinha os meses com linhas na Sala da Manutenção. Um mês que já tem notas na
+# Base Geral (ou retirada de estoque) mas ainda nenhuma linha na Sala — ex.: o
+# mês corrente no começo — ficava sem aparecer, e suas notas não podiam ser vistas.
+# Acrescenta esses meses (custo da Sala = 0) e mantém a lista em ordem.
+_meses_orc = {x['mes_num'] for x in out['orcamento_mensal'] if x.get('mes_num')}
+for _mn in meses_presentes:
+    if _mn and _mn not in _meses_orc:
+        out['orcamento_mensal'].append({'mes': MESES_NOME.get(_mn, str(_mn)), 'mes_num': int(_mn), 'custo': 0.0})
+out['orcamento_mensal'].sort(key=lambda x: x['mes_num'])
+
 consolidado_mensal = []
 for mn in meses_presentes:
     por_categoria = {cat: {'contabil': 0.0, 'aguardando': 0.0, 'estoque': 0.0} for cat in CATEGORIAS_ORCAMENTO}
