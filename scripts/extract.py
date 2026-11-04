@@ -301,6 +301,63 @@ CATEGORIAS_ORCAMENTO = ['Equipamentos', 'Predial', 'Limpeza', 'Meio Ambiente / R
 _TIEBREAK_ORCAMENTO = ['Meio Ambiente / Resíduos', 'Limpeza', 'Predial', 'Equipamentos']
 _CAT_RE_ORCAMENTO = {'Meio Ambiente / Resíduos': _MEIOAMB_RE, 'Predial': _PREDIAL_RE, 'Equipamentos': _EQUIP_RE}
 
+# ================= CATEGORIAS MANUAIS (coluna "Categorias" da Base Geral) =================
+# Desde nov/2026 a Base Geral do Centro de Custo (aba Orçamento, bloco "Notas de
+# entrada Geral") traz a coluna "Categorias", preenchida à mão pelo usuário. Ela
+# tem prioridade sobre o classificador por palavras-chave. Cada rótulo manual é
+# agrupado numa das 5 categorias gerenciais (ou 'Outros', fora do total geral).
+# Notas com mais de um rótulo (separados por ";") têm o valor dividido em partes
+# iguais entre os rótulos listados.
+# Decisões do usuário: serviços de transporte e de terceiros PJ = Equipamentos;
+# Passagem, Hospedagem e Treinamento = Pessoas; Bens de Pequeno Valor,
+# Materiais de Expediente e Impostos e Taxas = Outros.
+CATEGORIA_MANUAL_PARA_GERENCIAL = {
+    'pecas de manutencao': 'Equipamentos',
+    'servicos de manutencao': 'Equipamentos',
+    'servicos de transporte - terceiros': 'Equipamentos',
+    'servicos de terceiros - pj': 'Equipamentos',
+    'manutencao predial': 'Predial',
+    'materiais de limpeza': 'Limpeza',
+    'limpeza predial': 'Limpeza',
+    'descarte de residuos': 'Meio Ambiente / Resíduos',
+    'alimentacao pat': 'Pessoas',
+    'assistencia medica': 'Pessoas',
+    'cesta basica': 'Pessoas',
+    'cesta basica / vale alimentacao / refeicao': 'Pessoas',
+    'vale transporte': 'Pessoas',
+    'processos trabalhistas': 'Pessoas',
+    'treinamento': 'Pessoas',
+    'passagem': 'Pessoas',
+    'hospedagem': 'Pessoas',
+    'bens de pequeno valor': 'Outros',
+    'materiais de expediente': 'Outros',
+    'impostos e taxas': 'Outros',
+}
+
+def ratear_categoria_manual(texto, valor):
+    """Converte o texto da coluna 'Categorias' em (lista de categorias gerenciais
+    sem repetição, dict categoria->valor rateado). Devolve (None, None) quando a
+    célula está vazia ou tem algum rótulo desconhecido (aí vale o classificador
+    automático) — rótulos desconhecidos são avisados no console."""
+    if texto is None or str(texto).strip() in ('', 'nan'):
+        return None, None
+    rotulos = [r.strip() for r in str(texto).split(';') if r.strip()]
+    mapeados = []
+    for r in rotulos:
+        cat = CATEGORIA_MANUAL_PARA_GERENCIAL.get(_norm_txt(r))
+        if cat is None:
+            print(f"AVISO: categoria manual desconhecida '{r}' — usando o classificador automático nesta nota.")
+            return None, None
+        mapeados.append(cat)
+    valor = float(valor or 0)
+    n = len(mapeados)
+    parte = round(valor / n, 2)
+    rateio = {}
+    for i, cat in enumerate(mapeados):
+        v = parte if i < n - 1 else round(valor - parte * (n - 1), 2)
+        rateio[cat] = round(rateio.get(cat, 0.0) + v, 2)
+    return list(rateio.keys()), rateio
+
 def _score(regex, texto, peso):
     return peso * len(regex.findall(texto))
 
@@ -404,9 +461,11 @@ try:
     # Serviço/Produto" foi adicionada depois de "Situação". Ela é opcional
     # (required=False) pra não quebrar se uma extração antiga não tiver essa
     # coluna ainda.
-    geral_block = orc.iloc[:, 26:33].dropna(subset=['Nota'])
+    geral_block = orc.iloc[:, 26:34].dropna(subset=['Nota'])
     geral_block['nota_num'] = pd.to_numeric(geral_block['Nota'], errors='coerce')
     col_desc_servico = find_col(geral_block, 'Descrição do Serviço/ Produto', contains_fallback='servico', required=False)
+    col_cat_manual = find_col(geral_block, 'Categorias', contains_fallback='categoria', required=False)
+    n_cat_manual = 0
     nf_nums_manutencao = set()
     for x in nf_list:
         try: nf_nums_manutencao.add(int(float(x['nf'])))
@@ -422,6 +481,14 @@ try:
         lancada_manutencao = (not pd.isna(nota_n)) and (int(nota_n) in nf_nums_manutencao)
         descricao_geral = clean(r[col_desc_servico]) if col_desc_servico else None
         fornecedor_geral = clean(r['Fornecedor.1'])
+        valor_geral = clean(r['Valor Rateado (R$)'])
+        cats_manual, rateio_manual = ratear_categoria_manual(clean(r[col_cat_manual]) if col_cat_manual else None, valor_geral)
+        if cats_manual:
+            n_cat_manual += 1
+            categoria_final, origem_cat = cats_manual[0], 'manual'
+        else:
+            categoria_final, origem_cat = classificar_categoria(descricao_geral, fornecedor_geral), 'automatica'
+            rateio_manual = {categoria_final: round(float(valor_geral or 0), 2)}
         nf_geral_list.append({
             'nota': clean(r['Nota']), 'fornecedor_cod': clean(r['Cód. Fornecedor']),
             'fornecedor': fornecedor_geral, 'valor': clean(r['Valor Rateado (R$)']),
@@ -429,9 +496,14 @@ try:
             'situacao': clean(r['Situação']),
             'descricao': descricao_geral,
             'lancada_pela_manutencao': bool(lancada_manutencao),
-            'categoria': classificar_categoria(descricao_geral, fornecedor_geral),
+            'categoria': categoria_final,
+            'categoria_manual': clean(r[col_cat_manual]) if col_cat_manual else None,
+            'origem_categoria': origem_cat,
+            'rateio_categorias': rateio_manual,
         })
     out['nf_geral_list'] = nf_geral_list
+    print("Categorias da Base Geral: %d notas com categoria manual, %d pelo classificador automático"
+          % (n_cat_manual, len(nf_geral_list) - n_cat_manual))
     nao_lancadas = [n for n in nf_geral_list if not n['lancada_pela_manutencao']]
     print("Notas gerais:", len(nf_geral_list), "| não lançadas pela manutenção:", len(nao_lancadas),
           "| valor não lançado:", sum(n['valor'] or 0 for n in nao_lancadas))
@@ -566,9 +638,11 @@ for mn in meses_presentes:
     for g in out.get('nf_geral_list', []):
         if _mes_num_from_data(g.get('data')) != mn:
             continue
-        cat = g.get('categoria') or 'Outros'
-        por_categoria.setdefault(cat, {'contabil': 0.0, 'aguardando': 0.0, 'estoque': 0.0})
-        por_categoria[cat]['contabil'] += (g.get('valor') or 0)
+        partes = g.get('rateio_categorias') or {(g.get('categoria') or 'Outros'): (g.get('valor') or 0)}
+        for cat, v in partes.items():
+            cat = cat or 'Outros'
+            por_categoria.setdefault(cat, {'contabil': 0.0, 'aguardando': 0.0, 'estoque': 0.0})
+            por_categoria[cat]['contabil'] += (v or 0)
 
     for n in nf_list:
         if n.get('mes_num') != mn or n.get('status_lancamento') != 'Aguardando Lançamento':
@@ -1248,6 +1322,9 @@ _ESCALA_SHEET = 'GP Escala 2026'
 escala_mensal = {}
 escala_grade_mensal = {}
 try:
+    # find_sheet tolera maiúsculas/acento no nome da aba (a planilha de nov/2026 veio
+    # como "Gp Escala 2026"; o código esperava "GP Escala 2026" e perdia a escala toda).
+    _ESCALA_SHEET = find_sheet(F, _ESCALA_SHEET, contains_fallback='escala')
     raw_esc = pd.read_excel(F, sheet_name=_ESCALA_SHEET, header=None)
     nrows_esc, ncols_esc = raw_esc.shape
     blocos_esc = [r for r in range(nrows_esc)
