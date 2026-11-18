@@ -1,6 +1,15 @@
 name: Atualizar APP Manutenção
 
+# Fontes da planilha, em ordem de prioridade:
+#  1) push de data/planilha.xlsx no repositório  -> usa exatamente esse arquivo
+#  2) planilha enviada pelo app (aba "Atualizar planilha", guardada no Firebase)
+#  3) OneDrive (só no agendamento), se o link estiver configurado
+#  4) o último data/planilha.xlsx que estiver no repositório
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'data/planilha.xlsx'
   workflow_dispatch: {}
   schedule:
     - cron: '0 9-23 * * *'
@@ -9,6 +18,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: atualizar-app
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,35 +29,63 @@ jobs:
       - name: Baixar o repositório
         uses: actions/checkout@v4
 
-      - name: Baixar a planilha mais recente do OneDrive
-        env:
-          ONEDRIVE_URL: ${{ secrets.ONEDRIVE_PLANILHA_URL }}
-        run: |
-          mkdir -p data
-          curl -L -f -o data/planilha_novo.xlsx \
-            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" \
-            "${ONEDRIVE_URL}"
-
-      - name: Validar se o arquivo baixado é realmente um .xlsx
-        run: |
-          SIG=$(head -c 2 data/planilha_novo.xlsx)
-          SIZE_KB=$(du -k data/planilha_novo.xlsx | cut -f1)
-          if [ "$SIG" != "PK" ] || [ "$SIZE_KB" -lt 500 ]; then
-            echo "❌ O arquivo baixado não parece ser a planilha completa (assinatura: '$SIG', tamanho: ${SIZE_KB}KB)."
-            echo "Conteúdo recebido (primeiros 300 caracteres):"
-            head -c 300 data/planilha_novo.xlsx
-            exit 1
-          fi
-          mv data/planilha_novo.xlsx data/planilha.xlsx
-          echo "✅ Arquivo validado, ${SIZE_KB}KB"
-
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Instalar dependências
-        run: pip install pandas openpyxl numpy
+        run: pip install pandas openpyxl numpy google-cloud-firestore
+
+      - name: Buscar a planilha enviada pelo app (Firebase)
+        id: fb
+        if: github.event_name != 'push'
+        continue-on-error: true
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SA_JSON }}
+        run: python scripts/baixar_firestore.py baixar
+
+      - name: Tentar baixar a planilha do OneDrive (só no agendamento)
+        if: github.event_name == 'schedule' && steps.fb.outputs.baixou != '1'
+        continue-on-error: true
+        env:
+          ONEDRIVE_URL: ${{ secrets.ONEDRIVE_PLANILHA_URL }}
+        run: |
+          mkdir -p data
+          if [ -z "${ONEDRIVE_URL}" ]; then
+            echo "Sem link do OneDrive configurado; usando o arquivo do repositório."
+            exit 0
+          fi
+          if curl -L -f -sS --max-time 120 -o data/planilha_novo.xlsx \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" \
+            "${ONEDRIVE_URL}"; then
+            SIG=$(head -c 2 data/planilha_novo.xlsx)
+            SIZE_KB=$(du -k data/planilha_novo.xlsx | cut -f1)
+            if [ "$SIG" = "PK" ] && [ "$SIZE_KB" -ge 500 ]; then
+              mv data/planilha_novo.xlsx data/planilha.xlsx
+              echo "✅ Planilha do OneDrive validada (${SIZE_KB}KB)"
+            else
+              echo "⚠️ Download do OneDrive não é uma planilha válida. Usando o arquivo do repositório."
+              rm -f data/planilha_novo.xlsx
+            fi
+          else
+            echo "⚠️ Não foi possível baixar do OneDrive. Usando o arquivo do repositório."
+            rm -f data/planilha_novo.xlsx
+          fi
+
+      - name: Conferir a planilha que será usada
+        run: |
+          if [ ! -f data/planilha.xlsx ]; then
+            echo "❌ Não existe planilha. Envie uma pela aba 'Atualizar planilha' do app."
+            exit 1
+          fi
+          SIG=$(head -c 2 data/planilha.xlsx)
+          SIZE_KB=$(du -k data/planilha.xlsx | cut -f1)
+          if [ "$SIG" != "PK" ] || [ "$SIZE_KB" -lt 500 ]; then
+            echo "❌ data/planilha.xlsx não parece ser a planilha completa (assinatura '$SIG', ${SIZE_KB}KB)."
+            exit 1
+          fi
+          echo "✅ Usando data/planilha.xlsx (${SIZE_KB}KB)"
 
       - name: Rodar extração e montar o app
         run: python scripts/extract.py
@@ -55,4 +96,13 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/index.html
           git diff --quiet --cached || git commit -m "Atualização automática do APP Manutenção"
+          git pull --rebase origin main
           git push
+
+      - name: Avisar o app que a planilha foi processada
+        if: steps.fb.outputs.baixou == '1'
+        continue-on-error: true
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SA_JSON }}
+          SHA_ENVIO: ${{ steps.fb.outputs.sha }}
+        run: python scripts/baixar_firestore.py marcar
