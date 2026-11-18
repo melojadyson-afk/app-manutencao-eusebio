@@ -32,6 +32,58 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<!-- ===== Camada de dados compartilhada (Firestore) =====
+     O app foi desenhado com um "window.storage" que só existe dentro do Claude.
+     No GitHub Pages ele não existia e nada era gravado. Aqui ele passa a gravar
+     no Firestore (coleção app_dados), compartilhado pela equipe. As chamadas
+     esperam o login terminar (__appReady) antes de falar com o banco. -->
+<script>
+(function(){
+  let liberar; window.__appReady = new Promise(function(r){ liberar = r; });
+  window.__appAuthorized = function(email, perfil){ window.__appUser = email||''; window.__appPerfil = perfil||'equipe'; liberar(); };
+  window.__appUser = ''; window.__appPerfil = 'equipe';
+  window.__podeAprovar = function(){ return ['aprovador','admin','gestor'].indexOf(String(window.__appPerfil).toLowerCase()) >= 0; };
+  var avisoEl = null, avisoT = null;
+  window.__kvAviso = function(txt){
+    if(!avisoEl){ avisoEl = document.createElement('div');
+      avisoEl.setAttribute('role','status');
+      avisoEl.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#3b1114;color:#ffd7d7;border:1px solid #ff5a5f;padding:9px 16px;border-radius:9px;font:600 12.5px system-ui,sans-serif;z-index:400;max-width:90vw;display:none';
+      document.body.appendChild(avisoEl); }
+    avisoEl.textContent = txt; avisoEl.style.display='block'; clearTimeout(avisoT); avisoT = setTimeout(function(){ avisoEl.style.display='none'; }, 5000);
+  };
+  window.__col = function(nome){ return firebase.firestore().collection(nome); };
+  window.__agora = function(){ return firebase.firestore.FieldValue.serverTimestamp(); };
+  var lsk = function(k){ return 'app_kv_'+k; };
+  window.storage = {
+    get: async function(key){
+      await window.__appReady;
+      try{
+        var d = await window.__col('app_dados').doc(key).get();
+        if(d.exists){ var v = d.data().value; try{ localStorage.setItem(lsk(key), v); }catch(e){} return {key:key, value:v}; }
+        return null;
+      }catch(e){
+        var c = null; try{ c = localStorage.getItem(lsk(key)); }catch(x){}
+        window.__kvAviso('Sem acesso ao banco agora: mostrando a última cópia deste aparelho');
+        return c ? {key:key, value:c} : null;
+      }
+    },
+    set: async function(key, value){
+      await window.__appReady;
+      try{ localStorage.setItem(lsk(key), value); }catch(e){}
+      try{
+        await window.__col('app_dados').doc(key).set({value:value, atualizadoPor:window.__appUser, atualizadoEm:window.__agora()});
+        return {key:key, value:value};
+      }catch(e){ window.__kvAviso('Não foi possível salvar no banco ('+(e.code||e.message)+')'); throw e; }
+    },
+    delete: async function(key){
+      await window.__appReady;
+      try{ await window.__col('app_dados').doc(key).delete(); return {key:key, deleted:true}; }
+      catch(e){ window.__kvAviso('Não foi possível apagar no banco ('+(e.code||e.message)+')'); throw e; }
+    }
+  };
+})();
+</script>
+
 <style>
 :root{
   --bg:#141516; --bg2:#191a1b; --panel:#1e1f20; --line:#333537; --line-soft:#26282a;
@@ -775,6 +827,29 @@ body.force-mobile #mp-chips{right:60px}body.force-mobile .mp-map{height:70vh}
 .mp-links span{font-size:10px;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.6px;margin-right:6px}.mp-links small{display:block;color:var(--text-dim);margin-top:2px}
 .mp-sub b{color:var(--text)}
 </style>
+<style id="dados-compartilhados-css">
+:root{ --c-ativ:#F59E0B; --c-dados:#38BDF8; }
+body.force-mobile, body{ --c-ativ:#F59E0B; --c-dados:#38BDF8; }
+.ativ-board{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px; align-items:start;}
+.ativ-col{background:var(--panel); border:1px solid var(--line-soft); border-radius:12px; padding:12px; min-height:140px;}
+.ativ-col h4{margin:0 0 10px; font-size:12px; letter-spacing:.06em; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center; color:var(--text-dim);}
+.ativ-col h4 .cnt{font-family:'IBM Plex Mono',monospace; color:var(--text);}
+.ativ-card{border:1px solid var(--line-soft); border-radius:10px; padding:10px 11px; margin-bottom:9px; cursor:pointer; background:color-mix(in srgb, var(--panel) 85%, #fff 4%);}
+.ativ-card:hover{border-color:var(--c-ativ);}
+.ativ-card .t{font-weight:600; font-size:13.5px; margin-bottom:4px; overflow-wrap:anywhere;}
+.ativ-card .m{font-size:11.5px; color:var(--text-dim); overflow-wrap:anywhere;}
+.ativ-card .acoes{display:flex; gap:6px; margin-top:8px; align-items:center; flex-wrap:wrap;}
+.ativ-card .acoes .btn{padding:3px 10px; font-size:12px;}
+.ativ-vazio{font-size:12.5px; color:var(--text-dim); padding:10px 2px;}
+.aprov-cell .meta{font-size:10px; color:var(--text-dim); margin-top:3px; font-family:'IBM Plex Mono',monospace; overflow-wrap:anywhere; max-width:170px;}
+.aprov-cell .btns{display:flex; gap:4px; margin-top:5px;}
+.aprov-cell .btns .btn{padding:2px 8px; font-size:11px;}
+.modal textarea{width:100%; min-height:70px; resize:vertical;}
+.modal .fld{display:flex; flex-direction:column; gap:4px; margin-bottom:8px;}
+.dados-barra{height:8px;border-radius:5px;background:var(--line-soft);margin-top:12px;overflow:hidden}
+.dados-barra i{display:block;height:100%;width:0;background:var(--c-dados);transition:width .2s}
+#view-dados input[type=file]{color:var(--text);max-width:100%}
+</style>
 </head>
 <body>
 
@@ -824,6 +899,8 @@ body.force-mobile #mp-chips{right:60px}body.force-mobile .mp-map{height:70vh}
     <div class="navitem" data-view="pessoas" style="--c:var(--c-pessoas)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.5a3.5 3.5 0 00-3.5-3.5h-5A3.5 3.5 0 005 18.5V20"/><circle cx="9.5" cy="8" r="3.2"/><path d="M19 20v-1.5a3.3 3.3 0 00-2.2-3.1"/><path d="M14.8 4.9a3.2 3.2 0 010 6.1"/></svg></span> Gestão de Pessoas</div>
     <div class="navitem" data-view="utilidades" style="--c:var(--c-utilidades)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 10.5a6 6 0 01-12 0C6 9.5 12 3 12 3z"/></svg></span> Utilidades</div>
     <div class="navitem" data-view="calendario" style="--c:var(--c-agenda)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v4"/><path d="M16 3v4"/></svg></span> Agenda / Calendário <span class="n" id="nav-cal-count"></span></div>
+    <div class="navitem" data-view="atividades" style="--c:var(--c-ativ)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 9l1.6 1.6L12.5 7.8"/><path d="M8 15h8"/></svg></span> Atividades <span class="n" id="nav-ativ-count"></span></div>
+    <div class="navitem" data-view="dados" style="--c:var(--c-dados);display:none"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg></span> Atualizar planilha</div>
     <div class="navitem" data-view="mapa" style="--c:var(--c-mapa)"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11.5A7 7 0 105 9.5C5 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg></span> Mapa</div>
 
     <div class="sidebar-fmt">
@@ -1034,7 +1111,7 @@ body.force-mobile #mp-chips{right:60px}body.force-mobile .mp-map{height:70vh}
           <select id="compras-status-filter"><option value="">Todas as situações</option></select>
         </div>
         <div class="table-wrap tbl-scroll">
-          <table><thead id="compras-thead"><tr><th data-key="oc" data-type="num">OC</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="data_emissao" data-type="date">Data emissão</th><th data-key="tipo" data-type="text">Tipo</th><th data-key="descricao" data-type="text">Descrição</th><th data-key="valor" data-type="num">Valor rateado</th><th data-key="situacao" data-type="text">Situação</th></tr></thead><tbody id="compras-tbody"></tbody></table>
+          <table><thead id="compras-thead"><tr><th data-key="oc" data-type="num">OC</th><th data-key="fornecedor" data-type="text">Fornecedor</th><th data-key="data_emissao" data-type="date">Data emissão</th><th data-key="tipo" data-type="text">Tipo</th><th data-key="descricao" data-type="text">Descrição</th><th data-key="valor" data-type="num">Valor rateado</th><th data-key="situacao" data-type="text">Situação</th><th>Aprovação</th></tr></thead><tbody id="compras-tbody"></tbody></table>
         </div>
         <div class="foot-note">Base atualizada em set/2026 para trazer o histórico completo do ano (antes só vinham as OCs em aberto) e uma descrição real do produto/serviço comprado. "Valor movimentado" soma todas as situações, exceto Cancelado.</div>
       </div>
@@ -1242,6 +1319,45 @@ body.force-mobile #mp-chips{right:60px}body.force-mobile .mp-map{height:70vh}
       <div class="card"><div class="cal-grid-head" id="cal-grid-head"></div><div class="cal-grid" id="cal-grid"></div></div>
     </div>
 
+    <!-- ============ ATIVIDADES ============ -->
+    <div class="view" id="view-atividades" style="--tab-color:var(--c-ativ)">
+      <div class="topbar">
+        <div><div class="pagetitle"><span class="dot"></span>Atividades</div><div class="pagesub">Tarefas da equipe de manutenção, compartilhadas em tempo real</div></div>
+        <div class="period-pill mono" id="ativ-count">0 ABERTAS</div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="toolbar" style="justify-content:space-between;">
+          <div style="display:flex; gap:9px; flex-wrap:wrap; align-items:center;">
+            <select id="ativ-resp-filter" class="period-pill mono"><option value="">Todos os responsáveis</option></select>
+            <input type="text" id="ativ-search" placeholder="Buscar atividade...">
+          </div>
+          <button class="btn primary" id="ativ-new">+ Nova atividade</button>
+        </div>
+      </div>
+      <div class="ativ-board" id="ativ-board"></div>
+    </div>
+
+    <!-- ============ ATUALIZAR DADOS ============ -->
+    <div class="view" id="view-dados" style="--tab-color:var(--c-dados)">
+      <div class="topbar">
+        <div><div class="pagetitle"><span class="dot"></span>Atualizar planilha</div><div class="pagesub">Envie o Excel atualizado direto do navegador, sem SharePoint e sem GitHub</div></div>
+        <div class="period-pill mono" id="dados-pill">—</div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div id="dados-status" style="font-size:13.5px; line-height:1.6;">Consultando o banco…</div>
+      </div>
+      <div class="card">
+        <div style="font-weight:600; margin-bottom:8px;">Enviar nova planilha</div>
+        <p style="color:var(--text-dim); font-size:12.5px; margin:0 0 12px;">Use o mesmo arquivo Excel que você já usa hoje (formato .xlsx, com todas as abas). O app é reconstruído automaticamente na próxima rodada, em até 1 hora.</p>
+        <div style="display:flex; gap:9px; flex-wrap:wrap; align-items:center;">
+          <input type="file" id="dados-file" accept=".xlsx">
+          <button class="btn primary" id="dados-enviar" disabled>Enviar para o banco</button>
+        </div>
+        <div class="dados-barra" id="dados-barra" style="display:none;"><i id="dados-barra-i"></i></div>
+        <div id="dados-msg" style="margin-top:10px; font-size:12.5px;"></div>
+      </div>
+    </div>
+
     <!-- ============ MAPA ============ -->
     <div class="view" id="view-mapa" style="--tab-color:var(--c-mapa)">
       <div class="topbar">
@@ -1320,6 +1436,31 @@ body.force-mobile #mp-chips{right:60px}body.force-mobile .mp-map{height:70vh}
     <input type="text" id="pin-search" placeholder="Buscar por tag ou descrição...">
     <select id="pin-select" size="7"></select>
     <div class="row"><button class="btn" id="pin-cancel">Cancelar</button><button class="btn primary" id="pin-confirm">Salvar pino</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="ativ-modal">
+  <div class="modal" style="width:420px;">
+    <h3 id="ativ-modal-titulo">Nova atividade</h3>
+    <div class="fld"><label for="ativ-titulo">Título</label><input type="text" id="ativ-titulo" placeholder="O que precisa ser feito"></div>
+    <div class="fld"><label for="ativ-desc">Detalhes</label><textarea id="ativ-desc" placeholder="Contexto, peças, link da OS…"></textarea></div>
+    <div class="fld"><label for="ativ-equip">Equipamento</label><input type="text" id="ativ-equip" list="ativ-dl-equip" placeholder="Ex.: Passador Lapauw 02"></div>
+    <div class="fld"><label for="ativ-resp">Responsável</label><input type="text" id="ativ-resp" list="ativ-dl-resp" placeholder="Nome"></div>
+    <div class="row" style="gap:8px;">
+      <div class="fld" style="flex:1"><label for="ativ-prazo">Prazo</label><input type="date" id="ativ-prazo"></div>
+      <div class="fld" style="flex:1"><label for="ativ-prio">Prioridade</label><select id="ativ-prio"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></div>
+    </div>
+    <div class="fld"><label for="ativ-status">Situação</label><select id="ativ-status"><option value="a_fazer">A fazer</option><option value="andamento">Em andamento</option><option value="concluida">Concluída</option></select></div>
+    <div class="row" style="justify-content:space-between;"><button class="btn" id="ativ-del" style="display:none;">Excluir</button><span style="display:flex;gap:8px;"><button class="btn" id="ativ-cancel">Cancelar</button><button class="btn primary" id="ativ-save">Salvar</button></span></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="aprov-modal">
+  <div class="modal" style="width:380px;">
+    <h3 id="aprov-titulo">Aprovação da OC</h3>
+    <p id="aprov-sub" style="color:var(--text-dim);font-size:12.5px;margin:0 0 10px;"></p>
+    <div class="fld"><label for="aprov-obs">Observação (opcional)</label><textarea id="aprov-obs" placeholder="Motivo ou condição"></textarea></div>
+    <div class="row" style="justify-content:flex-end;gap:8px;"><button class="btn" id="aprov-cancel">Cancelar</button><button class="btn primary" id="aprov-ok">Confirmar</button></div>
   </div>
 </div>
 
@@ -2126,6 +2267,13 @@ function makeP3D(svg){
   }
   const baseColor=it=>OVR[it.tag]||'#33495a';
   function partsFor(it){
+    if(!it.rot) return partsFor0(it);
+    // it.w x it.d = pegada na tela. O modelo é desenhado com o lado longo (it.d) em x e girado 90°:
+    // (x,y)_modelo -> (y, L-x)_tela, de modo que a frente do equipamento (y máximo) fica voltada para leste.
+    const L=it.d, parts=partsFor0(Object.assign({},it,{w:it.d,d:it.w,rot:0}));
+    return parts.map(p=>p.t==='b'?Object.assign({},p,{dx:p.dy,dy:L-p.dx-p.w,w:p.d,d:p.w}):Object.assign({},p,{cx:p.cy,cy:L-p.cx}));
+  }
+  function partsFor0(it){
     const b=baseColor(it),dk=shade(b,.82),lt=shade(b,1.12),gy=MET,gyd=shade(gy,.8),Wd=it.w,Dp=it.d,H=it.h,k=it.kind,out=[];
     const B=(dx,dy,w,d,z0,z1,c)=>out.push({t:'b',dx,dy,w,d,z0,z1,c}), Cy=(cx,cy,r,z0,z1,c)=>out.push({t:'c',cx,cy,r,z0,z1,c});
     if(k==='tunel'){const tw=Math.min(2.2,Wd*.18),L=Wd-tw,Hd=H*.78,n=8,sw=L/n,steel='#aeb6bc';
@@ -2173,12 +2321,12 @@ function makeP3D(svg){
       B(.45,.1,hw,.75,1.08,1.7,b);
       for(let i=0;i<nH;i++){B(.45+i*hw/nH+.06,.85,hw/nH-.12,.07,1.2,1.62,shade(b,1.3));}
       B(L,0,tw,Dp,.3,1.2,wh);B(L,0,tw,Dp,1.2,1.9,b);B(0,Dp*.4,.28,.55,1.15,1.65,gyd);}
-    else if(k==='sorting'){const wt='#e3e7ea',n=Math.max(3,Math.round(Wd/.75)),hw=Math.min(1.2,Wd*.26),sw=(Wd-hw)/n,tz=Dp-.95;
+    else if(k==='sorting'){const wt='#e3e7ea',n=Math.max(3,Math.round(Wd/(Wd>6?1.1:.75))),hw=Math.min(1.2,Wd*.26),sw=(Wd-hw)/n,tz=Dp-.95,ps=Math.min(1.5,Math.max(.55,Dp*.24));
       B(0,0,Wd,Dp,0,.3,gyd);
       B(0,.15,Wd,.15,H-.12,H,'#8e979e');
       for(let i=0;i<n;i++){const sx=i*sw;
-        B(sx+sw*.18,.5,sw*.64,.55,.3,1.25,b);
-        B(sx+sw*.1,.35,sw*.8,.85,1.25,1.5,'#cdd3d8');
+        B(sx+sw*.18,.5,sw*.64,ps,.3,1.25,b);
+        B(sx+sw*.1,.35,sw*.8,ps+.3,1.25,1.5,'#cdd3d8');
         B(sx+sw*.45,.3,.08,.08,1.5,H-.12,'#b9c0c6');
         B(sx+sw*.15,.62,sw*.7,.05,H*.78,H*.93,'#17222e');}
       B(0,tz,Wd,.75,.6,1.05,wt);B(.1,tz+.15,Wd-.2,.4,1.05,1.08,'#6b747c');
@@ -2524,12 +2672,19 @@ const MP=(function(){
       ['alimentador','alim',4.2,2.2,2.3],['passador','passador',4.2,2.2,2.2],['dobrador','dobrador',4.6,2.4,2.3],['foltex','dobrador',4.6,2.4,2.3],['extratora','extratora',2.6,2.0,2.4],['secador de piso','secpiso',2.6,2.4,2.3],['secadora de piso','secpiso',2.6,2.4,2.3],
       ['secadora automatica','secadora',3.2,1.9,3],['caldeira','caldeira',3.6,4.8,3.4],['gerador','gerador',4.6,2.3,2.6],['compressor','compressor',2.6,1.8,1.9],['picador','picador',4.5,3,3],['esteira','esteira',8,1.2,.9],
       ['seladora','seladora',2.2,1.8,1.6],['maquina de corte','seladora',1.8,1.4,1.4],['galp','galpao',20,14,.15]];
+    // Pegadas MEDIDAS NA PLANTA (px da imagem do térreo: [x0,y0,x1,y1]). Onde o pino cair dentro da marca, o modelo
+    // usa o retângulo desenhado (posição, largura e comprimento); rot:1 = lado longo no eixo norte-sul da planta.
+    const FOOT={'TAGBR00086':{r:[332,876,384,1000],rot:1},'TAGBR00085':{r:[395,1080,432,1180],rot:1},
+                'TAGBR00002':{r:[662,796,717,922]},'TAGBR00001':{r:[743,823,777,939]}};
+    const PXM=.089, inFoot=(f,i)=>{ const px=i.x/100*IW, py=i.y/100*IH, m=14; return i.floor!=='superior'&&px>=f.r[0]-m&&px<=f.r[2]+m&&py>=f.r[1]-m&&py<=f.r[3]+m; };
     const spec=n=>{n=nrm(n);for(const r of RULES) if(n.includes(r[0])) return r; return ['','generic',2.2,2.2,2];};
     const L=items.map(i=>{ const s=spec(i.nome), kind=s[1]; let cx=i.x/100*WM, cy=i.y/100*DM; if(kind==='tunel') cx-=4.5;
-      return {tag:i.tag,nome:i.nome,kind,cx,cy,w:s[2],d:s[3],h:s[4],w0:s[2],d0:s[3],z:i.floor==='superior'?3.9:0,floor:i.floor==='superior'?'M':'T',area:kind==='galpao',hotPulse:i.status==='crit'&&/AA\/A/.test(i.nivel||'')}; });
+      let w=s[2],d=s[3],rot=0,fixed=false; const f=FOOT[i.tag];
+      if(f&&inFoot(f,i)){ cx=(f.r[0]+f.r[2])/2*PXM; cy=(f.r[1]+f.r[3])/2*PXM; w=(f.r[2]-f.r[0])*PXM; d=(f.r[3]-f.r[1])*PXM; rot=f.rot||0; fixed=true; }
+      return {tag:i.tag,nome:i.nome,kind,cx,cy,w,d,h:s[4],w0:w,d0:d,rot,fixed,z:i.floor==='superior'?3.9:0,floor:i.floor==='superior'?'M':'T',area:kind==='galpao',hotPulse:i.status==='crit'&&/AA\/A/.test(i.nivel||'')}; });
     const ov=(a,b)=>a.floor===b.floor&&!a.area&&!b.area&&Math.abs(a.cx-b.cx)<(a.w+b.w)/2+.12&&Math.abs(a.cy-b.cy)<(a.d+b.d)/2+.12;
-    for(let it=0;it<60;it++){ let ch=false; for(let a=0;a<L.length;a++) for(let b=a+1;b<L.length;b++) if(ov(L[a],L[b])){ [L[a],L[b]].forEach(z=>{ if(z.w>z.w0*.45) z.w*=.95; if(z.d>z.d0*.55) z.d*=.95; }); ch=true; } if(!ch) break; }
-    return L.map(z=>({tag:z.tag,nome:z.nome,kind:z.kind,x:z.cx-z.w/2,y:z.cy-z.d/2,w:z.w,d:kind0(z),h:z.h,z:z.z,floor:z.floor,area:z.area,hotPulse:z.hotPulse}));
+    for(let it=0;it<60;it++){ let ch=false; for(let a=0;a<L.length;a++) for(let b=a+1;b<L.length;b++) if(ov(L[a],L[b])){ [L[a],L[b]].forEach(z=>{ if(z.fixed) return; if(z.w>z.w0*.45) z.w*=.95; if(z.d>z.d0*.55) z.d*=.95; }); ch=true; } if(!ch) break; }
+    return L.map(z=>({tag:z.tag,nome:z.nome,kind:z.kind,x:z.cx-z.w/2,y:z.cy-z.d/2,w:z.w,d:kind0(z),h:z.h,z:z.z,rot:z.rot,floor:z.floor,area:z.area,hotPulse:z.hotPulse}));
     function kind0(z){ return z.d; }
   }
   function ensure3d(){
@@ -2641,8 +2796,8 @@ function renderCalendario(){
   document.getElementById('cal-legend').innerHTML = Object.entries(EVENT_COLORS).map(([k,c])=>`<span><span class="legend-dot" style="background:${c}"></span>${k}</span>`).join('');
 
   let events = [];
-  async function loadEvents(){ return await loadKV('calendar_events', []); }
-  async function saveEvents(e){ await saveKV('calendar_events', e); }
+  const evCol = ()=>window.__col('agenda_eventos');
+  const evAviso = e=>window.__kvAviso && window.__kvAviso('Agenda: não foi possível gravar ('+(e.code||e.message)+')');
 
   function draw(){
     const y=calState.date.getFullYear(), m=calState.date.getMonth();
@@ -2679,7 +2834,7 @@ function renderCalendario(){
     document.getElementById('day-events-list').innerHTML = (osHtml+shHtml+evHtml) || `<div class="empty">Nenhuma atividade neste dia</div>`;
     document.getElementById('day-modal').classList.add('active');
     document.querySelectorAll('#day-events-list .ev-remove').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{ events = events.filter(e=>e.id!==btn.dataset.id); await saveEvents(events); document.getElementById('day-modal').classList.remove('active'); draw(); });
+      btn.addEventListener('click', async ()=>{ try{ await evCol().doc(btn.dataset.id).delete(); }catch(e){ evAviso(e); } document.getElementById('day-modal').classList.remove('active'); });
     });
   }
   document.getElementById('cal-prev').onclick=()=>{ calState.date.setMonth(calState.date.getMonth()-1); draw(); };
@@ -2696,10 +2851,157 @@ function renderCalendario(){
   document.getElementById('ev-confirm').onclick=async ()=>{
     const date=document.getElementById('ev-date').value.trim(), titulo=document.getElementById('ev-titulo').value.trim();
     if(!date||!titulo) return;
-    events.push({id:'ev'+Date.now()+Math.floor(Math.random()*1000), date, tipo:document.getElementById('ev-tipo').value, titulo, responsavel:document.getElementById('ev-responsavel').value.trim(), horario:document.getElementById('ev-horario').value.trim()});
-    await saveEvents(events); document.getElementById('event-modal').classList.remove('active'); draw();
+    const ev={id:'ev'+Date.now()+Math.floor(Math.random()*1000), date, tipo:document.getElementById('ev-tipo').value, titulo, responsavel:document.getElementById('ev-responsavel').value.trim(), horario:document.getElementById('ev-horario').value.trim(), criadoPor:window.__appUser, criadoEm:Date.now()};
+    try{ await evCol().doc(ev.id).set(ev); }catch(e){ evAviso(e); return; }
+    document.getElementById('event-modal').classList.remove('active');
   };
-  (async ()=>{ events = await loadEvents(); draw(); })();
+  draw();
+  window.__appReady.then(()=>{ evCol().onSnapshot(s=>{ events=s.docs.map(d=>({...d.data(), id:d.id})); draw(); }, evAviso); });
+}
+
+
+/* ===================== ATIVIDADES (Firestore, tempo real) ===================== */
+function renderAtividades(){
+  const COLS=[['a_fazer','A fazer'],['andamento','Em andamento'],['concluida','Concluída']];
+  const PRIO={Alta:0,'Média':1,Baixa:2}, PRIO_B={Alta:'b-red','Média':'b-amber',Baixa:'b-gray'};
+  let lista=[], editando=null;
+  const el=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const hoje=()=>{const d=new Date(); return d.getFullYear()+'-'+calPad(d.getMonth()+1)+'-'+calPad(d.getDate());};
+  const col=()=>window.__col('atividades');
+  const fmtP=p=>p?p.split('-').reverse().join('/'):'sem prazo';
+  const aviso=t=>window.__kvAviso&&window.__kvAviso(t);
+
+  const dlE=document.createElement('datalist'); dlE.id='ativ-dl-equip';
+  dlE.innerHTML=(DATA.equipment||[]).filter(e=>e.desc).slice(0,400).map(e=>`<option value="${esc(e.desc)}">`).join('');
+  document.body.appendChild(dlE);
+  const dlR=document.createElement('datalist'); dlR.id='ativ-dl-resp'; document.body.appendChild(dlR);
+
+  function filtrar(){
+    const r=el('ativ-resp-filter').value, q=el('ativ-search').value.trim().toLowerCase();
+    return lista.filter(a=>(!r||a.resp===r)&&(!q||(a.titulo+' '+(a.equip||'')+' '+(a.desc||'')+' '+(a.resp||'')).toLowerCase().includes(q)));
+  }
+  function draw(){
+    const resps=[...new Set(lista.map(a=>a.resp).filter(Boolean))].sort();
+    const sel=el('ativ-resp-filter'), cur=sel.value;
+    sel.innerHTML='<option value="">Todos os responsáveis</option>'+resps.map(r=>`<option>${esc(r)}</option>`).join(''); sel.value=resps.includes(cur)?cur:'';
+    dlR.innerHTML=resps.map(r=>`<option value="${esc(r)}">`).join('');
+    const rows=filtrar();
+    el('ativ-count').textContent=lista.filter(a=>a.status!=='concluida').length+' ABERTAS';
+    el('ativ-board').innerHTML=COLS.map(([k,nome],ci)=>{
+      const c=rows.filter(a=>(a.status||'a_fazer')===k).sort((a,b)=>(PRIO[a.prio]??1)-(PRIO[b.prio]??1)||String(a.prazo||'9999').localeCompare(String(b.prazo||'9999')));
+      return `<div class="ativ-col"><h4>${nome}<span class="cnt">${c.length}</span></h4>`+(c.map(a=>{
+        const atr=k!=='concluida'&&a.prazo&&a.prazo<hoje();
+        return `<div class="ativ-card" data-id="${esc(a.id)}"><div class="t">${esc(a.titulo)}</div>
+          <div class="m">${esc(a.equip||'')}${a.equip&&a.resp?' · ':''}${esc(a.resp||'')}</div>
+          <div class="m">Prazo: ${fmtP(a.prazo)}</div>
+          <div class="acoes"><span class="badge ${PRIO_B[a.prio]||'b-gray'}">${esc(a.prio||'Média')}</span>${atr?'<span class="badge b-red">Atrasada</span>':''}
+          ${ci>0?`<button class="btn" data-mv="${ci-1}" data-id="${esc(a.id)}" title="Mover para ${COLS[ci-1][1]}">‹</button>`:''}${ci<2?`<button class="btn" data-mv="${ci+1}" data-id="${esc(a.id)}" title="Mover para ${COLS[ci+1][1]}">›</button>`:''}</div></div>`;
+      }).join('')||'<div class="ativ-vazio">Nada aqui.</div>')+'</div>';
+    }).join('');
+    el('ativ-board').querySelectorAll('.ativ-card').forEach(c=>c.addEventListener('click',ev=>{ if(ev.target.closest('[data-mv]')) return; abrir(c.dataset.id); }));
+    el('ativ-board').querySelectorAll('[data-mv]').forEach(b=>b.addEventListener('click',async ev=>{
+      ev.stopPropagation(); const novo=COLS[+b.dataset.mv][0];
+      const dados={status:novo,atualizadoPor:window.__appUser,atualizadoEm:window.__agora()}; if(novo==='concluida') dados.concluidaEm=Date.now();
+      try{ await col().doc(b.dataset.id).update(dados); }catch(e){ aviso('Não foi possível mover ('+(e.code||e.message)+')'); } }));
+  }
+  function abrir(id){
+    editando=id||null; const a=id?lista.find(x=>x.id===id):null;
+    el('ativ-modal-titulo').textContent=a?'Editar atividade':'Nova atividade';
+    el('ativ-titulo').value=a?a.titulo:''; el('ativ-desc').value=a?(a.desc||''):''; el('ativ-equip').value=a?(a.equip||''):'';
+    el('ativ-resp').value=a?(a.resp||''):''; el('ativ-prazo').value=a?(a.prazo||''):''; el('ativ-prio').value=a?(a.prio||'Média'):'Média'; el('ativ-status').value=a?(a.status||'a_fazer'):'a_fazer';
+    el('ativ-del').style.display=a?'inline-block':'none';
+    el('ativ-modal').classList.add('active'); el('ativ-titulo').focus();
+  }
+  el('ativ-new').onclick=()=>abrir(null);
+  el('ativ-cancel').onclick=()=>el('ativ-modal').classList.remove('active');
+  el('ativ-resp-filter').addEventListener('change',draw); el('ativ-search').addEventListener('input',draw);
+  el('ativ-save').onclick=async()=>{
+    const titulo=el('ativ-titulo').value.trim(); if(!titulo){ el('ativ-titulo').focus(); return; }
+    const d={titulo,desc:el('ativ-desc').value.trim(),equip:el('ativ-equip').value.trim(),resp:el('ativ-resp').value.trim(),prazo:el('ativ-prazo').value,prio:el('ativ-prio').value,status:el('ativ-status').value,
+      atualizadoPor:window.__appUser,atualizadoEm:window.__agora()};
+    if(d.status==='concluida') d.concluidaEm=Date.now();
+    el('ativ-save').disabled=true;
+    try{
+      if(editando) await col().doc(editando).update(d);
+      else{ const id='at'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); await col().doc(id).set({...d,criadoPor:window.__appUser,criadoEm:Date.now()}); }
+      el('ativ-modal').classList.remove('active');
+    }catch(e){ aviso('Não foi possível salvar ('+(e.code||e.message)+')'); }
+    finally{ el('ativ-save').disabled=false; }
+  };
+  el('ativ-del').onclick=async()=>{
+    if(!editando) return;
+    if(el('ativ-del').dataset.confirma!=='1'){ el('ativ-del').dataset.confirma='1'; el('ativ-del').textContent='Confirmar exclusão'; setTimeout(()=>{ el('ativ-del').dataset.confirma='0'; el('ativ-del').textContent='Excluir'; },4000); return; }
+    el('ativ-del').dataset.confirma='0'; el('ativ-del').textContent='Excluir';
+    try{ await col().doc(editando).delete(); el('ativ-modal').classList.remove('active'); }catch(e){ aviso('Não foi possível excluir ('+(e.code||e.message)+')'); }
+  };
+  draw();
+  window.__appReady.then(()=>{ col().onSnapshot(s=>{ lista=s.docs.map(d=>({...d.data(),id:d.id})); draw(); },e=>aviso('Atividades: sem acesso ao banco ('+(e.code||e.message)+')')); });
+}
+
+/* ===================== ATUALIZAR PLANILHA (upload para o Firestore em partes) ===================== */
+function renderDados(){
+  const el=id=>document.getElementById(id);
+  const PARTE=700000;                    /* bytes por documento (cabe no limite de 1 MB do Firestore depois do base64) */
+  const MIN=500*1024, MAX=30*1024*1024;
+  const col=()=>window.__col('planilha_upload');
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtDH=ms=>ms?new Date(ms).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'—';
+  const fmtMB=b=>(b/1048576).toFixed(1).replace('.',',')+' MB';
+  const nav=document.querySelector('.navitem[data-view="dados"]');
+  let enviando=false, meta=null;
+
+  function msg(t,erro){ const m=el('dados-msg'); m.textContent=t||''; m.style.color=erro?'#ff8a8a':'var(--text-dim)'; }
+  function pintaStatus(){
+    if(!meta){ el('dados-status').innerHTML='Nenhuma planilha foi enviada por aqui ainda. O app continua usando os dados da última atualização automática.'; el('dados-pill').textContent='SEM ENVIO'; return; }
+    const proc = meta.processadoSha===meta.sha256 && meta.processadoEm;
+    el('dados-status').innerHTML=
+      `<div><b>Última planilha enviada:</b> ${esc(meta.nome)} (${fmtMB(meta.tamanho)})</div>`+
+      `<div><b>Enviada por:</b> ${esc(String(meta.enviadoPor||'').split('@')[0])} em ${fmtDH(meta.enviadoEm)}</div>`+
+      `<div><b>Situação:</b> ${proc?'<span class="badge b-green">Já está no app</span> processada em '+fmtDH(meta.processadoEm):'<span class="badge b-amber">Aguardando a próxima rodada de atualização</span>'}</div>`;
+    el('dados-pill').textContent=proc?'ATUALIZADO':'ENVIADA';
+  }
+  async function sha256(buf){ const h=await crypto.subtle.digest('SHA-256',buf); return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
+  function b64(blob){ return new Promise((ok,err)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(',')[1]||''); r.onerror=()=>err(r.error); r.readAsDataURL(blob); }); }
+
+  el('dados-file').addEventListener('change',()=>{
+    const f=el('dados-file').files[0]; el('dados-enviar').disabled=!f||enviando; msg(f?`${f.name} · ${fmtMB(f.size)}`:'');
+  });
+  el('dados-enviar').addEventListener('click',async()=>{
+    const f=el('dados-file').files[0]; if(!f||enviando) return;
+    if(!/\.xlsx$/i.test(f.name)){ msg('O arquivo precisa ser .xlsx (Excel).',true); return; }
+    if(f.size<MIN){ msg('Arquivo pequeno demais para ser a planilha completa ('+fmtMB(f.size)+'). Confira se é o arquivo certo.',true); return; }
+    if(f.size>MAX){ msg('Arquivo grande demais (máximo 30 MB).',true); return; }
+    enviando=true; el('dados-enviar').disabled=true; el('dados-barra').style.display='block'; el('dados-barra-i').style.width='0%';
+    try{
+      const buf=await f.arrayBuffer();
+      const head=new Uint8Array(buf,0,2);
+      if(head[0]!==0x50||head[1]!==0x4B){ throw new Error('Este arquivo não é um .xlsx válido.'); }
+      const hash=await sha256(buf);
+      const n=Math.ceil(f.size/PARTE);
+      const anterior=meta?meta.partes||0:0;
+      for(let i=0;i<n;i++){
+        const dados=await b64(f.slice(i*PARTE,Math.min(f.size,(i+1)*PARTE)));
+        await col().doc('parte_'+String(i).padStart(3,'0')).set({i:i,dados:dados,sha256:hash});
+        el('dados-barra-i').style.width=Math.round((i+1)/n*100)+'%'; msg('Enviando parte '+(i+1)+' de '+n+'…');
+      }
+      await col().doc('meta').set({nome:f.name,tamanho:f.size,sha256:hash,partes:n,enviadoPor:window.__appUser,enviadoEm:Date.now(),processadoSha:'',processadoEm:0});
+      for(let i=n;i<anterior;i++){ try{ await col().doc('parte_'+String(i).padStart(3,'0')).delete(); }catch(e){} }
+      msg('Planilha enviada com sucesso. O app será atualizado na próxima rodada (até 1 hora).');
+      el('dados-file').value='';
+    }catch(e){
+      msg('Falha no envio: '+(e.code||e.message||e)+'. Tente de novo; se persistir, confira se você tem perfil de aprovador.',true);
+      window.__kvAviso&&window.__kvAviso('Planilha não enviada ('+(e.code||e.message)+')');
+    }finally{ enviando=false; el('dados-enviar').disabled=!el('dados-file').files[0]; }
+  });
+
+  /* o item do menu só aparece para quem pode enviar (perfil aprovador, gestor ou admin) */
+  if(nav) nav.style.display='none';
+  window.__appReady.then(()=>{
+    if(nav&&window.__podeAprovar&&window.__podeAprovar()) nav.style.display='';
+    col().doc('meta').onSnapshot(d=>{ meta=d.exists?d.data():null; pintaStatus(); },
+      e=>{ el('dados-status').textContent='Sem acesso ao banco ('+(e.code||e.message)+')'; });
+  });
 }
 
 /* ===================== GESTÃO DE COMPRAS ===================== */
@@ -2743,8 +3045,34 @@ function renderCompras(){
       <td>${c.tipo?`<span class="badge ${tipoBadge(c.tipo)}">${c.tipo}</span>`:'—'}</td>
       <td>${c.descricao||'—'}</td>
       <td class="mono">${fmtBRL(c.valor)}</td>
-      <td><span class="badge ${statusBadge(c.situacao)}">${c.situacao||'—'}</span></td></tr>`).join('') || `<tr><td colspan="7" class="empty">Nenhuma ordem de compra encontrada</td></tr>`;
+      <td><span class="badge ${statusBadge(c.situacao)}">${c.situacao||'—'}</span></td>${aprovCell(c)}</tr>`).join('') || `<tr><td colspan="8" class="empty">Nenhuma ordem de compra encontrada</td></tr>`;
   }
+  /* ----- aprovação de ordens de compra (Firestore: oc_aprovacoes, um documento por OC) ----- */
+  let APROV = {}, aprovAlvo = null;
+  const escA = s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function aprovCell(c){
+    const a=APROV[String(c.oc)], st=a?a.status:'pendente', aberta=ABERTAS.has(c.situacao);
+    if(!a&&!aberta) return '<td class="aprov-cell"><span style="color:var(--text-dim)">—</span></td>';
+    const cls=st==='aprovada'?'b-green':st==='reprovada'?'b-red':'b-gray', lbl=st==='aprovada'?'Aprovada':st==='reprovada'?'Reprovada':'Pendente';
+    const meta=a&&a.por?`<div class="meta">${escA(String(a.por).split('@')[0])} · ${new Date(a.em).toLocaleDateString('pt-BR')}${a.obs?' · '+escA(a.obs):''}</div>`:'';
+    const btns=(window.__podeAprovar&&window.__podeAprovar()&&aberta)?`<div class="btns"><button class="btn" data-aprov="aprovada" data-oc="${escA(c.oc)}">Aprovar</button><button class="btn" data-aprov="reprovada" data-oc="${escA(c.oc)}">Reprovar</button></div>`:'';
+    return `<td class="aprov-cell"><span class="badge ${cls}">${lbl}</span>${meta}${btns}</td>`;
+  }
+  document.getElementById('compras-tbody').addEventListener('click', ev=>{
+    const b=ev.target.closest('[data-aprov]'); if(!b) return;
+    aprovAlvo={oc:b.dataset.oc,status:b.dataset.aprov};
+    document.getElementById('aprov-titulo').textContent=(b.dataset.aprov==='aprovada'?'Aprovar':'Reprovar')+' OC '+b.dataset.oc;
+    const c=list.find(x=>String(x.oc)===String(b.dataset.oc))||{};
+    document.getElementById('aprov-sub').textContent=[c.fornecedor,fmtBRL(c.valor)].filter(Boolean).join(' · ');
+    document.getElementById('aprov-obs').value=''; document.getElementById('aprov-modal').classList.add('active');
+  });
+  document.getElementById('aprov-cancel').onclick=()=>document.getElementById('aprov-modal').classList.remove('active');
+  document.getElementById('aprov-ok').onclick=async()=>{
+    if(!aprovAlvo) return;
+    try{ await window.__col('oc_aprovacoes').doc(String(aprovAlvo.oc)).set({oc:String(aprovAlvo.oc),status:aprovAlvo.status,por:window.__appUser,em:Date.now(),obs:document.getElementById('aprov-obs').value.trim()}); document.getElementById('aprov-modal').classList.remove('active'); }
+    catch(e){ window.__kvAviso&&window.__kvAviso('Aprovação não gravada ('+(e.code||e.message)+')'); }
+  };
+  window.__appReady.then(()=>{ window.__col('oc_aprovacoes').onSnapshot(s=>{ APROV={}; s.docs.forEach(d=>APROV[d.id]=d.data()); drawTable(); }, e=>window.__kvAviso&&window.__kvAviso('Aprovações: sem acesso ao banco ('+(e.code||e.message)+')')); });
   wireSortHeaders('compras-thead', 'compras', drawTable);
   [mesSel, fornSel, tipoSel, statusSel].forEach(el=>el.addEventListener('change', ()=>{ drawCards(); drawTable(); }));
   document.getElementById('compras-search').addEventListener('input', ()=>{ drawCards(); drawTable(); });
@@ -3011,6 +3339,8 @@ safeInit(renderUtilidades, 'renderUtilidades');
 safeInit(renderMapa, 'renderMapa');
 safeInit(renderCompras, 'renderCompras');
 safeInit(renderCalendario, 'renderCalendario');
+safeInit(renderAtividades, 'renderAtividades');
+safeInit(renderDados, 'renderDados');
 </script>
 
 <!-- ===== Registro do Service Worker (PWA) ===== -->
@@ -3131,6 +3461,7 @@ if ('serviceWorker' in navigator) {
     db.collection('equipe_autorizada').doc(email).get()
       .then(function(doc){
         if (doc.exists && doc.data().ativo !== false){
+          window.__appAuthorized(email, doc.data().perfil);
           document.body.classList.add('app-authed');
           setLoading(false);
           setMsg('');
