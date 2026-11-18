@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() { return request.auth != null && request.auth.token.email != null; }
+    function emailMin() { return request.auth.token.email.lower(); }
+    function pessoa() { return get(/databases/$(database)/documents/equipe_autorizada/$(emailMin())).data; }
+    function autorizado() {
+      return logado()
+        && exists(/databases/$(database)/documents/equipe_autorizada/$(emailMin()))
+        && pessoa().get('ativo', true) != false;
+    }
+    // quem pode aprovar ordens de compra: campo "perfil" = aprovador, gestor ou admin
+    function aprovador() { return autorizado() && (pessoa().get('perfil', 'equipe') in ['aprovador', 'gestor', 'admin']); }
+
+    // lista de e-mails liberados: cada pessoa só lê o próprio documento; o cadastro é feito no console
+    match /equipe_autorizada/{email} {
+      allow read: if logado() && emailMin() == email;
+      allow write: if false;
+    }
+
+    // dados compartilhados da equipe
+    match /app_dados/{chave}      { allow read, write: if autorizado(); }
+    match /agenda_eventos/{id}    { allow read, write: if autorizado(); }
+    match /atividades/{id}        { allow read, write: if autorizado(); }
+    match /oc_aprovacoes/{oc}     { allow read: if autorizado(); allow write: if aprovador(); }
+
+    // planilha enviada pelo app (aba "Atualizar planilha"): só quem tem perfil de aprovador grava;
+    // todos da equipe leem apenas o documento "meta" (nome/data do envio). As partes do arquivo
+    // são lidas só pelo GitHub Actions, com a conta de serviço (que não passa por estas regras).
+    match /planilha_upload/{id}   { allow read: if autorizado() && id == 'meta'; allow write: if aprovador(); }
+  }
+}
