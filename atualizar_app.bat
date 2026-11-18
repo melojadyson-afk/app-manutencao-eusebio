@@ -31,6 +31,12 @@ if errorlevel 1 (
 echo Publicando no GitHub...
 git add .
 git commit -m "Atualizacao automatica local"
+echo Sincronizando com o GitHub...
+git pull --rebase -X theirs origin main
+if errorlevel 1 (
+    echo Falha ao sincronizar com o GitHub. Abortando.
+    exit /b 1
+)
 git push
 
 echo Concluido.
