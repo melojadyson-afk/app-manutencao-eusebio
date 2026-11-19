@@ -12,8 +12,12 @@ on:
       - 'data/planilha.xlsx'
   workflow_dispatch: {}
   schedule:
+    # Rodada completa de hora em hora (com OneDrive como reserva)
     - cron: '0 9-23 * * *'
     - cron: '0 0-1 * * *'
+    # Rodadas rápidas: a cada 5 min (mínimo do GitHub), só processam se houver planilha NOVA enviada pelo app
+    - cron: '5,10,15,20,25,30,35,40,45,50,55 9-23 * * *'
+    - cron: '5,10,15,20,25,30,35,40,45,50,55 0-1 * * *'
 
 permissions:
   contents: write
@@ -43,10 +47,20 @@ jobs:
         continue-on-error: true
         env:
           FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SA_JSON }}
-        run: python scripts/baixar_firestore.py baixar
+        run: python scripts/baixar_firestore.py baixar ${{ contains(github.event.schedule, '5,10,15') && '--so-novos' || '' }}
+
+      - name: Decidir se há o que fazer
+        id: dec
+        run: |
+          if [ "${{ contains(github.event.schedule, '5,10,15') }}" = "true" ] && [ "${{ steps.fb.outputs.baixou }}" != "1" ]; then
+            echo "seguir=0" >> "$GITHUB_OUTPUT"
+            echo "Rodada rápida: nenhuma planilha nova no app. Nada a fazer."
+          else
+            echo "seguir=1" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Tentar baixar a planilha do OneDrive (só no agendamento)
-        if: github.event_name == 'schedule' && steps.fb.outputs.baixou != '1'
+        if: github.event_name == 'schedule' && steps.fb.outputs.baixou != '1' && steps.dec.outputs.seguir == '1'
         continue-on-error: true
         env:
           ONEDRIVE_URL: ${{ secrets.ONEDRIVE_PLANILHA_URL }}
@@ -74,6 +88,7 @@ jobs:
           fi
 
       - name: Conferir a planilha que será usada
+        if: steps.dec.outputs.seguir == '1'
         run: |
           if [ ! -f data/planilha.xlsx ]; then
             echo "❌ Não existe planilha. Envie uma pela aba 'Atualizar planilha' do app."
@@ -88,9 +103,11 @@ jobs:
           echo "✅ Usando data/planilha.xlsx (${SIZE_KB}KB)"
 
       - name: Rodar extração e montar o app
+        if: steps.dec.outputs.seguir == '1'
         run: python scripts/extract.py
 
       - name: Publicar docs/index.html atualizado
+        if: steps.dec.outputs.seguir == '1'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -100,7 +117,7 @@ jobs:
           git push
 
       - name: Avisar o app que a planilha foi processada
-        if: steps.fb.outputs.baixou == '1'
+        if: steps.dec.outputs.seguir == '1' && steps.fb.outputs.baixou == '1'
         continue-on-error: true
         env:
           FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SA_JSON }}

@@ -30,6 +30,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
+if exist "build\build_novo.yml" (
+    echo Atualizando o fluxo do GitHub - build.yml
+    move /Y "build\build_novo.yml" ".github\workflows\build.yml" >nul
+)
+
 echo Publicando no GitHub...
 git add .
 git commit -m "Atualizacao automatica local"
