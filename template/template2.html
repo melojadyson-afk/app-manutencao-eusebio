@@ -731,7 +731,12 @@ body.force-mobile .sidebar{ background:rgba(5,14,20,.94); box-shadow:0 -10px 28p
 <style id="mp-css">
 /* ===== Mapa operacional (2D/3D) ===== */
 #mapa-view-equipamentos .mp{--mpl:#1b3646;--mpp:#0a1c27;--mpp2:#0d2431}
-.mp-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px}
+.mp-kpis{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;align-items:stretch}
+.mp-kpis .mp-kpi{flex:1 1 150px}
+.mp-selh{flex:1.7 1 280px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(180deg,var(--mpp2),var(--mpp));border:1px solid var(--mpl);border-radius:12px;padding:10px 14px}
+.mp-selh b{display:block;font:700 17px 'Space Grotesk',sans-serif;line-height:1.2;color:var(--text)}
+.mp-selh small{display:block;margin-top:3px;font:500 11px 'IBM Plex Mono',monospace;color:var(--text-dimmer)}
+.mp-more{flex:0 0 auto;align-self:stretch;white-space:nowrap}
 .mp-kpi{background:linear-gradient(180deg,var(--mpp2),var(--mpp));border:1px solid var(--mpl);border-radius:12px;padding:10px 14px;position:relative;overflow:hidden}
 .mp-kpi::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c,#5eead4)}
 .mp-kpi span{font-size:10.5px;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:.7px}
@@ -745,8 +750,8 @@ body.force-mobile .sidebar{ background:rgba(5,14,20,.94); box-shadow:0 -10px 28p
 .mp-seg button.on{background:color-mix(in srgb,#5eead4 18%,transparent);color:#5eead4}
 #mp-q{background:var(--mpp);border:1px solid var(--mpl);border-radius:9px;color:var(--text);padding:8px 12px;width:200px;font:12px Inter}
 #mp-mez.off,#mp-edit.on{background:#4D6576;color:#fff}
-.mp-main{display:grid;grid-template-columns:1fr 380px;gap:12px;align-items:start}
-.mp-map{position:relative;border:1px solid var(--mpl);border-radius:14px;overflow:hidden;background:#04101a;height:clamp(540px,calc(100vh - 360px),860px)}
+.mp-main{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}
+.mp-map{position:relative;border:1px solid var(--mpl);border-radius:14px;overflow:hidden;background:#04101a;height:clamp(560px,calc(100vh - 250px),940px)}
 #mp-vp{position:absolute;inset:0;overflow:hidden;cursor:grab}#mp-vp.drag{cursor:grabbing}#mp-vp.edit{cursor:crosshair}
 #mp-stage{position:absolute;left:0;top:0;width:906px;height:1662px;transform-origin:0 0;transition:transform .55s cubic-bezier(.2,.7,.2,1)}
 #mp-stage.mp-nt{transition:none}
@@ -773,7 +778,7 @@ body.force-mobile .sidebar{ background:rgba(5,14,20,.94); box-shadow:0 -10px 28p
 #mp-hint{position:absolute;right:12px;bottom:12px;z-index:6;font-size:11px;color:var(--text-dimmer);background:#071823cc;border:1px solid var(--mpl);border-radius:8px;padding:6px 10px}
 #mp-tip{position:absolute;display:none;z-index:8;pointer-events:none;background:#071823f2;border:1px solid var(--mpl);border-radius:10px;padding:8px 11px;font-size:12px;line-height:1.45;color:#eaf6ff;max-width:250px}
 #mp-tip .tg{color:var(--text-dimmer);font-size:11px}
-#mp-panel{display:flex;flex-direction:column;gap:12px}
+#mp-panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px;align-items:start;scroll-margin-top:12px}
 .mp-card{background:linear-gradient(180deg,var(--mpp2),var(--mpp));border:1px solid var(--mpl);border-radius:14px;padding:14px}
 .mp-hd{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
 .mp-hd h2{margin:0;font:700 16px 'Space Grotesk',sans-serif;line-height:1.2;color:var(--text)}.mp-hd .tag{font:500 11px 'IBM Plex Mono',monospace;color:var(--text-dimmer);margin-top:3px}
@@ -1361,7 +1366,7 @@ body.force-mobile, body{ --c-ativ:#F59E0B; --c-dados:#38BDF8; }
     <!-- ============ MAPA ============ -->
     <div class="view" id="view-mapa" style="--tab-color:var(--c-mapa)">
       <div class="topbar">
-        <div><div class="pagetitle"><span class="dot"></span>Mapa</div><div class="pagesub" id="mapa-subtitle">Planta interativa 2D e 3D — status, saúde e incidência de corretivas dos ativos</div></div>
+        <div><div class="pagetitle"><span class="dot"></span>Mapa</div><div class="pagesub" id="mapa-subtitle">Planta 3D interativa — status, saúde e incidência de corretivas dos ativos</div></div>
         <select id="mp-layer" class="period-pill mono" style="border:1px solid color-mix(in srgb, var(--c-mapa) 35%, transparent);">
           <option value="equip">Equipamentos</option>
           <option value="quadros">Quadros elétricos</option>
@@ -1384,8 +1389,8 @@ body.force-mobile, body{ --c-ativ:#F59E0B; --c-dados:#38BDF8; }
             <div class="mp-seg" id="mp-mode"><button data-m="status" class="on">Status</button><button data-m="saude">Saúde do ativo</button><button data-m="corr">Corretivas</button></div>
             <div class="mp-seg" id="mp-floor"><button data-f="terreo" class="on">Térreo</button><button data-f="superior">Superior</button></div>
             <button class="btn" id="mp-mez" style="display:none">Mezanino: ligado</button>
-            <div class="mp-seg" id="mp-dim"><button data-d="2" class="on">2D</button><button data-d="3">3D</button></div>
-            <button class="btn" id="mp-edit" title="Cadastrar, mover ou remover itens na planta">Editar</button>
+            <div class="mp-seg" id="mp-dim" style="display:none"><button data-d="2" class="on">2D</button><button data-d="3">3D</button></div>
+            <button class="btn" id="mp-edit" title="Abre a planta 2D para cadastrar, mover ou remover itens e traçar linhas">Editar</button>
           </div>
           <div class="mp-main">
             <div class="mp-map" id="mp-map">
@@ -2474,7 +2479,7 @@ const MP=(function(){
   const ELE=/eletric|motor|inversor|quadro|disjuntor|rele|cabo|fiacao|sensor|painel|contator|fusivel|comando|clp|ihm|fonte|encoder|fim de curso|aterram|reator|resistencia|alarme|erro|placa/;
   const MEC=/rolamento|correia|corrente|engrenagem|eixo|mancal|vazamento|valvula|cilindro|mangueira|bomba|redutor|acoplamento|parafuso|solda|roda|esteira|cinta|cesto|porta|trava|lubrific|graxa|oleo|vedac|retentor|junta|pneum|tubulacao|tubo|trinca|desgaste|ajuste|regulagem|rolo|tela|chapa|garra|pinca|mola|fixac|suporte|faca|lamina/;
   const LAYERS={
-    equip:{n:'Equipamentos',t:'equip',sub:'Planta interativa 2D e 3D — status, saúde e incidência de corretivas dos ativos'},
+    equip:{n:'Equipamentos',t:'equip',sub:'Planta 3D interativa — status, saúde e incidência de corretivas dos ativos'},
     quadros:{n:'Quadros elétricos',t:'pts',color:'#ff8a3d',klass:'ELC',seed:'eletrico',one:'quadro',sub:'Quadros elétricos — posição na planta e vínculo com o TOM'},
     bombas:{n:'Bombas',t:'pts',color:'#38bdf8',klass:'PUM',seed:'bombas',one:'bomba',sub:'Bombas — posição na planta e vínculo com o TOM'},
     motores:{n:'Motores',t:'pts',color:'#c084fc',klass:null,seed:'motores',one:'motor',sub:'Motores — posição na planta e equipamento a que pertencem'},
@@ -2484,7 +2489,7 @@ const MP=(function(){
     bags:{n:'Linha de bags (trilho aéreo)',t:'line',color:'#f472b6',sub:'Trilho aéreo dos bags — trace o caminho por onde os bags são transportados'}};
   let layer='equip', pts={quadros:[],bombas:[],motores:[]}, lines=[], draw={pts:[]}, pendingPt=null, selByLayer={}, OSBY={};
   let pins={terreo:[],superior:[]}, items=[], K={}, yms=[], MED=500, floor='terreo', mode='status', dim3=false, mezOn=true, edit=false, sel=null, q='';
-  let S=1,TX=0,TY=0,needFit=true,areaIdx=1,p3=null,pending=null,vp,stage,plan,ready=false,maxCorr=1;
+  let want3d=false, S=1,TX=0,TY=0,needFit=true,areaIdx=1,p3=null,pending=null,vp,stage,plan,ready=false,maxCorr=1;
   const pc=i=>mode==='status'?stC[i.status]:mode==='saude'?hc(i.saude):(()=>{const r=i.corr/maxCorr;return r>.6?stC.crit:r>.25?stC.aten:stC.ok;})();
   const hit=i=>!q||(i.nome+' '+i.tag).toLowerCase().includes(q); const hitS=t=>!q||String(t).toLowerCase().includes(q);
 
@@ -2521,15 +2526,31 @@ const MP=(function(){
        corr:items.reduce((a,i)=>a+i.corr,0),mtbf:MED,mttr:(DATA.mtbf&&DATA.mtbf.alertas&&DATA.mtbf.alertas.mediana_mttr_h)||null};
   }
   function kpis(){ const L=LAYERS[layer]; let h='';
-    const K1=(c,l,v,sm)=>`<div class="mp-kpi" style="--c:${c}"><span>${l}</span><b>${v}</b><small>${sm}</small></div>`;
-    if(layer==='equip'){ h=K1('#5eead4','Ativos no mapa',K.n,'vinculados por TAG')+K1(stC.crit,'Críticos',K.crit,'MTBF baixo e ativo relevante')+K1(stC.aten,'Em atenção',K.aten,'abaixo da mediana')+K1(hc(K.saude),'Saúde mediana',K.saude,'índice de 0 a 100')
-        +`<div class="mp-kpi"><span>Corretivas (${yms.length} meses)</span><b>${K.corr.toLocaleString('pt-BR')}</b><small>MTBF mediano ${fmt(K.mtbf)} h</small></div>`; }
-    else if(L.t==='pts'){ const a=pts[layer], un=unplaced(layer);
-      h=K1(L.color,L.n,a.length,'pontos cadastrados')+K1('#5eead4','No térreo',a.filter(p=>p.floor==='terreo').length,'na planta baixa')+K1('#5eead4','No superior',a.filter(p=>p.floor==='superior').length,'no mezanino')
-        +K1('#4d8dff','Vinculados ao TOM',a.filter(p=>linkTags(p,layer).length).length,'com TAG identificada')+K1(un==null?'#5f7686':'#ffa629','Sem posição',un==null?'—':un,un==null?'sem lista no TOM':'no TOM, ainda fora da planta'); }
-    else { const a=lines.filter(l=>l.tipo===layer), tot=a.reduce((s2,l)=>s2+lenM(l.pts),0);
-      h=K1(L.color,L.n,a.length,'linhas cadastradas')+K1('#5eead4','Comprimento',fmt(tot,0)+' m','estimado pela escala da planta')+K1('#5eead4','Trechos',a.reduce((s2,l)=>s2+Math.max(0,l.pts.length-1),0),'segmentos desenhados')+K1('#5eead4','No térreo',a.filter(l=>l.floor==='terreo').length,'linhas')+K1('#5eead4','No superior',a.filter(l=>l.floor==='superior').length,'linhas'); }
-    $('mp-kpis').innerHTML=h; }
+    const T=(c,l,v,sm)=>`<div class="mp-kpi" style="--c:${c}"><span>${l}</span><b>${v}</b><small>${sm}</small></div>`;
+    const HD=(t,sub,badge,bc)=>`<div class="mp-selh"><div><b>${esc(t)}</b><small>${esc(sub)}</small></div>${badge?`<span class="mp-badge" style="--bc:${bc}">${esc(badge)}</span>`:''}</div>`;
+    const VAZIO=(t,sub)=>`<div class="mp-selh"><div><b>${esc(t)}</b><small>${esc(sub)}</small></div></div>`;
+    const MORE='<button class="btn mp-more" id="mp-more">Ver detalhes ↓</button>';
+    const piso=f=>f==='superior'?'Superior':'Térreo';
+    if(L.t==='equip'){ const i=items.find(x=>x.tag===sel);
+      if(!i) h=VAZIO('Nenhum equipamento selecionado','Clique em uma máquina no mapa para ver os dados dela aqui');
+      else h=HD(i.nome,i.tag+(i.classe?' · classe '+i.classe:'')+' · '+piso(i.floor),i.status==='crit'?(i.nivel||'Crítico'):stT[i.status],stC[i.status])
+        +T(hc(i.saude),'Saúde do ativo',i.saude,'Operacional '+(i.op!=null?i.op:'—')+' · Elétrico '+i.ele+' · Mecânico '+i.mec)
+        +T('#5eead4','MTBF',i.mtbf!=null?fmt(i.mtbf)+' h':'—','mediana '+fmt(K.mtbf)+' h')
+        +T('#5eead4','MTTR',i.mttr!=null?fmt(i.mttr,2)+' h':'—','mediana '+(K.mttr!=null?fmt(K.mttr,2)+' h':'—'))
+        +T(i.corr?stC.aten:stC.ok,'Corretivas ('+yms.length+' meses)',i.corr,'parada acumulada '+fmt(i.hp)+' h')+MORE; }
+    else if(L.t==='pts'){ const p=pts[layer].find(x=>x.id===sel);
+      if(!p) h=VAZIO(L.n,pts[layer].length+' pontos cadastrados · clique em um ponto no mapa para ver os dados aqui');
+      else { const tags=linkTags(p,layer), eq=tags.map(t=>(DATA.equipment||[]).find(e=>e.tag===t)).filter(Boolean)[0];
+        h=HD(p.nome,(p.num!=null&&p.num!==''?'Nº '+p.num+' · ':'')+piso(p.floor),L.one,L.color)
+          +T('#5eead4','Piso',piso(p.floor),'posição na planta')
+          +T('#4d8dff','Vínculo com o TOM',tags.length?esc(tags[0]):'—',eq?esc(eq.desc):'sem equipamento vinculado')
+          +T(L.color,L.n,pts[layer].length,'pontos cadastrados')+MORE; } }
+    else { const l0=lines.find(x=>x.id===sel&&x.tipo===layer);
+      if(!l0) h=VAZIO(L.n,lines.filter(l=>l.tipo===layer).length+' linhas cadastradas · clique em uma linha no mapa para ver os dados aqui');
+      else h=HD(l0.nome,piso(l0.floor)+' · '+l0.pts.length+' pontos',L.n.replace('Linha de ',''),L.color)
+        +T(L.color,'Comprimento',fmt(lenM(l0.pts),0)+' m','estimado pela escala da planta')
+        +T('#5eead4','Trechos',Math.max(0,l0.pts.length-1),'segmentos desenhados')+T('#5eead4','Piso',piso(l0.floor),'onde a linha está')+MORE; }
+    const box=$('mp-kpis'); box.innerHTML=h; const mb=$('mp-more'); if(mb) mb.onclick=()=>$('mp-panel').scrollIntoView({behavior:'smooth',block:'start'}); }
   /* ---------- 2D ---------- */
   function apply(){ stage.style.transform=`translate(${TX}px,${TY}px) scale(${S})`; stage.style.setProperty('--inv',(1/S).toFixed(3)); }
   function fitRect(r,anim){ const w=vp.clientWidth,h=vp.clientHeight; if(!w||!h){needFit=true;return;} needFit=false;
@@ -2660,7 +2681,7 @@ const MP=(function(){
       if(center){ const xs=l.pts.map(a=>a[0]),ys=l.pts.map(a=>a[1]), cx=(Math.min(...xs)+Math.max(...xs))/2, cy=(Math.min(...ys)+Math.max(...ys))/2;
         if(dim3&&p3){ p3.focusAt(cx,cy,l.floor,2.2); } else { const pad=6; fitRect([Math.min(...xs)-pad,Math.min(...ys)-pad,Math.max(...xs)+pad,Math.max(...ys)+pad],true); } } }
     if(!fromFrame&&!dim3) document.querySelectorAll('#mp-chips .chip').forEach(x=>x.classList.remove('on'));
-    drawPins(); panel(); }
+    kpis(); drawPins(); panel(); }
   function setLayer(k){
     selByLayer[layer]=sel; draw={pts:[]}; layer=k; const L=LAYERS[k];
     sel=selByLayer[k]!==undefined?selByLayer[k]:(k==='equip'?((items.find(i=>i.status==='crit')||items[0]||{}).tag||null):null);
@@ -2697,7 +2718,7 @@ const MP=(function(){
   function setDim(d){ dim3=(d==='3'); document.querySelectorAll('#mp-dim button').forEach(b=>b.classList.toggle('on',b.dataset.d===d));
     $('mp-3d').style.display=dim3?'block':'none'; vp.style.visibility=dim3?'hidden':'visible'; $('mp-zoom2d').style.display=dim3?'none':'flex'; $('mp-zoom3d').style.display=dim3?'flex':'none';
     $('mp-floor').style.display=dim3?'none':'inline-flex'; $('mp-mez').style.display=dim3?'inline-block':'none'; hint(); drawBar();
-    if(dim3){ ensure3d(); p3.setMez(mezOn); sync3d(); p3.view(7); } }
+    if(dim3){ ensure3d(); p3.setItems(build3d()); p3.setMez(mezOn); sync3d(); p3.view(7); } }
   function refresh(){ derive(); kpis(); if(p3) p3.setItems(build3d()); drawPins(); panel(); }
   /* ---------- init ---------- */
   async function init(){
@@ -2724,7 +2745,8 @@ const MP=(function(){
     document.querySelectorAll('#mp-floor button').forEach(b=>b.onclick=()=>{setFloor(b.dataset.f); fitRect(AREAS[b.dataset.f==='superior'?9:1].r,true);});
     document.querySelectorAll('#mp-dim button').forEach(b=>b.onclick=()=>setDim(b.dataset.d));
     $('mp-mez').onclick=()=>{mezOn=!mezOn; const b=$('mp-mez'); b.textContent='Mezanino: '+(mezOn?'ligado':'desligado'); b.classList.toggle('off',!mezOn); if(p3) p3.setMez(mezOn);};
-    $('mp-edit').onclick=()=>{edit=!edit; if(!edit) draw={pts:[]}; $('mp-edit').classList.toggle('on',edit); vp.classList.toggle('edit',edit); hint(); panel(); drawLines();};
+    $('mp-edit').onclick=()=>{edit=!edit; if(!edit) draw={pts:[]}; $('mp-edit').classList.toggle('on',edit); $('mp-edit').textContent=edit?'Concluir edição':'Editar'; vp.classList.toggle('edit',edit);
+      setDim(edit?'2':'3'); if(edit) fitRect(AREAS[areaIdx].r,false); hint(); panel(); drawLines(); };
     $('mp-layer').onchange=e=>setLayer(e.target.value);
     $('mp-draw-undo').onclick=()=>{draw.pts.pop(); drawLines();}; $('mp-draw-x').onclick=()=>{draw={pts:[]}; drawLines();};
     $('mp-draw-ok').onclick=()=>{ if(draw.pts.length<2) return; $('mp-ln-nome').value=''; $('mp-ln-obs').value=''; $('mp-ln-sub').textContent=LAYERS[layer].n+' · '+fmt(lenM(draw.pts),0)+' m'; $('mp-ln-modal').classList.add('active'); $('mp-ln-nome').focus(); };
@@ -2763,8 +2785,8 @@ const MP=(function(){
       pts[layer].push(p); await saveKV('mapa_pts_'+layer,pts[layer]); $('mp-pt-modal').classList.remove('active'); pendingPt=null; sel=p.id; kpis(); drawPins(); panel(); };
     $('pin-cancel').onclick=()=>{$('pin-modal').classList.remove('active'); pending=null;};
     $('pin-confirm').onclick=async()=>{ const t=sel2.value; if(!t||!pending) return; pins[floor].push({x:pending.x,y:pending.y,tag:t}); await saveKV('equipment_pins_'+floor,pins[floor]); $('pin-modal').classList.remove('active'); pending=null; sel=t; refresh(); };
-    new ResizeObserver(()=>{ if(dim3&&p3) p3.render(); else if(needFit||true){ if(needFit) fitRect(AREAS[areaIdx].r,false); } }).observe($('mp-map'));
-    setFloor('terreo'); setLayer('equip'); fitRect(AREAS[1].r,false);
+    new ResizeObserver(()=>{ if(want3d&&$('mp-map').clientWidth>0){ want3d=false; setDim('3'); return; } if(dim3&&p3) p3.render(); else if(needFit||true){ if(needFit) fitRect(AREAS[areaIdx].r,false); } }).observe($('mp-map'));
+    setFloor('terreo'); setLayer('equip'); fitRect(AREAS[1].r,false); want3d=true;
   }
   return {init};
 })();
@@ -2774,7 +2796,7 @@ function renderMapa(){ Promise.resolve(MP.init()).catch(e=>console.error('[mapa]
 
 
 /* ===================== CALENDÁRIO ===================== */
-const EVENT_COLORS = {'Preventiva':PAL.mapa,'Corretiva':PAL.amber,'Visita':PAL.os,'Serviço de Terceiros':PAL.compras,'Auditoria':PAL.equip,'Treinamento':PAL.pessoas,'Reunião':PAL.agenda,'Outro':PAL.gray};
+const EVENT_COLORS = {'Atividade':'#F59E0B','Preventiva':PAL.mapa,'Corretiva':PAL.amber,'Visita':PAL.os,'Serviço de Terceiros':PAL.compras,'Auditoria':PAL.equip,'Treinamento':PAL.pessoas,'Reunião':PAL.agenda,'Outro':PAL.gray};
 function calPad(n){ return n<10?'0'+n:''+n; }
 let calState = {date:new Date()};
 
@@ -2795,8 +2817,13 @@ function renderCalendario(){
   document.getElementById('cal-grid-head').innerHTML = weekDays.map(d=>`<div>${d}</div>`).join('');
   document.getElementById('cal-legend').innerHTML = Object.entries(EVENT_COLORS).map(([k,c])=>`<span><span class="legend-dot" style="background:${c}"></span>${k}</span>`).join('');
 
-  let events = [];
+  let events = [], atividades = [];
   const evCol = ()=>window.__col('agenda_eventos');
+  const atCol = ()=>window.__col('atividades');
+  const ATIV_ST = {a_fazer:'A fazer', andamento:'Em andamento', concluida:'Concluída'};
+  const hojeLocal = ()=>{ const d=new Date(); return d.getFullYear()+'-'+calPad(d.getMonth()+1)+'-'+calPad(d.getDate()); };
+  const ativDoDia = ds=>atividades.filter(a=>a.prazo===ds);
+  const escA = t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const evAviso = e=>window.__kvAviso && window.__kvAviso('Agenda: não foi possível gravar ('+(e.code||e.message)+')');
 
   function draw(){
@@ -2812,9 +2839,11 @@ function renderCalendario(){
     document.getElementById('cal-grid').innerHTML = cells.map(c=>{
       if(c.other) return `<div class="cal-cell other-month"><div class="cal-daynum">${c.dnum}</div></div>`;
       const osHere=osByDate[c.dateStr]||[], shHere=sheetByDate[c.dateStr]||[], evHere=events.filter(e=>e.date===c.dateStr);
-      const count=osHere.length+shHere.length+evHere.length; total+=count;
+      const atHere=ativDoDia(c.dateStr);
+      const count=osHere.length+shHere.length+evHere.length+atHere.length; total+=count;
       const tc={}; osHere.forEach(o=>{const t=o.tipo==='Corretiva'?'Corretiva':'Preventiva'; tc[t]=(tc[t]||0)+1;});
       evHere.forEach(e=>tc[e.tipo]=(tc[e.tipo]||0)+1); shHere.forEach(()=>tc['Outro']=(tc['Outro']||0)+1);
+      atHere.forEach(()=>tc['Atividade']=(tc['Atividade']||0)+1);
       const dots = Object.keys(tc).map(t=>`<span class="cal-dot" style="background:${EVENT_COLORS[t]||PAL.gray}"></span>`).join('');
       const isToday = c.dateStr===todayStr;
       return `<div class="cal-cell ${isToday?'today':''}" data-date="${c.dateStr}"><div class="cal-daynum">${c.dnum}</div><div class="cal-dots">${dots}</div>${count>0?`<span class="cal-count-pill">${count} ativ.</span>`:''}</div>`;
@@ -2822,16 +2851,23 @@ function renderCalendario(){
     document.getElementById('cal-count-pill').textContent = total+' EVENTOS NO MÊS';
     document.getElementById('nav-cal-count').textContent = total;
     document.querySelectorAll('.cal-cell[data-date]').forEach(el=>{
-      el.addEventListener('click', ()=>openDayModal(el.dataset.date, osByDate[el.dataset.date]||[], shEvents=sheetByDate[el.dataset.date]||[], events.filter(e=>e.date===el.dataset.date)));
+      el.addEventListener('click', ()=>openDayModal(el.dataset.date, osByDate[el.dataset.date]||[], sheetByDate[el.dataset.date]||[], events.filter(e=>e.date===el.dataset.date), ativDoDia(el.dataset.date)));
     });
   }
-  function openDayModal(dateStr, osHere, shHere, evHere){
+  function openDayModal(dateStr, osHere, shHere, evHere, atHere){
+    atHere=atHere||[];
     document.getElementById('day-modal-title').textContent = dateStr.split('-').reverse().join('/');
     document.getElementById('day-modal').dataset.currentDate = dateStr;
     const osHtml = osHere.map(o=>{ const c=o.tipo==='Corretiva'?PAL.amber:PAL.mapa; return `<div class="day-event-item"><span class="ev-tag" style="background:${c}22; color:${c};">TOM · ${o.tipo}</span><div class="ev-title">${o.equipamento_desc||o.desc||('OS '+o.ot)}</div><div class="ev-meta">OT ${o.ot} · ${o.status||'—'} · ${o.atribuido_a||'sem atribuição'}</div></div>`; }).join('');
     const shHtml = shHere.map(a=>`<div class="day-event-item"><span class="ev-tag" style="background:${PAL.gray}22; color:${PAL.gray};">Agenda</span><div class="ev-title">${a.atividade||'—'}</div><div class="ev-meta">${a.equipamento||''} ${a.responsavel?'· '+a.responsavel:''}</div></div>`).join('');
     const evHtml = evHere.map(e=>{ const c=EVENT_COLORS[e.tipo]||PAL.gray; return `<div class="day-event-item"><span class="ev-tag" style="background:${c}22; color:${c};">${e.tipo}</span><div class="ev-remove" data-id="${e.id}">&times;</div><div class="ev-title">${e.titulo}</div><div class="ev-meta">${e.horario?e.horario+' · ':''}${e.responsavel||'sem responsável definido'}</div></div>`; }).join('');
-    document.getElementById('day-events-list').innerHTML = (osHtml+shHtml+evHtml) || `<div class="empty">Nenhuma atividade neste dia</div>`;
+    const hj=hojeLocal(), cA=EVENT_COLORS['Atividade'];
+    const atHtml = atHere.map(a=>{ const feita=a.status==='concluida', atr=!feita&&a.prazo&&a.prazo<hj;
+      const meta=[a.equip,a.resp,a.prio?('prioridade '+a.prio):''].filter(Boolean).map(escA).join(' · ');
+      return `<div class="day-event-item"${feita?' style="opacity:.6"':''}><span class="ev-tag" style="background:${cA}22; color:${cA};">Atividade · ${ATIV_ST[a.status||'a_fazer']||'A fazer'}</span>${atr?' <span class="ev-tag" style="background:#ff4d5a22; color:#ff4d5a;">Atrasada</span>':''}<div class="ev-title"${feita?' style="text-decoration:line-through"':''}>${escA(a.titulo)}</div><div class="ev-meta">${meta||'sem equipamento ou responsável'}</div></div>`; }).join('')
+      ;
+    const atNota = atHere.length?`<div style="margin-top:10px;font-size:11.5px;color:var(--text-dimmer)">Para editar ou mover uma atividade, use a aba Atividades.</div>`:'';
+    document.getElementById('day-events-list').innerHTML = (atHtml+osHtml+shHtml+evHtml)?(atHtml+osHtml+shHtml+evHtml+atNota):`<div class="empty">Nenhuma atividade neste dia</div>`;
     document.getElementById('day-modal').classList.add('active');
     document.querySelectorAll('#day-events-list .ev-remove').forEach(btn=>{
       btn.addEventListener('click', async ()=>{ try{ await evCol().doc(btn.dataset.id).delete(); }catch(e){ evAviso(e); } document.getElementById('day-modal').classList.remove('active'); });
@@ -2856,7 +2892,10 @@ function renderCalendario(){
     document.getElementById('event-modal').classList.remove('active');
   };
   draw();
-  window.__appReady.then(()=>{ evCol().onSnapshot(s=>{ events=s.docs.map(d=>({...d.data(), id:d.id})); draw(); }, evAviso); });
+  window.__appReady.then(()=>{
+    evCol().onSnapshot(s=>{ events=s.docs.map(d=>({...d.data(), id:d.id})); draw(); }, evAviso);
+    atCol().onSnapshot(s=>{ atividades=s.docs.map(d=>({...d.data(), id:d.id})).filter(a=>a.prazo); draw(); }, e=>window.__kvAviso&&window.__kvAviso('Agenda: sem acesso às atividades ('+(e.code||e.message)+')'));
+  });
 }
 
 

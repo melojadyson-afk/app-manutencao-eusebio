@@ -4,6 +4,7 @@ remonta o arquivo e grava em data/planilha.xlsx.
 
 Uso:
   python scripts/baixar_firestore.py baixar   -> baixa e valida; escreve baixou=1 em $GITHUB_OUTPUT se deu certo
+                                                 (com --so-novos, ignora a planilha que já foi processada)
   python scripts/baixar_firestore.py marcar   -> avisa no banco que essa versão já foi processada
 
 Credencial: variável de ambiente FIREBASE_SA_JSON (conteúdo do JSON da conta de serviço,
@@ -47,6 +48,9 @@ def baixar():
         return 0
     meta = m.to_dict()
     n, esperado = int(meta['partes']), meta['sha256']
+    if '--so-novos' in sys.argv and meta.get('processadoSha') == esperado:
+        print('Sem planilha nova no app (a última enviada já foi processada).')
+        return 0
     print(f"Planilha no banco: {meta.get('nome')} ({meta.get('tamanho')} bytes, {n} partes), enviada por {meta.get('enviadoPor')}")
     buf = bytearray()
     for i in range(n):

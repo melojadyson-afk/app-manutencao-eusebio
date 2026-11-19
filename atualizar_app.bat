@@ -8,6 +8,7 @@ for /f "delims=" %%F in ('powershell -NoProfile -Command "Get-ChildItem -Path 'C
 if "%PLANILHA_PATH%"=="" (
     echo Nao encontrei nenhuma planilha com "App Manuten" no caminho, dentro de C:\Users\mello\ELIS
     echo Abortando.
+    pause
     exit /b 1
 )
 
@@ -25,6 +26,7 @@ echo Rodando extracao...
 python scripts\extract.py
 if errorlevel 1 (
     echo Falha na extracao. Abortando.
+    pause
     exit /b 1
 )
 
@@ -35,8 +37,10 @@ echo Sincronizando com o GitHub...
 git pull --rebase -X theirs origin main
 if errorlevel 1 (
     echo Falha ao sincronizar com o GitHub. Abortando.
+    pause
     exit /b 1
 )
 git push
 
 echo Concluido.
+pause
