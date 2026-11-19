@@ -982,6 +982,46 @@ print(f"Diagnóstico OS — corretivas (ano {_ano_atual}): {total_corr6} (exclu�
       f"causas: {[c['causa'] for c in causas_rows[:5]]} | "
       f"MTTR geral: {out2['os_diagnostico']['mttr_geral_h']}h (cobertura {mttr_cobertura}/{total_corr6})")
 
+
+def _ler_winwash(path):
+    """Lê a aba do WinWash tolerando mudanças no layout: nome da aba, linha do
+    cabeçalho (não precisa ser a primeira) e variações de nome das colunas
+    (Data / DATA / Date, Tempo de produção, Peso). Devolve um DataFrame com as
+    colunas 'Data', 'Tempo de produção' e, se existir, 'Peso'."""
+    nome = find_sheet(path, 'WinWash Rapport', contains_fallback='winwash')
+    bruto = pd.read_excel(path, sheet_name=nome, header=None)
+    def _eh_data(x):
+        n = _norm_colname(x)
+        return n in ('data', 'date', 'dia') or n.startswith('data ') or n.startswith('data_') or n.startswith('date ')
+    lin = None
+    for i in range(min(60, len(bruto))):
+        if any(isinstance(v, str) and _eh_data(v) for v in bruto.iloc[i].tolist()):
+            lin = i
+            break
+    if lin is None:
+        raise KeyError(f"Coluna de data não encontrada na aba '{nome}'. Primeiras linhas: {bruto.head(5).values.tolist()}")
+    cab = [str(c).strip() if pd.notna(c) else f'col{j}' for j, c in enumerate(bruto.iloc[lin].tolist())]
+    ww = bruto.iloc[lin + 1:].copy()
+    ww.columns = cab
+    ww = ww.reset_index(drop=True)
+    ren = {}
+    for c in cab:
+        n = _norm_colname(c)
+        if 'Data' not in ren.values() and _eh_data(c):
+            ren[c] = 'Data'
+        elif 'Tempo de produção' not in ren.values() and ('tempo' in n and 'produ' in n):
+            ren[c] = 'Tempo de produção'
+        elif 'Peso' not in ren.values() and (n == 'peso' or n.startswith('peso ') or n.startswith('peso(') or n == 'weight'):
+            ren[c] = 'Peso'
+    if 'Tempo de produção' not in ren.values():
+        for c in cab:
+            if 'produ' in _norm_colname(c) and c not in ren:
+                ren[c] = 'Tempo de produção'
+                break
+    ww = ww.rename(columns=ren)
+    ww = ww.loc[:, ~ww.columns.duplicated()]
+    return ww
+
 # ================= MTBF (Confiabilidade) =================
 # Usa a aba "WinWash Rapport" (relatório diário de produção da lavanderia —
 # lavagem, secagem e transporte das cargas) para estimar o "tempo total do
@@ -1004,10 +1044,18 @@ print(f"Diagnóstico OS — corretivas (ano {_ano_atual}): {total_corr6} (exclu�
 # da Análise de Criticidade) — mais falhas agrupadas, número mais estável.
 out2['mtbf'] = None
 try:
-    ww = pd.read_excel(F, sheet_name='WinWash Rapport')
-    ww = ww.dropna(subset=['Data']).copy()
-    ww['Data'] = pd.to_datetime(ww['Data'], errors='coerce')
-    ww = ww.dropna(subset=['Data'])
+    base_periodo = 'winwash'
+    try:
+        ww = _ler_winwash(F)
+        ww = ww.dropna(subset=['Data']).copy()
+        ww['Data'] = pd.to_datetime(ww['Data'], errors='coerce', dayfirst=True)
+        ww = ww.dropna(subset=['Data'])
+        if ww.empty or 'Tempo de produção' not in ww.columns:
+            raise ValueError('aba sem datas válidas ou sem a coluna de tempo de produção')
+    except Exception as e_ww:
+        print('AVISO: WinWash Rapport indisponível (' + repr(e_ww) + '); MTBF calculado com horas corridas dos últimos 90 dias.')
+        ww = None
+        base_periodo = 'calendario'
 
     def _dur_para_horas(v):
         if isinstance(v, datetime.time):
@@ -1016,20 +1064,34 @@ try:
             return v.total_seconds()/3600
         if isinstance(v, (int, float)) and pd.notna(v):
             return float(v) * 24
+        if isinstance(v, str):
+            partes = v.strip().split(':')
+            try:
+                if len(partes) >= 2:
+                    return float(partes[0]) + float(partes[1])/60 + (float(partes[2])/3600 if len(partes) > 2 else 0.0)
+            except ValueError:
+                return 0.0
         return 0.0
 
-    ww['_horas_producao'] = ww['Tempo de produção'].apply(_dur_para_horas)
-    horas_operacao = float(ww['_horas_producao'].sum())
-    dt_min, dt_max = ww['Data'].min(), ww['Data'].max()
-    dias_periodo = int(ww['Data'].nunique())
+    if ww is not None:
+        ww['_horas_producao'] = ww['Tempo de produção'].apply(_dur_para_horas)
+        horas_operacao = float(ww['_horas_producao'].sum())
+        dt_min, dt_max = ww['Data'].min(), ww['Data'].max()
+        dias_periodo = int(ww['Data'].nunique())
+    else:
+        dt_max = min(corr6['data_prog'].max(), pd.Timestamp.today().normalize())
+        dt_min = dt_max - pd.Timedelta(days=89)
+        dias_periodo = 90
+        horas_operacao = float(dias_periodo * 24)
 
     mtbf_periodo = {
         'min': dt_min.strftime('%Y-%m-%d'), 'max': dt_max.strftime('%Y-%m-%d'),
         'dias': dias_periodo,
         'horas_operacao': round(horas_operacao, 1),
         'horas_calendario': dias_periodo * 24,
+        'base': base_periodo,
         'media_h_dia': round(horas_operacao/dias_periodo, 2) if dias_periodo else None,
-        'producao_kg_total': round(float(ww['Peso'].sum()), 1) if 'Peso' in ww.columns else None,
+        'producao_kg_total': round(float(pd.to_numeric(ww['Peso'], errors='coerce').sum()), 1) if (ww is not None and 'Peso' in ww.columns) else None,
     }
 
     corr_periodo = corr6[(corr6['data_prog'] >= dt_min) & (corr6['data_prog'] <= dt_max)].copy()
