@@ -36,6 +36,7 @@ if exist "build\build_novo.yml" (
 )
 
 echo Publicando no GitHub...
+git config gc.auto 0
 git add .
 git commit -m "Atualizacao automatica local"
 echo Sincronizando com o GitHub...
